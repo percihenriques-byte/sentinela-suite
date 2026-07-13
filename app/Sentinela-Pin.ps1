@@ -70,9 +70,9 @@ function Test-SentinelaPin {
     $tentativa = Get-SentinelaPinHash -Pin $Pin -Salt $cfg.pinSalt
     $ok = ($tentativa -eq $cfg.pinHash)
     if ($ok) {
-        Write-SentinelaLog 'PIN correto — acesso do responsavel liberado.' 'INFO'
+        Write-SentinelaLog 'PIN correto - acesso do responsavel liberado.' 'INFO'
     } else {
-        Write-SentinelaLog 'PIN incorreto — tentativa de desativar registrada.' 'WARN'
+        Write-SentinelaLog 'PIN incorreto - tentativa de desativar registrada.' 'WARN'
     }
     return $ok
 }
