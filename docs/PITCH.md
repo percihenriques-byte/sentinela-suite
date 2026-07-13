@@ -106,6 +106,8 @@ Começa **gratuito e de código aberto** (ganha confiança e adoção). Receita 
 - 🔜 **Painel na nuvem** — acompanhar vários aparelhos, relatórios para os pais.
 - ✅ **IA local anti-evasão** — classificador que roda na máquina, entende tentativas de
   driblar (leetspeak, letras espaçadas) e o contexto educativo (neste projeto).
+- ✅ **Extensão travada por política** — force-install (`ExtensionInstallForcelist`) para
+  Edge/Chrome: a criança não consegue desativar (mesmo mecanismo das escolas).
 - 🔜 **IA na nuvem opcional** — modelo maior para categorização ainda mais fina no painel.
 - 🔜 **App de roteador** — proteção para a casa inteira num só lugar.
 
