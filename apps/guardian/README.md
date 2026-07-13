@@ -63,6 +63,52 @@ mexer nas configurações) que hoje deixa o SafeSearch comum inútil.
 
 ---
 
-## Status
+## Estrutura do projeto
 
-Em construção ativa. Veja [`docs/PLANO.md`](docs/PLANO.md) para o roteiro.
+```
+sentinela/
+├── demo/
+│   └── index.html              Demo web navegável (o pitch visual)
+├── app/
+│   ├── INSTALAR.bat            ← duplo clique para instalar (leigos)
+│   ├── Instalar-Sentinela.ps1  Instalador: eleva admin, PIN, guardião, ativa
+│   ├── Desinstalar-Sentinela.ps1  Remove tudo (exige PIN)
+│   ├── Ativar-Sentinela.ps1    Liga a proteção
+│   ├── Desativar-Sentinela.ps1 Desliga (exige PIN)
+│   ├── Sentinela-Status.ps1    Mostra o estado atual
+│   ├── Sentinela-Core.ps1      Núcleo: DNS de filtro + bloco hosts
+│   ├── Sentinela-Pin.ps1       Trava por PIN (SHA-256 + salt)
+│   ├── Sentinela-Guardiao.ps1  Reaplica a proteção se adulterada
+│   ├── gui/
+│   │   └── Sentinela-Painel.ps1   Painel gráfico do responsável
+│   └── Testes/
+│       └── Executar-Testes.ps1    21 testes automatizados (simulação)
+└── docs/
+    ├── COMO-INSTALAR.md        Guia passo a passo para leigos
+    ├── PITCH.md                Material de apresentação (SEBRAE)
+    └── PLANO.md                Roteiro de construção
+```
+
+## Como testar sem alterar nada na máquina
+
+Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporária e
+**não** tocam no DNS/hosts reais. Rode a suíte de testes:
+
+```powershell
+.\app\Testes\Executar-Testes.ps1
+```
+
+Saída esperada: `RESULTADO: 21 passaram, 0 falharam`.
+
+Para experimentar o instalador em simulação:
+
+```powershell
+.\app\Instalar-Sentinela.ps1 -Simular
+.\app\Sentinela-Status.ps1 -Simular
+```
+
+## Instalação de verdade
+
+Veja o guia passo a passo em [`docs/COMO-INSTALAR.md`](docs/COMO-INSTALAR.md).
+Resumo: dê dois cliques em `app/INSTALAR.bat`, clique **SIM** no aviso do Windows,
+crie o PIN. Pronto.
