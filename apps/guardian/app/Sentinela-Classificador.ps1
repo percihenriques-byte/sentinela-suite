@@ -58,6 +58,7 @@ $script:CATEGORIAS = @(
         'sexo'=0.5;'nudez'=0.5;'pelada'=0.5;'pelado'=0.5;'+18'=0.5;'nu'=0.35;'seios'=0.35 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
+        'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
         'violencia'=0.5;'sangue'=0.35;'briga'=0.35;'assassinato'=0.5;'massacre'=0.5 } },
     @{ Nome='Autolesao e suicidio'; Padrao=$true; SemReducao=$true; Termos=@{
         'suicidio'=1.0;'como se matar'=1.0;'automutilacao'=1.0;'me cortar'=1.0;'tirar a propria vida'=1.0;
