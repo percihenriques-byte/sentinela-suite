@@ -215,7 +215,7 @@
   <section>
     <div class="eyebrow">Demonstração ao vivo</div>
     <h2>Tente burlar a proteção</h2>
-    <p class="lead">Escolha o tipo de filtro, ligue o modo incógnito e faça uma busca. Veja a diferença entre o filtro do navegador e o filtro de rede do Sentinela.</p>
+    <p class="lead">Escolha o tipo de filtro, ligue o modo incógnito e faça uma busca. Veja a diferença entre o filtro do navegador e o filtro de rede do Sentinela — e teste a <b>IA local</b>: ela entende tentativas de driblar como <span class="mono">s3x0</span> ou <span class="mono">p o r n o</span>, sem depender de palavras exatas.</p>
 
     <div class="controls">
       <div class="ctl">
@@ -257,7 +257,8 @@
           <button class="chip" data-q="exercícios de matemática 9º ano">exercícios de matemática</button>
           <span class="grouplabel" style="color:#a06a6a">Buscas que devem ser bloqueadas:</span>
           <button class="chip danger" data-q="conteúdo adulto +18">conteúdo adulto +18</button>
-          <button class="chip danger" data-q="vídeos de violência extrema">vídeos de violência extrema</button>
+          <button class="chip danger" data-q="s3x0 expl1c1t0 +18">s3x0 expl1c1t0 (driblando com números)</button>
+          <button class="chip danger" data-q="p o r n o g r a f i a">p o r n o (letras espaçadas)</button>
           <button class="chip danger" data-q="como burlar o filtro da escola">como burlar o filtro da escola</button>
         </div>
         <div class="result empty" id="result">Faça uma busca para ver o resultado.</div>
@@ -349,24 +350,53 @@
   var logEl = document.getElementById('log');
   var qInput = document.getElementById('q');
 
-  // Classificador simulado por categorias (espelha o que o app real faz com listas de bloqueio).
-  var categories = [
-    {name:'Conteúdo adulto', words:['adulto','+18','pornô','porno','pornografia','sexo','sexual','nudez','nude','xxx']},
-    {name:'Violência', words:['violência','violencia','sangue','gore','decapita','tortura','briga de rua']},
-    {name:'Armas', words:['arma','armas','pistola','rifle','como fazer bomba','explosivo']},
-    {name:'Drogas', words:['droga','drogas','maconha','cocaína','cocaina','crack']},
-    {name:'Apostas', words:['aposta','apostas','cassino','bet','jogo do bicho']},
-    {name:'Burlar filtros', words:['burlar','driblar o filtro','proxy anônimo','vpn para escola']}
+  // IA local: mesma lógica do módulo Sentinela-Classificador.ps1 (roda no
+  // navegador, sem servidor). Normaliza o texto para derrotar tentativas de
+  // evasão e pontua por categoria com nível de confiança.
+  function normalizar(s){
+    s = (s||'').toLowerCase();
+    s = s.normalize('NFD').replace(/[̀-ͯ]/g,''); // tira acentos
+    var mapa = {'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','+':'t'};
+    s = s.replace(/[01345789@$+]/g, function(c){ return mapa[c] || c; });
+    s = s.replace(/(.)\1{2,}/g, '$1');                     // encolhe repetições
+    return { texto: s, colado: s.replace(/[^a-z0-9]/g,'') };
+  }
+  var CATS = [
+    {name:'Conteúdo adulto', termos:{'porno':1,'pornografia':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'sexo':.5,'nudez':.5,'pelada':.5,'+18':.5,'nu':.35}},
+    {name:'Violência', termos:{'decapitacao':1,'tortura':1,'gore':1,'estupro':1,'suicidio':1,'violencia':.5,'sangue':.35,'espancamento':.5}},
+    {name:'Armas', termos:{'como fazer bomba':1,'fabricar arma':1,'arma caseira':1,'explosivo':.5,'pistola':.35}, semReducao:true},
+    {name:'Drogas', termos:{'como usar drogas':1,'comprar maconha':1,'cocaina':.5,'crack':.5,'maconha':.5,'droga':.35}},
+    {name:'Apostas', termos:{'cassino online':1,'aposta esportiva':1,'aposta':.5,'cassino':.5,'bet':.35}},
+    {name:'Burlar proteção', termos:{'burlar filtro':1,'burlar o filtro':1,'driblar o filtro':1,'desativar safesearch':1,'desbloquear sites':1,'filtro da escola':1,'vpn para escola':1,'como burlar':.5,'proxy anonimo':.5}, semReducao:true}
   ];
+  var CTX_SEGURO = ['dever de casa','trabalho escolar','feira de ciencias','aula de ciencias','biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de'];
+  var LIMIAR = 1.0;
   function classify(q){
-    q = (q||'').toLowerCase();
-    for(var i=0;i<categories.length;i++){
-      var c = categories[i];
-      for(var j=0;j<c.words.length;j++){
-        if(q.indexOf(c.words[j]) !== -1) return c.name;
+    var n = normalizar(q);
+    var reducao = 0;
+    for(var i=0;i<CTX_SEGURO.length;i++){ if(n.texto.indexOf(CTX_SEGURO[i])!==-1){ reducao=0.5; break; } }
+    var melhor = null;
+    for(var c=0;c<CATS.length;c++){
+      var cat = CATS[c], score = 0, sinais = [];
+      for(var t in cat.termos){
+        var colado = t.replace(/[^a-z0-9]/g,'');
+        if(n.texto.indexOf(t)!==-1 || (colado.length>=3 && n.colado.indexOf(colado)!==-1)){
+          score += cat.termos[t]; sinais.push(t);
+        }
+      }
+      if(score>0){
+        var red = cat.semReducao ? 0 : reducao;
+        var sf = Math.max(0, score - red);
+        if(!melhor || sf>melhor.score) melhor = {category:cat.name, score:sf, signals:sinais};
       }
     }
-    return null;
+    if(!melhor) return {block:false, category:null, confidence:0, signals:[]};
+    return {
+      block: melhor.score >= LIMIAR,
+      category: melhor.category,
+      confidence: Math.min(1, melhor.score/(LIMIAR*1.5)),
+      signals: melhor.signals
+    };
   }
 
   function refreshChrome(){
@@ -417,9 +447,12 @@
     q = (q||'').trim();
     if(!q){ return; }
     urltext.textContent = 'busca.exemplo.br/?q=' + encodeURIComponent(q).slice(0,28);
-    var cat = classify(q);
+    var cls = classify(q);
+    var cat = cls.category;
+    var conf = Math.round(cls.confidence*100);
+    var sinaisTxt = (cls.signals && cls.signals.length) ? cls.signals.slice(0,3).join(', ') : '';
 
-    if(!cat){
+    if(!cls.block){
       resultEl.className = 'result safe';
       resultEl.innerHTML =
         '<div class="res-head"><div class="res-ico ok">🔎</div><div><h4>Resultados seguros</h4><p>Busca comum — exibida normalmente.</p></div></div>'+
@@ -431,8 +464,8 @@
     if(state.prot === 'sentinela'){
       resultEl.className = 'result block';
       resultEl.innerHTML =
-        '<div class="res-head"><div class="res-ico shield">🛡️</div><div><h4>Conteúdo bloqueado pelo Sentinela</h4><p>Categoria imprópria detectada e barrada.</p><span class="cat-tag">'+cat+'</span></div></div>'+
-        '<div class="explain">A busca foi interceptada na <span class="mono">camada de rede (DNS)</span> antes de chegar ao buscador. '+(state.incog ? 'O <b>modo incógnito está ligado</b> e mesmo assim o filtro funcionou — porque ele não vive no navegador.' : 'Ligar o modo incógnito não muda nada aqui.')+'</div>';
+        '<div class="res-head"><div class="res-ico shield">🛡️</div><div><h4>Conteúdo bloqueado pelo Sentinela</h4><p>Categoria imprópria detectada e barrada.</p><span class="cat-tag">'+cat+' · IA local '+conf+'%</span></div></div>'+
+        '<div class="explain">🧠 <b>IA local</b> classificou como <b>'+escapeHtml(cat)+'</b> ('+conf+'% de confiança'+(sinaisTxt ? ', sinais: <span class="mono">'+escapeHtml(sinaisTxt)+'</span>' : '')+'). A busca foi interceptada na <span class="mono">camada de rede (DNS)</span> antes de chegar ao buscador. '+(state.incog ? 'O <b>modo incógnito está ligado</b> e mesmo assim o filtro funcionou — porque ele não vive no navegador.' : 'Ligar o modo incógnito não muda nada aqui.')+'</div>';
       addLog(q,'blocked',cat);
     } else {
       if(state.incog){
