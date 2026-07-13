@@ -112,3 +112,12 @@ Para experimentar o instalador em simulação:
 Veja o guia passo a passo em [`docs/COMO-INSTALAR.md`](docs/COMO-INSTALAR.md).
 Resumo: dê dois cliques em `app/INSTALAR.bat`, clique **SIM** no aviso do Windows,
 crie o PIN. Pronto.
+
+## Demo online
+
+Versão publicada da demo (link compartilhável para o pitch):
+
+https://claude.ai/code/artifact/fd0c34ea-3d06-41b3-86c5-99d0040e34d6
+
+> Arquivo-fonte: `demo/sentinela-artifact.html` (versão adaptada de `demo/index.html`
+> para o formato Artifact — fontes do sistema, sem dependências externas).
