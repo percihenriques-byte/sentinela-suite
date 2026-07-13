@@ -97,6 +97,13 @@ if ($Destravar) {
         $rem = Remove-ForceListEntry -ForceKey (Get-ForceKey $r) -Id $id
         Write-Host ("  {0}: removidas {1} entrada(s)." -f $r.Nome, $rem)
     }
+    if (-not $Simular) {
+        # para e remove o servidor local
+        Unregister-ScheduledTask -TaskName 'Sentinela-Servidor' -Confirm:$false -ErrorAction SilentlyContinue
+        Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandLine -like '*Sentinela-Servidor*' } |
+            ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    }
     Write-SentinelaLog "Trava da extensao REMOVIDA (id $id)." 'ACAO'
     Write-Host '  Pronto. Reinicie o navegador.' -ForegroundColor Green
     return
@@ -107,24 +114,43 @@ Write-Host '  Travando a extensao do Sentinela...' -ForegroundColor Cyan
 
 # 1) empacota
 $fonteExt = Join-Path $PSScriptRoot 'extensao'
-Write-Host '  [1/4] Empacotando a extensao (.crx)...'
+Write-Host '  [1/5] Empacotando a extensao (.crx)...'
 $crx = Invoke-EmpacotarExtensao -PastaExtensao $fonteExt -PastaSaida $extDir
 Write-Host ('        crx: ' + $crx) -ForegroundColor DarkGray
 
 # 2) ID
-Write-Host '  [2/4] Calculando o ID da extensao...'
+Write-Host '  [2/5] Calculando o ID da extensao...'
 $id = Get-CrxExtensionId -CrxPath $crx
 $id | Set-Content -Path $idFile -Encoding ASCII
 Write-Host ('        ID: ' + $id) -ForegroundColor Green
 
-# 3) update.xml
-Write-Host '  [3/4] Gerando update.xml...'
+# 3) update.xml + servidor local (http 127.0.0.1)
+Write-Host '  [3/5] Gerando update.xml (servidor local)...'
+$PORTA = 48610
+$codebase  = "http://127.0.0.1:$PORTA/sentinela.crx"
+$updateUrl = "http://127.0.0.1:$PORTA/update.xml"
 $updateXml = Join-Path $extDir 'update.xml'
-(New-UpdateXml -ExtensionId $id -CrxPath $crx) | Set-Content -Path $updateXml -Encoding UTF8
-$updateUrl = 'file:///' + ($updateXml -replace '\\', '/')
+(New-UpdateXml -ExtensionId $id -Codebase $codebase) | Set-Content -Path $updateXml -Encoding UTF8
 
-# 4) politica
-Write-Host '  [4/4] Aplicando a politica de instalacao forcada...'
+# 4) servidor local (serve update.xml + .crx por 127.0.0.1; force-install em qualquer navegador)
+Write-Host '  [4/5] Registrando o servidor local (127.0.0.1)...'
+$servidor = Join-Path $PSScriptRoot 'Sentinela-Servidor.ps1'
+if ($Simular) {
+    Write-Host '        (simulacao) servidor NAO registrado.' -ForegroundColor DarkGray
+} else {
+    $act = New-ScheduledTaskAction -Execute 'powershell.exe' `
+        -Argument ('-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "{0}" -Porta {1}' -f $servidor, $PORTA)
+    $trg = New-ScheduledTaskTrigger -AtStartup
+    $prn = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+    $set = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+    Register-ScheduledTask -TaskName 'Sentinela-Servidor' -Action $act -Trigger $trg -Principal $prn -Settings $set `
+        -Description 'Sentinela: serve a extensao localmente (127.0.0.1) para o force-install.' -Force | Out-Null
+    Start-ScheduledTask -TaskName 'Sentinela-Servidor'
+    Write-Host '        servidor local ativo e no boot.' -ForegroundColor Green
+}
+
+# 5) politica
+Write-Host '  [5/5] Aplicando a politica de instalacao forcada...'
 $entrada = "$id;$updateUrl"
 foreach ($r in $roots) {
     $nome = Add-ForceListEntry -ForceKey (Get-ForceKey $r) -Entrada $entrada

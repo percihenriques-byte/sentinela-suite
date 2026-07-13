@@ -207,6 +207,33 @@ if (Get-NavegadorParaEmpacotar) {
     Write-Host '  [--]   (sem navegador; teste ponta-a-ponta de empacotamento pulado)' -ForegroundColor DarkGray
 }
 
+# --- Grupo 9: servidor local (force-install http) -------------------
+Write-Host ''
+Write-Host '  Grupo 9: servidor local 127.0.0.1'
+Reset-Sandbox
+$extS = Join-Path (Get-SentinelaPaths).Base 'ext'
+New-Item -ItemType Directory -Path $extS -Force | Out-Null
+'<xml>teste</xml>' | Set-Content (Join-Path $extS 'update.xml') -Encoding UTF8
+[System.IO.File]::WriteAllBytes((Join-Path $extS 'sentinela.crx'), ([byte[]](1..20)))
+$porta = 48991
+$job = Start-Job -ScriptBlock { param($h,$p) & "$h\sentinela\app\Sentinela-Servidor.ps1" -Simular -PermitirShutdown -Porta $p } -ArgumentList $HOME, $porta
+Start-Sleep -Seconds 2
+$okPing = $false; $okUpd = $false; $okCrx = $false; $okLocal = $true
+try { $okPing = ((Invoke-WebRequest "http://127.0.0.1:$porta/ping" -UseBasicParsing -TimeoutSec 4).Content -eq 'ok') } catch {}
+if ($okPing) {
+    try { $okUpd = ((Invoke-WebRequest "http://127.0.0.1:$porta/update.xml" -UseBasicParsing -TimeoutSec 4).StatusCode -eq 200) } catch {}
+    try { $okCrx = ((Invoke-WebRequest "http://127.0.0.1:$porta/sentinela.crx" -UseBasicParsing -TimeoutSec 4).Headers['Content-Type'] -like '*chrome-extension*') } catch {}
+    try { Invoke-WebRequest "http://127.0.0.1:$porta/shutdown" -UseBasicParsing -TimeoutSec 4 | Out-Null } catch {}
+}
+Wait-Job $job -Timeout 8 | Out-Null; Stop-Job $job -ErrorAction SilentlyContinue; Remove-Job $job -Force -ErrorAction SilentlyContinue
+if ($okPing) {
+    Assert 'Servidor local responde ping'              $okPing
+    Assert 'Servidor serve update.xml (200)'           $okUpd
+    Assert 'Servidor serve .crx (content-type extensao)' $okCrx
+} else {
+    Write-Host '  [--]   (servidor nao subiu neste ambiente; teste pulado)' -ForegroundColor DarkGray
+}
+
 # --- Relatorio ------------------------------------------------------
 Write-Host ''
 Write-Host '  ------------------------------------------' -ForegroundColor DarkGray

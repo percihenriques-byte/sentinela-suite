@@ -44,10 +44,24 @@ if (-not (Request-SentinelaPin -Prompt 'PIN do responsavel')) {
     exit 1
 }
 
-Write-Host '  Removendo o Guardiao...' -ForegroundColor White
+Write-Host '  Removendo o Guardiao e o servidor local...' -ForegroundColor White
 if (-not $Simular) {
     try { Unregister-ScheduledTask -TaskName $TASK_NAME -Confirm:$false -ErrorAction Stop }
     catch { Write-Host ('  Aviso: ' + $_.Exception.Message) -ForegroundColor Yellow }
+    # servidor local da extensao (se existir)
+    Unregister-ScheduledTask -TaskName 'Sentinela-Servidor' -Confirm:$false -ErrorAction SilentlyContinue
+    Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -like '*Sentinela-Servidor*' } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    # remove a trava de extensao (politica), se estiver aplicada
+    foreach ($pol in @('HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExtensionInstallForcelist','HKLM:\SOFTWARE\Policies\Google\Chrome\ExtensionInstallForcelist')) {
+        if (Test-Path $pol) {
+            foreach ($p in (Get-Item $pol).Property) {
+                $v = (Get-ItemProperty -Path $pol -Name $p).$p
+                if ($v -like '*127.0.0.1:48610*') { Remove-ItemProperty -Path $pol -Name $p -Force -ErrorAction SilentlyContinue }
+            }
+        }
+    }
 }
 
 Write-Host '  Desligando a protecao...' -ForegroundColor White

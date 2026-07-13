@@ -122,14 +122,19 @@ function Invoke-EmpacotarExtensao {
     return $crxFinal
 }
 
-# gera o update.xml (manifesto Omaha) apontando para o .crx local
+# gera o update.xml (manifesto Omaha). Use -Codebase para uma URL http
+# local (recomendado) ou -CrxPath para um caminho file:// (fallback).
 function New-UpdateXml {
     param(
         [Parameter(Mandatory)][string]$ExtensionId,
-        [Parameter(Mandatory)][string]$CrxPath,
+        [string]$CrxPath,
+        [string]$Codebase,
         [string]$Versao = '1.0.0'
     )
-    $codebase = 'file:///' + ($CrxPath -replace '\\', '/')
+    if (-not $Codebase) {
+        if (-not $CrxPath) { throw 'Informe -Codebase (URL) ou -CrxPath (arquivo).' }
+        $Codebase = 'file:///' + ($CrxPath -replace '\\', '/')
+    }
     return @"
 <?xml version='1.0' encoding='UTF-8'?>
 <gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>

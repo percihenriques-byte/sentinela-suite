@@ -35,21 +35,21 @@ app/TRAVAR-EXTENSAO.bat      (clique SIM no aviso de Administrador)
 O que ele faz, automaticamente (via `Travar-Extensao.ps1`):
 
 1. Empacota a extensão num `.crx` assinado com uma chave estável.
-2. Descobre o **ID** da extensão e gera um `update.xml` local.
-3. Grava a política oficial do Windows **`ExtensionInstallForcelist`** para **Edge e
+2. Descobre o **ID** da extensão e gera um `update.xml`.
+3. Sobe um **servidor local** (`127.0.0.1:48610`) que serve o `update.xml` e o `.crx`
+   — registrado como tarefa no boot, roda escondido, **sem internet**. Isso faz o
+   force-install funcionar em **qualquer versão** de navegador.
+4. Grava a política oficial do Windows **`ExtensionInstallForcelist`** para **Edge e
    Chrome** — a mesma que as escolas usam.
 
 Depois, feche e reabra o navegador: a extensão aparece como **"Instalada pela sua
 organização"** e o botão de desativar/remover **some**. Confira em `edge://policy` ou
-`chrome://policy`. Para reverter: `Travar-Extensao.ps1 -Destravar`.
+`chrome://policy`. Para reverter: `Travar-Extensao.ps1 -Destravar` (remove a política e o
+servidor).
 
-## Limitações honestas
+## Limitação honesta que resta
 
-- **Hospedagem local:** o travamento aponta para o `.crx` por `file:///`. Em algumas
-  versões recentes do navegador, o force-install exige `http`. Se em `edge://policy` a
-  extensão não aparecer como forçada, a solução é servir o `update.xml`/`.crx` por um
-  mini-servidor **local** (`127.0.0.1`) — está no roadmap e não usa internet.
 - **Navegação sem recarregar (SPA):** rolar resultados do YouTube sem recarregar pode
   escapar de uma verificação pontual. O bloqueio pega a **busca** (quando a página de
   resultados carrega), que é o momento principal. Mesmo assim, o **DNS já garante o modo
-  seguro** por baixo.
+  seguro** por baixo. Cobertura de SPA está no roadmap.
