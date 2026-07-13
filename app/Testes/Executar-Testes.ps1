@@ -19,6 +19,8 @@ $env:SENTINELA_SIMULAR = '1'
 $appDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $appDir 'Sentinela-Core.ps1')
 . (Join-Path $appDir 'Sentinela-Pin.ps1')
+. (Join-Path $appDir 'Sentinela-Classificador.ps1')
+. (Join-Path $appDir 'Sentinela-Supervisao.ps1')
 
 $script:pass = 0
 $script:fail = 0
@@ -116,6 +118,64 @@ Enable-Sentinela -Simular
 $txt = Get-Content (Get-SentinelaPaths).HostsFile -Raw
 $ocorrencias = ([regex]::Matches($txt, [regex]::Escape('>>> SENTINELA'))).Count
 Assert 'Bloco hosts aparece apenas 1 vez'          ($ocorrencias -eq 1)
+
+# --- Grupo 5: IA local de classificacao -----------------------------
+Write-Host ''
+Write-Host '  Grupo 5: IA local de classificacao (anti-evasao)'
+Assert 'Busca comum e liberada'                    (-not (Test-ConteudoImproprio 'vulcao para feira de ciencias'))
+Assert 'Busca comum 2 e liberada'                  (-not (Test-ConteudoImproprio 'filhotes de golden retriever'))
+Assert 'Conteudo adulto direto e bloqueado'        (Test-ConteudoImproprio 'conteudo adulto +18')
+Assert 'Evasao leetspeak (s3x0) e bloqueada'       (Test-ConteudoImproprio 's3x0 expl1c1t0')
+Assert 'Evasao letras espacadas (p o r n) bloqueada' (Test-ConteudoImproprio 'p o r n o')
+Assert 'Evasao com pontos (p.o.r.n) bloqueada'     (Test-ConteudoImproprio 'p.o.r.n.o.g.r.a.f.i.a')
+Assert 'Evasao repeticao (poooorno) bloqueada'     (Test-ConteudoImproprio 'pooooorno')
+Assert 'Burlar filtro (mesmo com "escola") bloqueado' (Test-ConteudoImproprio 'como burlar o filtro da escola')
+Assert 'Desativar safesearch com leet bloqueado'   (Test-ConteudoImproprio 'desativar s4f3s34rch')
+Assert 'Contexto saude NAO gera falso-positivo'    (-not (Test-ConteudoImproprio 'cancer de mama sintomas'))
+Assert 'Contexto ciencias NAO gera falso-positivo' (-not (Test-ConteudoImproprio 'reproducao humana aula de ciencias'))
+$cl = Get-ClassificacaoConteudo -Texto 's3x0'
+Assert 'Classificacao retorna confianca > 0'       ($cl.Confianca -gt 0)
+Assert 'Classificacao retorna a categoria'         ($cl.Categoria -eq 'Conteudo adulto')
+Assert 'Classificacao explica o motivo (sinais)'   ($cl.Sinais.Count -gt 0)
+
+# --- Grupo 6: configuracao do responsavel ---------------------------
+Write-Host ''
+Write-Host '  Grupo 6: bloqueio amplo e configuravel'
+Reset-Sandbox
+Assert 'Muitos temas cobertos (>= 8)'              ((Get-TemasDisponiveis).Count -ge 8)
+Assert 'Tigrinho (aposta) e bloqueado'             (Test-ConteudoImproprio 'jogo do tigrinho')
+Assert 'Autolesao e bloqueada'                     (Test-ConteudoImproprio 'como se matar')
+# responsavel desativa um tema
+Save-SentinelaConfig -Config ([pscustomobject]@{ classificador = [pscustomobject]@{ temasDesativados = @('Apostas') } })
+Assert 'Tema desativado deixa de bloquear'         (-not (Test-ConteudoImproprio 'aposta esportiva'))
+# termo personalizado do responsavel
+Save-SentinelaConfig -Config ([pscustomobject]@{ classificador = [pscustomobject]@{ termosPersonalizados = @('roblox') } })
+Assert 'Termo personalizado do responsavel bloqueia' (Test-ConteudoImproprio 'jogar roblox')
+# modo rigido
+Save-SentinelaConfig -Config ([pscustomobject]@{ classificador = [pscustomobject]@{ modoRigido = $true } })
+Assert 'Modo rigido bloqueia sinal medio (nudez)'  (Test-ConteudoImproprio 'nudez')
+# tema opcional so entra se ativado
+Save-SentinelaConfig -Config ([pscustomobject]@{})
+Assert 'Tema opcional (redes sociais) OFF por padrao' (-not (Test-ConteudoImproprio 'tiktok'))
+Save-SentinelaConfig -Config ([pscustomobject]@{ classificador = [pscustomobject]@{ temasAtivados = @('Redes sociais'); modoRigido = $true } })
+Assert 'Tema opcional ativado passa a bloquear'    (Test-ConteudoImproprio 'tiktok')
+
+# --- Grupo 7: supervisao (fiscalizacao) -----------------------------
+Write-Host ''
+Write-Host '  Grupo 7: supervisao / fiscalizacao'
+Reset-Sandbox
+Save-SentinelaConfig -Config ([pscustomobject]@{}) | Out-Null
+Add-SupervisaoRegistro -Texto 'vulcao para feira de ciencias' -Origem 'google' | Out-Null
+Add-SupervisaoRegistro -Texto 's3x0 expl1c1t0' -Origem 'google' | Out-Null
+Add-SupervisaoRegistro -Texto 'como burlar o filtro' -Origem 'youtube' | Out-Null
+$regs = Get-SupervisaoRegistros
+Assert 'Supervisao registrou as 3 buscas'          (@($regs).Count -eq 3)
+Assert 'Mais recente vem primeiro'                 ($regs[0].busca -eq 'como burlar o filtro')
+Assert 'So bloqueadas retorna 2'                    ((Get-SupervisaoRegistros -SomenteBloqueados).Count -eq 2)
+$resumo = Get-SupervisaoResumo
+Assert 'Resumo: total = 3'                          ($resumo.Total -eq 3)
+Assert 'Resumo: bloqueadas = 2'                     ($resumo.Bloqueadas -eq 2)
+Assert 'Busca segura NAO fica marcada como bloqueada' (-not ($regs | Where-Object { $_.busca -like 'vulcao*' }).bloqueado)
 
 # --- Relatorio ------------------------------------------------------
 Write-Host ''

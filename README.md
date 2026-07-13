@@ -79,10 +79,12 @@ sentinela/
 │   ├── Sentinela-Core.ps1      Núcleo: DNS de filtro + bloco hosts
 │   ├── Sentinela-Pin.ps1       Trava por PIN (SHA-256 + salt)
 │   ├── Sentinela-Guardiao.ps1  Reaplica a proteção se adulterada
+│   ├── Sentinela-Classificador.ps1  IA local anti-evasão (sem internet)
+│   ├── Classificar-Busca.ps1   Ferramenta p/ o responsável testar a IA
 │   ├── gui/
 │   │   └── Sentinela-Painel.ps1   Painel gráfico do responsável
 │   └── Testes/
-│       └── Executar-Testes.ps1    21 testes automatizados (simulação)
+│       └── Executar-Testes.ps1    35 testes automatizados (simulação)
 └── docs/
     ├── COMO-INSTALAR.md        Guia passo a passo para leigos
     ├── PITCH.md                Material de apresentação (SEBRAE)
@@ -98,7 +100,13 @@ Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporá
 .\app\Testes\Executar-Testes.ps1
 ```
 
-Saída esperada: `RESULTADO: 21 passaram, 0 falharam`.
+Saída esperada: `RESULTADO: 35 passaram, 0 falharam`.
+
+Para testar só a IA local de classificação (inclui tentativas de evasão):
+
+```powershell
+.\app\Classificar-Busca.ps1 -Texto 's3x0 expl1c1t0'
+```
 
 Para experimentar o instalador em simulação:
 

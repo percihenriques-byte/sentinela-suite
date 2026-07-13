@@ -43,7 +43,7 @@ function Save-SentinelaConfig {
 
 function Test-SentinelaPinConfigured {
     $cfg = Get-SentinelaConfig
-    return ($null -ne $cfg -and $cfg.PSObject.Properties.Name -contains 'pinHash' -and $cfg.pinHash)
+    return ($null -ne $cfg -and $null -ne $cfg.PSObject.Properties['pinHash'] -and [bool]$cfg.pinHash)
 }
 
 function Set-SentinelaPin {

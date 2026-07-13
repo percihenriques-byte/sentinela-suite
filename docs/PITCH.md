@@ -49,6 +49,25 @@ Três camadas trabalhando juntas:
 > usar VPN, outro sistema, etc.). O Sentinela fecha o **caminho fácil** — o que hoje
 > qualquer criança usa — e é isso que muda o jogo para a família.
 
+## 3½. A IA local (anti-evasão)
+
+O bloqueio de rede é category-agnostic (o próprio Google aplica o modo seguro). Para o
+**painel e a análise**, o Sentinela usa uma **IA que roda na própria máquina** — sem
+internet, sem API paga, sem enviar as buscas das crianças para nenhum servidor
+(privacidade por design). Ela não depende de "palavras exatas": normaliza o texto para
+derrotar as fugas clássicas das crianças —
+
+| Tentativa de driblar | Filtro de lista | **IA local do Sentinela** |
+|---|:---:|:---:|
+| `pornografia` | pega | pega |
+| `p0rn0` / `s3x0` (números) | passa ❌ | **pega** ✅ |
+| `p o r n o` (espaçado) | passa ❌ | **pega** ✅ |
+| `poooorno` (repetição) | passa ❌ | **pega** ✅ |
+| "câncer de mama" (saúde) | bloqueia por engano ❌ | **libera** ✅ (entende o contexto) |
+
+Cada decisão vem com uma **categoria**, um **nível de confiança** e os **sinais** que
+pesaram — dá para explicar aos pais *por que* algo foi bloqueado.
+
 ## 4. Mercado
 
 - **74 milhões** de brasileiros com menos de 18 anos; a maioria acessa a internet.
@@ -73,7 +92,9 @@ Começa **gratuito e de código aberto** (ganha confiança e adoção). Receita 
 - ✅ **MVP Windows** — instalador 1 clique, PIN, Guardião, painel (este projeto).
 - 🔜 **Assistente de celular** — guia para configurar DNS de filtro no Wi-Fi de casa.
 - 🔜 **Painel na nuvem** — acompanhar vários aparelhos, relatórios para os pais.
-- 🔜 **Classificador com IA** — categorização mais fina de conteúdo na busca do painel.
+- ✅ **IA local anti-evasão** — classificador que roda na máquina, entende tentativas de
+  driblar (leetspeak, letras espaçadas) e o contexto educativo (neste projeto).
+- 🔜 **IA na nuvem opcional** — modelo maior para categorização ainda mais fina no painel.
 - 🔜 **App de roteador** — proteção para a casa inteira num só lugar.
 
 ## 7. Por que nós
