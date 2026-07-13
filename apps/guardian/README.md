@@ -98,6 +98,9 @@ sentinela/
 │   ├── extensao/               Extensão Chrome/Edge: bloqueio por IA + captura
 │   │   ├── manifest.json  content.js  classificador.js  popup.html  popup.js
 │   │   └── COMO-INSTALAR-EXTENSAO.md
+│   ├── TRAVAR-EXTENSAO.bat     ← trava a extensão (force-install)
+│   ├── Travar-Extensao.ps1     Aplica ExtensionInstallForcelist (Edge+Chrome)
+│   ├── Sentinela-Crx.ps1       Empacota .crx e calcula o ID da extensão
 │   ├── gui/
 │   │   └── Sentinela-Painel.ps1   Painel gráfico (status, PIN, supervisão)
 │   └── Testes/
@@ -117,7 +120,7 @@ Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporá
 .\app\Testes\Executar-Testes.ps1
 ```
 
-Saída esperada: `RESULTADO: 51 passaram, 0 falharam`.
+Saída esperada: `RESULTADO: 58 passaram, 0 falharam`.
 
 Para testar só a IA local de classificação (inclui tentativas de evasão):
 

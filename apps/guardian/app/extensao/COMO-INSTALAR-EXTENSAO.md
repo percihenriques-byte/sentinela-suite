@@ -26,14 +26,30 @@ Google/YouTube, a extensão:
 ## Tornar a extensão impossível de desativar (recomendado)
 
 Por padrão, uma extensão carregada assim pode ser desligada em `chrome://extensions`.
-Para **travar** (a criança não consegue remover), o Windows tem uma política oficial —
-`ExtensionInstallForcelist`. O instalador do Sentinela pode aplicá-la numa versão
-publicada da extensão (quando ela estiver na Chrome Web Store). É o mesmo mecanismo que
-escolas usam. *(No roadmap: publicar a extensão e ligar o force-install pelo instalador.)*
+Para **travar** (a criança não consegue remover nem desativar), dê dois cliques em:
 
-## Limitação honesta
+```
+app/TRAVAR-EXTENSAO.bat      (clique SIM no aviso de Administrador)
+```
 
-Sites que trocam os resultados **sem recarregar a página** (rolar o YouTube, por exemplo)
-podem escapar de uma verificação pontual. O bloqueio pega a **busca** (quando a página de
-resultados carrega), que é o momento principal. A cobertura de navegação interna (SPA)
-está no roadmap. Mesmo assim, o **DNS já garante o modo seguro** por baixo.
+O que ele faz, automaticamente (via `Travar-Extensao.ps1`):
+
+1. Empacota a extensão num `.crx` assinado com uma chave estável.
+2. Descobre o **ID** da extensão e gera um `update.xml` local.
+3. Grava a política oficial do Windows **`ExtensionInstallForcelist`** para **Edge e
+   Chrome** — a mesma que as escolas usam.
+
+Depois, feche e reabra o navegador: a extensão aparece como **"Instalada pela sua
+organização"** e o botão de desativar/remover **some**. Confira em `edge://policy` ou
+`chrome://policy`. Para reverter: `Travar-Extensao.ps1 -Destravar`.
+
+## Limitações honestas
+
+- **Hospedagem local:** o travamento aponta para o `.crx` por `file:///`. Em algumas
+  versões recentes do navegador, o force-install exige `http`. Se em `edge://policy` a
+  extensão não aparecer como forçada, a solução é servir o `update.xml`/`.crx` por um
+  mini-servidor **local** (`127.0.0.1`) — está no roadmap e não usa internet.
+- **Navegação sem recarregar (SPA):** rolar resultados do YouTube sem recarregar pode
+  escapar de uma verificação pontual. O bloqueio pega a **busca** (quando a página de
+  resultados carrega), que é o momento principal. Mesmo assim, o **DNS já garante o modo
+  seguro** por baixo.

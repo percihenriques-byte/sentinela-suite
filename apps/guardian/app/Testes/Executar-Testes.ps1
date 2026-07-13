@@ -21,6 +21,7 @@ $appDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $appDir 'Sentinela-Pin.ps1')
 . (Join-Path $appDir 'Sentinela-Classificador.ps1')
 . (Join-Path $appDir 'Sentinela-Supervisao.ps1')
+. (Join-Path $appDir 'Sentinela-Crx.ps1')
 
 $script:pass = 0
 $script:fail = 0
@@ -182,6 +183,29 @@ $fake = Join-Path (Get-SentinelaPaths).Base 'export-teste.jsonl'
 $importados = Import-SupervisaoDeArquivo -Arquivo $fake
 Assert 'Import da extensao adiciona 1 registro'    ($importados -eq 1)
 Assert 'Apos import, total sobe para 4'             ((Get-SupervisaoResumo).Total -eq 4)
+
+# --- Grupo 8: ID da extensao (travamento) ---------------------------
+Write-Host ''
+Write-Host '  Grupo 8: calculo do ID da extensao (para travar)'
+$hZero = New-Object 'byte[]' 16
+$hFF   = [byte[]](@(255) * 16)
+$hUm   = New-Object 'byte[]' 16; $hUm[0] = 1
+Assert 'ID: hash 0x00 -> 32 letras "a"'             ((ConvertTo-CrxIdFromHash $hZero) -eq ('a' * 32))
+Assert 'ID: hash 0xFF -> 32 letras "p"'             ((ConvertTo-CrxIdFromHash $hFF) -eq ('p' * 32))
+Assert 'ID: primeiro byte 0x01 -> comeca com "ab"'  ((ConvertTo-CrxIdFromHash $hUm).Substring(0,2) -eq 'ab')
+Assert 'ID tem sempre 32 caracteres'                ((ConvertTo-CrxIdFromHash $hZero).Length -eq 32)
+Assert 'ID usa apenas letras a-p'                   ((ConvertTo-CrxIdFromHash $hFF) -match '^[a-p]{32}$')
+# ponta a ponta (so se houver navegador para empacotar)
+if (Get-NavegadorParaEmpacotar) {
+    $saida = Join-Path (Get-SentinelaPaths).Base 'ext-teste'
+    $crx = Invoke-EmpacotarExtensao -PastaExtensao (Join-Path $appDir 'extensao') -PastaSaida $saida
+    $idE2E = Get-CrxExtensionId -CrxPath $crx
+    Assert 'Empacotar+ID real gera ID valido (a-p, 32)' ($idE2E -match '^[a-p]{32}$')
+    $id2 = Get-CrxExtensionId -CrxPath (Invoke-EmpacotarExtensao -PastaExtensao (Join-Path $appDir 'extensao') -PastaSaida $saida)
+    Assert 'ID estavel ao reempacotar (mesma chave)'  ($idE2E -eq $id2)
+} else {
+    Write-Host '  [--]   (sem navegador; teste ponta-a-ponta de empacotamento pulado)' -ForegroundColor DarkGray
+}
 
 # --- Relatorio ------------------------------------------------------
 Write-Host ''
