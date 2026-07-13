@@ -107,7 +107,8 @@ Começa **gratuito e de código aberto** (ganha confiança e adoção). Receita 
 - ✅ **IA local anti-evasão** — classificador que roda na máquina, entende tentativas de
   driblar (leetspeak, letras espaçadas) e o contexto educativo (neste projeto).
 - ✅ **Extensão travada por política** — force-install (`ExtensionInstallForcelist`) para
-  Edge/Chrome: a criança não consegue desativar (mesmo mecanismo das escolas).
+  Edge/Chrome, servido por um **servidor local `127.0.0.1`** (sem internet): a criança
+  não consegue desativar (mesmo mecanismo das escolas).
 - 🔜 **IA na nuvem opcional** — modelo maior para categorização ainda mais fina no painel.
 - 🔜 **App de roteador** — proteção para a casa inteira num só lugar.
 

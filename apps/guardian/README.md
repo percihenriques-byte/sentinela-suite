@@ -101,6 +101,7 @@ sentinela/
 │   ├── TRAVAR-EXTENSAO.bat     ← trava a extensão (force-install)
 │   ├── Travar-Extensao.ps1     Aplica ExtensionInstallForcelist (Edge+Chrome)
 │   ├── Sentinela-Crx.ps1       Empacota .crx e calcula o ID da extensão
+│   ├── Sentinela-Servidor.ps1  Servidor local 127.0.0.1 (serve update.xml + .crx)
 │   ├── gui/
 │   │   └── Sentinela-Painel.ps1   Painel gráfico (status, PIN, supervisão)
 │   └── Testes/
@@ -120,7 +121,7 @@ Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporá
 .\app\Testes\Executar-Testes.ps1
 ```
 
-Saída esperada: `RESULTADO: 58 passaram, 0 falharam`.
+Saída esperada: `RESULTADO: 61 passaram, 0 falharam`.
 
 Para testar só a IA local de classificação (inclui tentativas de evasão):
 
