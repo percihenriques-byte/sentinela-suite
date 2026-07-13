@@ -109,6 +109,8 @@ Começa **gratuito e de código aberto** (ganha confiança e adoção). Receita 
 - ✅ **Extensão travada por política** — force-install (`ExtensionInstallForcelist`) para
   Edge/Chrome, servido por um **servidor local `127.0.0.1`** (sem internet): a criança
   não consegue desativar (mesmo mecanismo das escolas).
+- ✅ **Cobertura de SPA** — reavalia a busca a cada navegação interna (YouTube/DuckDuckGo
+  que trocam resultados sem recarregar).
 - 🔜 **IA na nuvem opcional** — modelo maior para categorização ainda mais fina no painel.
 - 🔜 **App de roteador** — proteção para a casa inteira num só lugar.
 

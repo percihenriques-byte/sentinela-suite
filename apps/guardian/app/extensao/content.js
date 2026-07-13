@@ -1,19 +1,39 @@
 /*
   content.js — roda nas páginas de busca. Lê o termo, aplica a IA local,
-  bloqueia na hora se for tema impróprio e registra a atividade para o
-  responsável. Esconde a página até decidir, para nada impróprio "piscar".
+  bloqueia na hora se for tema impróprio e registra a atividade.
+
+  Cobre também sites que trocam os resultados SEM recarregar a página
+  (SPA, como o YouTube): reavalia a cada mudança de URL.
 */
 (function () {
-  // 1) esconde a página imediatamente
-  var hideStyle = document.createElement('style');
-  hideStyle.textContent = 'html{visibility:hidden !important}';
-  (document.documentElement || document).appendChild(hideStyle);
-  function show() { if (hideStyle && hideStyle.parentNode) hideStyle.parentNode.removeChild(hideStyle); }
+  'use strict';
+
+  var hideStyle = null;
+  var ultimaQuery = null;
+
+  // esconde a página enquanto a IA decide (evita o conteúdo "piscar")
+  function esconder() {
+    if (hideStyle) return;
+    hideStyle = document.createElement('style');
+    hideStyle.id = '__sentinela_hide';
+    hideStyle.textContent = 'html{visibility:hidden !important}';
+    (document.documentElement || document).appendChild(hideStyle);
+  }
+  function mostrar() {
+    if (hideStyle && hideStyle.parentNode) { hideStyle.parentNode.removeChild(hideStyle); }
+    hideStyle = null;
+  }
 
   function getQuery() {
     try {
       var u = new URL(location.href);
-      if (location.hostname.indexOf('youtube') >= 0) return u.searchParams.get('search_query') || '';
+      if (location.hostname.indexOf('youtube') >= 0) {
+        if (location.pathname.indexOf('/results') !== 0) return '';
+        return u.searchParams.get('search_query') || '';
+      }
+      if (location.hostname.indexOf('google') >= 0 && location.pathname.indexOf('/search') !== 0) {
+        return '';
+      }
       return u.searchParams.get('q') || '';
     } catch (e) { return ''; }
   }
@@ -30,7 +50,7 @@
       chrome.storage.local.get({ sentinela_log: [] }, function (d) {
         var log = d.sentinela_log || [];
         log.push(entry);
-        if (log.length > 500) log = log.slice(log.length - 500);
+        if (log.length > 500) { log = log.slice(log.length - 500); }
         chrome.storage.local.set({ sentinela_log: log });
       });
     } catch (e) { /* silencioso */ }
@@ -48,16 +68,35 @@
       '<p style="color:#90AEB4;font-size:15px;line-height:1.5">O Sentinela barrou esta busca porque foi classificada como <b style="color:#E6F6F2">' + cat + '</b> (' + conf + '% de confiança).</p>' +
       '<div style="margin-top:16px;font-size:12px;color:#5E7A82">Responsável: ajuste os temas no painel do Sentinela se isto foi um engano.</div>' +
       '</div></body>';
-    show();
+    mostrar();
   }
 
-  var q = getQuery();
-  if (!q) { show(); return; }
-  try {
-    chrome.storage.local.get({ sentinela_config: {} }, function (d) {
-      var res = window.SentinelaIA.classify(q, d.sentinela_config || {});
-      registrar({ hora: new Date().toISOString(), busca: q, origem: origem(), tema: res.category, confianca: res.confidence, bloqueado: res.block });
-      if (res.block) bloquear(res); else show();
-    });
-  } catch (e) { show(); }
+  function verificar() {
+    var q = getQuery();
+    if (!q) { mostrar(); ultimaQuery = null; return; }
+    if (q === ultimaQuery) { return; }   // já tratada nesta navegação
+    ultimaQuery = q;
+    esconder();
+    try {
+      chrome.storage.local.get({ sentinela_config: {} }, function (d) {
+        var res = window.SentinelaIA.classify(q, d.sentinela_config || {});
+        registrar({ hora: new Date().toISOString(), busca: q, origem: origem(), tema: res.category, confianca: res.confidence, bloqueado: res.block });
+        if (res.block) { bloquear(res); } else { mostrar(); }
+      });
+    } catch (e) { mostrar(); }
+  }
+
+  // avaliação inicial
+  verificar();
+
+  // deteccao de navegacao SPA (troca de resultados sem recarregar)
+  window.addEventListener('popstate', verificar);
+  window.addEventListener('hashchange', verificar);
+  document.addEventListener('yt-navigate-finish', verificar); // YouTube
+  document.addEventListener('yt-navigate-start', verificar);
+  // verificador periodico (rede de seguranca para qualquer SPA)
+  var ultimaUrl = location.href;
+  setInterval(function () {
+    if (location.href !== ultimaUrl) { ultimaUrl = location.href; verificar(); }
+  }, 400);
 })();
