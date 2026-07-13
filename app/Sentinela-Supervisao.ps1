@@ -68,6 +68,27 @@ function Get-SupervisaoRegistros {
 }
 
 <#
+  Importa um arquivo .jsonl exportado pela extensao do navegador
+  (botao "Exportar" no popup) para o registro de supervisao do app.
+  Assim o painel do responsavel mostra o que a extensao capturou.
+#>
+function Import-SupervisaoDeArquivo {
+    param([Parameter(Mandatory)][string]$Arquivo)
+    if (-not (Test-Path $Arquivo)) { throw "Arquivo nao encontrado: $Arquivo" }
+    Initialize-SentinelaStore | Out-Null
+    $destino = Get-SupervisaoArquivo
+    $n = 0
+    foreach ($l in (Get-Content $Arquivo -Encoding UTF8)) {
+        if ([string]::IsNullOrWhiteSpace($l)) { continue }
+        try { $obj = $l | ConvertFrom-Json } catch { continue }
+        Add-Content -Path $destino -Value ($obj | ConvertTo-Json -Compress) -Encoding UTF8
+        $n++
+    }
+    Write-SentinelaLog "SUPERVISAO: importados $n registros de $Arquivo" 'INFO'
+    return $n
+}
+
+<#
   Resumo para o responsavel: total, bloqueadas, e contagem por tema.
 #>
 function Get-SupervisaoResumo {
