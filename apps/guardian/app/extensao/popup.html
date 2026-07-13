@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  :root{ --bg:#0B1220; --panel:#0d1a26; --line:#1E3A44; --teal:#2DD4BF; --txt:#E6F6F2; --muted:#90AEB4; --muted2:#5E7A82; --red:#FF6B6B; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{width:420px;max-height:560px;overflow:auto;background:var(--bg);color:var(--txt);font-family:system-ui,'Segoe UI',sans-serif}
+  header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  header .logo{font-size:22px}
+  header b{font-size:15px}
+  header span{font-size:11px;color:var(--teal);display:block}
+  .tabs{display:flex;gap:4px;padding:8px 12px}
+  .tab{flex:1;padding:8px;border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;text-align:center}
+  .tab.active{background:var(--teal);color:var(--bg);border-color:var(--teal)}
+  .view{padding:8px 14px 16px;display:none}
+  .view.active{display:block}
+  .resumo{display:flex;gap:8px;margin-bottom:10px}
+  .stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
+  .stat b{font-size:20px;display:block}
+  .stat.red b{color:var(--red)}
+  .stat span{font-size:10.5px;color:var(--muted2)}
+  .item{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:7px}
+  .item.b{border-color:#5a2a2a}
+  .item .q{font-size:13px;font-weight:600;word-break:break-word}
+  .item .m{font-size:11px;color:var(--muted);margin-top:2px;display:flex;gap:8px;flex-wrap:wrap}
+  .item .m .bad{color:var(--red);font-weight:600}
+  .item .m .ok{color:var(--teal)}
+  .empty{color:var(--muted2);font-size:12.5px;text-align:center;padding:24px 0}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+  .row:last-child{border-bottom:none}
+  .row input[type=checkbox]{width:18px;height:18px;accent-color:var(--teal)}
+  label{cursor:pointer}
+  .opc{font-size:10px;color:var(--muted2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;margin-left:6px}
+  textarea{width:100%;min-height:60px;background:#08131c;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:8px;font-family:inherit;font-size:12.5px;margin-top:6px}
+  .btns{display:flex;gap:8px;margin-top:10px}
+  button.act{flex:1;padding:9px;border:none;border-radius:8px;font-weight:700;font-size:12.5px;cursor:pointer;background:var(--teal);color:var(--bg)}
+  button.ghost{background:var(--panel);color:var(--muted);border:1px solid var(--line)}
+  h3{font-size:12px;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin:12px 0 6px}
+  .hint{font-size:11px;color:var(--muted2);margin-top:4px;line-height:1.4}
+</style>
+</head>
+<body>
+  <header>
+    <div class="logo">🛡️</div>
+    <div><b>Sentinela</b><span>painel do responsável</span></div>
+  </header>
+  <div class="tabs">
+    <div class="tab active" data-view="sup">Supervisão</div>
+    <div class="tab" data-view="cfg">Configurar temas</div>
+  </div>
+
+  <div class="view active" id="view-sup">
+    <div class="resumo">
+      <div class="stat"><b id="st-total">0</b><span>buscas</span></div>
+      <div class="stat red"><b id="st-bloq">0</b><span>bloqueadas</span></div>
+      <div class="stat"><b id="st-tema">—</b><span>tema mais barrado</span></div>
+    </div>
+    <div id="lista"></div>
+    <div class="btns">
+      <button class="act" id="btn-export">Exportar (.jsonl)</button>
+      <button class="act ghost" id="btn-limpar">Limpar registro</button>
+    </div>
+  </div>
+
+  <div class="view" id="view-cfg">
+    <h3>Temas bloqueados</h3>
+    <div id="temas"></div>
+    <div class="row"><label for="rigido"><b>Modo rígido</b> — bloqueia de forma mais ampla</label><input type="checkbox" id="rigido"></div>
+    <h3>Palavras que você quer bloquear</h3>
+    <textarea id="termos" placeholder="uma por linha (ex.: roblox, nome de um jogo, um site...)"></textarea>
+    <div class="hint">Some às regras da IA. Útil para bloquear algo específico da sua família.</div>
+    <div class="btns"><button class="act" id="btn-salvar">Salvar configurações</button></div>
+    <div class="hint" id="salvo" style="color:var(--teal);text-align:center"></div>
+  </div>
+
+  <script src="classificador.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

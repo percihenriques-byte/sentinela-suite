@@ -176,6 +176,12 @@ $resumo = Get-SupervisaoResumo
 Assert 'Resumo: total = 3'                          ($resumo.Total -eq 3)
 Assert 'Resumo: bloqueadas = 2'                     ($resumo.Bloqueadas -eq 2)
 Assert 'Busca segura NAO fica marcada como bloqueada' (-not ($regs | Where-Object { $_.busca -like 'vulcao*' }).bloqueado)
+# importar export da extensao
+$fake = Join-Path (Get-SentinelaPaths).Base 'export-teste.jsonl'
+'{"hora":"2026-07-13T09:12:00.000Z","busca":"tigrinho","origem":"bing","tema":"Apostas","confianca":0.67,"bloqueado":true}' | Set-Content $fake -Encoding UTF8
+$importados = Import-SupervisaoDeArquivo -Arquivo $fake
+Assert 'Import da extensao adiciona 1 registro'    ($importados -eq 1)
+Assert 'Apos import, total sobe para 4'             ((Get-SupervisaoResumo).Total -eq 4)
 
 # --- Relatorio ------------------------------------------------------
 Write-Host ''
