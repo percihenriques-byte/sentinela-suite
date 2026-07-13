@@ -46,6 +46,26 @@ O instalador mostra **"Sentinela instalado e ATIVO!"**. A partir de agora:
 
 ---
 
+## Passo 6 (recomendado) — Instale a extensão do navegador
+
+O app já protege pela rede. Para **bloquear temas extras** (apostas, autolesão...) e
+**acompanhar o que a criança busca**, instale também a extensão:
+
+1. Abra `chrome://extensions` (ou `edge://extensions`).
+2. Ligue o **Modo do desenvolvedor**.
+3. Clique em **Carregar sem compactação** e escolha a pasta `app/extensao`.
+
+Depois, clique no ícone 🛡️ para ver a **Supervisão** (o que foi buscado) e **escolher os
+temas** bloqueados. Passo a passo completo em
+[`app/extensao/COMO-INSTALAR-EXTENSAO.md`](../app/extensao/COMO-INSTALAR-EXTENSAO.md).
+
+## Como acompanhar o que a criança busca (supervisão)
+
+- **Pelo navegador:** clique no ícone 🛡️ da extensão → aba **Supervisão**.
+- **Pelo painel:** abra o **Painel do Sentinela** → botão **Supervisão**. Se quiser trazer
+  o histórico da extensão para o painel, use **Exportar** na extensão e **Importar da
+  extensão** no painel.
+
 ## Como testar se está funcionando
 
 1. Abra o Google em uma **aba anônima**.

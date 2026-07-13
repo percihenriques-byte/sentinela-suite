@@ -68,6 +68,18 @@ derrotar as fugas clássicas das crianças —
 Cada decisão vem com uma **categoria**, um **nível de confiança** e os **sinais** que
 pesaram — dá para explicar aos pais *por que* algo foi bloqueado.
 
+**A IA vive em dois lugares:** (1) na **extensão do navegador**, que bloqueia a busca na
+hora e cobre temas que o modo seguro não pega (apostas, autolesão, violência); e (2) no
+app, para a análise e a supervisão. O responsável escolhe os temas e adiciona palavras.
+
+## 3¾. Supervisão (fiscalização)
+
+O Sentinela **registra o que a criança busca** — tema, nível de confiança e horário — e
+mostra para o responsável (no popup da extensão ou no painel do app), com as buscas
+bloqueadas em destaque e um resumo por tema. **Tudo local**: as buscas do filho nunca
+saem do computador. Não é espionagem escondida — é uma ferramenta **transparente de
+controle parental**, instalada pelo responsável.
+
 ## 4. Mercado
 
 - **74 milhões** de brasileiros com menos de 18 anos; a maioria acessa a internet.
