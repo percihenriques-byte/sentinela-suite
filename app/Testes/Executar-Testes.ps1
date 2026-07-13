@@ -126,6 +126,7 @@ Write-Host '  Grupo 5: IA local de classificacao (anti-evasao)'
 Assert 'Busca comum e liberada'                    (-not (Test-ConteudoImproprio 'vulcao para feira de ciencias'))
 Assert 'Busca comum 2 e liberada'                  (-not (Test-ConteudoImproprio 'filhotes de golden retriever'))
 Assert 'Conteudo adulto direto e bloqueado'        (Test-ConteudoImproprio 'conteudo adulto +18')
+Assert 'Violencia extrema e bloqueada'              (Test-ConteudoImproprio 'videos de violencia extrema')
 Assert 'Evasao leetspeak (s3x0) e bloqueada'       (Test-ConteudoImproprio 's3x0 expl1c1t0')
 Assert 'Evasao letras espacadas (p o r n) bloqueada' (Test-ConteudoImproprio 'p o r n o')
 Assert 'Evasao com pontos (p.o.r.n) bloqueada'     (Test-ConteudoImproprio 'p.o.r.n.o.g.r.a.f.i.a')
