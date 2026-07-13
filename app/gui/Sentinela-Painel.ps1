@@ -39,6 +39,8 @@ Add-Type -AssemblyName System.Drawing
 $appDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $appDir 'Sentinela-Core.ps1')
 . (Join-Path $appDir 'Sentinela-Pin.ps1')
+. (Join-Path $appDir 'Sentinela-Classificador.ps1')
+. (Join-Path $appDir 'Sentinela-Supervisao.ps1')
 
 # ---- paleta ---------------------------------------------------------
 $C_BG    = [System.Drawing.Color]::FromArgb(11,18,32)
@@ -83,6 +85,76 @@ function Show-PinDialog {
     $r = $f.ShowDialog()
     $val = $tb.Text; $f.Dispose()
     if ($r -eq 'OK') { return $val } else { return $null }
+}
+
+# ---- janela de supervisao ------------------------------------------
+function Show-SupervisaoDialog {
+    $f = New-Object System.Windows.Forms.Form
+    $f.Text = 'Sentinela — Supervisão'; $f.Size = New-Object System.Drawing.Size(600, 560)
+    $f.StartPosition = 'CenterParent'; $f.BackColor = $C_BG; $f.Font = New-Font 9.5
+
+    $resumo = New-Object System.Windows.Forms.Label
+    $resumo.ForeColor = $C_TXT; $resumo.Font = New-Font 11 1
+    $resumo.Location = '18,14'; $resumo.Size = '560,26'; $f.Controls.Add($resumo)
+
+    $lv = New-Object System.Windows.Forms.ListView
+    $lv.View = 'Details'; $lv.FullRowSelect = $true; $lv.GridLines = $true
+    $lv.Location = '18,48'; $lv.Size = '560,410'
+    $lv.BackColor = [System.Drawing.Color]::FromArgb(8,19,28); $lv.ForeColor = $C_TXT
+    [void]$lv.Columns.Add('Quando', 110)
+    [void]$lv.Columns.Add('Situação', 90)
+    [void]$lv.Columns.Add('Tema', 140)
+    [void]$lv.Columns.Add('Busca', 205)
+    $f.Controls.Add($lv)
+
+    $btnImp = New-Object System.Windows.Forms.Button
+    $btnImp.Text = 'Importar da extensão...'; $btnImp.Location = '18,470'; $btnImp.Size = '190,34'
+    $btnImp.BackColor = $C_PANEL; $btnImp.ForeColor = $C_TXT; $btnImp.FlatStyle = 'Flat'
+    $btnImp.FlatAppearance.BorderColor = $C_LINE; $f.Controls.Add($btnImp)
+
+    $btnFechar = New-Object System.Windows.Forms.Button
+    $btnFechar.Text = 'Fechar'; $btnFechar.Location = '498,470'; $btnFechar.Size = '80,34'
+    $btnFechar.BackColor = $C_TEAL; $btnFechar.ForeColor = $C_BG; $btnFechar.FlatStyle = 'Flat'
+    $btnFechar.DialogResult = 'OK'; $f.Controls.Add($btnFechar)
+
+    $carregar = {
+        $lv.Items.Clear()
+        $res = Get-SupervisaoResumo
+        $resumo.Text = ('Total: {0}    Bloqueadas: {1}' -f $res.Total, $res.Bloqueadas)
+        foreach ($i in (Get-SupervisaoRegistros -Ultimos 200)) {
+            $hora = try { ([datetime]$i.hora).ToString('dd/MM HH:mm') } catch { [string]$i.hora }
+            $sit = if ($i.bloqueado) { 'BLOQUEADA' } else { 'liberada' }
+            $it = New-Object System.Windows.Forms.ListViewItem($hora)
+            [void]$it.SubItems.Add($sit)
+            [void]$it.SubItems.Add([string]$i.tema)
+            [void]$it.SubItems.Add([string]$i.busca)
+            if ($i.bloqueado) { $it.ForeColor = $C_RED }
+            [void]$lv.Items.Add($it)
+        }
+        if ($lv.Items.Count -eq 0) {
+            $vazio = New-Object System.Windows.Forms.ListViewItem('—')
+            [void]$vazio.SubItems.Add(''); [void]$vazio.SubItems.Add(''); [void]$vazio.SubItems.Add('nenhum registro ainda')
+            [void]$lv.Items.Add($vazio)
+        }
+    }
+
+    $btnImp.Add_Click({
+        $dlg = New-Object System.Windows.Forms.OpenFileDialog
+        $dlg.Filter = 'Registro da extensão (*.jsonl)|*.jsonl|Todos (*.*)|*.*'
+        if ($dlg.ShowDialog() -eq 'OK') {
+            try {
+                $n = Import-SupervisaoDeArquivo -Arquivo $dlg.FileName
+                [System.Windows.Forms.MessageBox]::Show(("Importados $n registros."),'Sentinela','OK','Information') | Out-Null
+                & $carregar
+            } catch {
+                [System.Windows.Forms.MessageBox]::Show($_.Exception.Message,'Sentinela','OK','Error') | Out-Null
+            }
+        }
+    })
+
+    & $carregar
+    $f.ShowDialog() | Out-Null
+    $f.Dispose()
 }
 
 # ---- formulario principal ------------------------------------------
@@ -155,6 +227,12 @@ $btnAtualizar.Text = 'Atualizar'; $btnAtualizar.Location = '24,552'; $btnAtualiz
 $btnAtualizar.BackColor = $C_PANEL; $btnAtualizar.ForeColor = $C_TXT; $btnAtualizar.FlatStyle = 'Flat'
 $btnAtualizar.FlatAppearance.BorderColor = $C_LINE
 $form.Controls.Add($btnAtualizar)
+
+$btnSup = New-Object System.Windows.Forms.Button
+$btnSup.Text = 'Supervisão'; $btnSup.Location = '154,552'; $btnSup.Size = '150,34'
+$btnSup.BackColor = $C_PANEL; $btnSup.ForeColor = $C_TEAL; $btnSup.FlatStyle = 'Flat'
+$btnSup.FlatAppearance.BorderColor = $C_TEALD
+$form.Controls.Add($btnSup)
 
 $footer = New-Object System.Windows.Forms.Label
 $footer.Text = 'Desafio Liga Jovem · SEBRAE'
@@ -238,6 +316,8 @@ $btnPin.Add_Click({
 })
 
 $btnAtualizar.Add_Click({ Update-Ui })
+
+$btnSup.Add_Click({ Show-SupervisaoDialog })
 
 Update-Ui
 if ($NoShow) {

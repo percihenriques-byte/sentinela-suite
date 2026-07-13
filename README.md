@@ -34,6 +34,18 @@ O Sentinela move a proteção para **antes** do navegador:
 Essa técnica (`forcesafesearch` / `restrict.youtube.com`) é **real** e é a mesma usada por
 escolas e provedores. **Não depende de nenhuma API externa nem de servidor pago.**
 
+### Duas camadas + supervisão
+
+1. **Camada de rede (DNS + hosts)** — força o modo seguro do Google/YouTube/Bing em
+   qualquer navegador, até no incógnito. Trava por PIN, com Guardião anti-adulteração.
+2. **Camada de IA local (extensão do navegador)** — bloqueia na hora os temas que o modo
+   seguro *não* cobre (apostas, autolesão, violência, "burlar filtro"...), com um
+   classificador que roda **na própria máquina** (sem internet) e entende tentativas de
+   driblar (`p0rn0`, `p o r n o`). O responsável escolhe os temas e adiciona palavras.
+3. **Supervisão** — a extensão **registra o que a criança busca** (tema, confiança, hora)
+   para o responsável revisar no popup da extensão ou no painel. Tudo fica **local**;
+   nada é enviado para a internet (privacidade por design).
+
 ---
 
 ## O que tem neste repositório
@@ -79,12 +91,17 @@ sentinela/
 │   ├── Sentinela-Core.ps1      Núcleo: DNS de filtro + bloco hosts
 │   ├── Sentinela-Pin.ps1       Trava por PIN (SHA-256 + salt)
 │   ├── Sentinela-Guardiao.ps1  Reaplica a proteção se adulterada
-│   ├── Sentinela-Classificador.ps1  IA local anti-evasão (sem internet)
+│   ├── Sentinela-Classificador.ps1  IA local anti-evasão, configurável
+│   ├── Sentinela-Supervisao.ps1  Registro do que foi buscado (fiscalização)
 │   ├── Classificar-Busca.ps1   Ferramenta p/ o responsável testar a IA
+│   ├── Ver-Supervisao.ps1      Ver/importar o registro de supervisão
+│   ├── extensao/               Extensão Chrome/Edge: bloqueio por IA + captura
+│   │   ├── manifest.json  content.js  classificador.js  popup.html  popup.js
+│   │   └── COMO-INSTALAR-EXTENSAO.md
 │   ├── gui/
-│   │   └── Sentinela-Painel.ps1   Painel gráfico do responsável
+│   │   └── Sentinela-Painel.ps1   Painel gráfico (status, PIN, supervisão)
 │   └── Testes/
-│       └── Executar-Testes.ps1    35 testes automatizados (simulação)
+│       └── Executar-Testes.ps1    51 testes automatizados (simulação)
 └── docs/
     ├── COMO-INSTALAR.md        Guia passo a passo para leigos
     ├── PITCH.md                Material de apresentação (SEBRAE)
@@ -100,7 +117,7 @@ Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporá
 .\app\Testes\Executar-Testes.ps1
 ```
 
-Saída esperada: `RESULTADO: 35 passaram, 0 falharam`.
+Saída esperada: `RESULTADO: 51 passaram, 0 falharam`.
 
 Para testar só a IA local de classificação (inclui tentativas de evasão):
 
