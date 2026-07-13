@@ -47,9 +47,10 @@ organização"** e o botão de desativar/remover **some**. Confira em `edge://po
 `chrome://policy`. Para reverter: `Travar-Extensao.ps1 -Destravar` (remove a política e o
 servidor).
 
-## Limitação honesta que resta
+## Cobertura de navegação sem recarregar (SPA)
 
-- **Navegação sem recarregar (SPA):** rolar resultados do YouTube sem recarregar pode
-  escapar de uma verificação pontual. O bloqueio pega a **busca** (quando a página de
-  resultados carrega), que é o momento principal. Mesmo assim, o **DNS já garante o modo
-  seguro** por baixo. Cobertura de SPA está no roadmap.
+A extensão roda em **todo** o domínio do YouTube e **reavalia a busca a cada mudança de
+URL** — via os eventos `popstate`, `hashchange`, `yt-navigate-finish` e um verificador
+periódico. Assim, mesmo quando o YouTube (ou o DuckDuckGo) troca os resultados **sem
+recarregar a página**, o Sentinela reclassifica e bloqueia na hora. O DNS continua
+garantindo o modo seguro por baixo, como terceira rede de proteção.

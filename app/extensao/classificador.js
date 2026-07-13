@@ -6,7 +6,7 @@
 (function (global) {
   function normalizar(s) {
     s = (s || '').toLowerCase();
-    s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); // tira acentos
+    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // tira acentos
     var mapa = { '0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','+':'t' };
     s = s.replace(/[01345789@$+]/g, function (c) { return mapa[c] || c; });
     s = s.replace(/(.)\1{2,}/g, '$1');                 // encolhe repetições
@@ -49,7 +49,7 @@
     if (termosExtra.length) {
       var extra = {};
       for (var e = 0; e < termosExtra.length; e++) {
-        var t = (termosExtra[e] || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+        var t = (termosExtra[e] || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         if (t) extra[t] = 1;
       }
       cats.push({ nome:'Bloqueio do responsável', padrao:true, semReducao:true, termos:extra });

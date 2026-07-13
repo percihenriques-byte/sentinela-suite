@@ -11,7 +11,8 @@
         "*://www.google.com.br/search*",
         "*://www.bing.com/search*",
         "*://duckduckgo.com/*",
-        "*://www.youtube.com/results*"
+        "*://www.youtube.com/*",
+        "*://m.youtube.com/*"
       ],
       "js": ["classificador.js", "content.js"],
       "run_at": "document_start",
