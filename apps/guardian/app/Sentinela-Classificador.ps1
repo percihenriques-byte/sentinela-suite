@@ -47,11 +47,19 @@ function Get-TextoNormalizado {
                ([char]0x0441)='c'; ([char]0x0445)='x'; ([char]0x0443)='y'; ([char]0x0456)='i';
                ([char]0x0455)='s'; ([char]0x0458)='j' }
     foreach ($k in $homo.Keys) { $t = $t.Replace([string]$k, $homo[$k]) }
+    # variante SEM leet: preserva digitos legitimos (ex.: bet365)
+    $raw = [regex]::Replace($t, '(.)\1{2,}', '$1')
+    # variante COM leet: derruba evasao (s3x0 -> sexo)
     $mapa = @{ '0'='o'; '1'='i'; '3'='e'; '4'='a'; '5'='s'; '7'='t'; '8'='b'; '9'='g'; '@'='a'; '$'='s'; '+'='t' }
-    foreach ($k in $mapa.Keys) { $t = $t.Replace($k, $mapa[$k]) }
-    $t = [regex]::Replace($t, '(.)\1{2,}', '$1')
-    $colado = [regex]::Replace($t, '[^a-z0-9]', '')
-    return [pscustomobject]@{ Texto = $t; Colado = $colado }
+    $leet = $t
+    foreach ($k in $mapa.Keys) { $leet = $leet.Replace($k, $mapa[$k]) }
+    $leet = [regex]::Replace($leet, '(.)\1{2,}', '$1')
+    return [pscustomobject]@{
+        Texto     = $leet
+        Colado    = [regex]::Replace($leet, '[^a-z0-9]', '')
+        TextoRaw  = $raw
+        ColadoRaw = [regex]::Replace($raw, '[^a-z0-9]', '')
+    }
 }
 
 # ---- base de conhecimento (pesos) ----------------------------------
@@ -137,16 +145,19 @@ function Get-ClassificacaoConteudo {
         if ($norm.Texto.Contains((ConvertTo-SemAcento $ctx))) { $reducao = 0.5; break }
     }
 
+    # nomes de tema comparados de forma normalizada (sem acento/caixa),
+    # para o config nao errar por causa de acento (BUG-11).
+    $normNome = { param($s) (ConvertTo-SemAcento ([string]$s)).ToLowerInvariant().Trim() }
+    $desativadosN = @($desativados | ForEach-Object { & $normNome $_ })
+    $ativadosN = if (Test-Prop $conf 'temasAtivados') { @($conf.temasAtivados | ForEach-Object { & $normNome $_ }) } else { @() }
+
     # monta a lista de temas ativos (+ tema personalizado do responsavel)
     $categorias = @()
     foreach ($cat in $script:CATEGORIAS) {
-        if ($desativados -contains $cat.Nome) { continue }
-        if (-not $cat.Padrao -and ($desativados -notcontains ('ATIVAR:' + $cat.Nome))) {
-            # temas opcionais so entram se o responsavel ativou explicitamente
-            if (-not ((Test-Prop $conf 'temasAtivados') -and (@($conf.temasAtivados) -contains $cat.Nome))) {
-                continue
-            }
-        }
+        $nomeN = & $normNome $cat.Nome
+        if ($desativadosN -contains $nomeN) { continue }
+        # temas opcionais so entram se o responsavel ativou explicitamente
+        if (-not $cat.Padrao -and ($ativadosN -notcontains $nomeN)) { continue }
         $categorias += $cat
     }
     if ($termosExtra.Count -gt 0) {
@@ -162,7 +173,11 @@ function Get-ClassificacaoConteudo {
         foreach ($termo in $cat.Termos.Keys) {
             $peso = $cat.Termos[$termo]
             $termoColado = [regex]::Replace($termo, '[^a-z0-9]', '')
-            if ($norm.Texto.Contains($termo) -or ($termoColado.Length -ge 3 -and $norm.Colado.Contains($termoColado))) {
+            $achou = $norm.Texto.Contains($termo) -or $norm.TextoRaw.Contains($termo)
+            if (-not $achou -and $termoColado.Length -ge 3) {
+                $achou = $norm.Colado.Contains($termoColado) -or $norm.ColadoRaw.Contains($termoColado)
+            }
+            if ($achou) {
                 $score += $peso
                 $sinais += $termo
             }

@@ -142,12 +142,13 @@ function Set-SentinelaHosts {
     $p = Initialize-SentinelaStore
     $hostsFile = $p.HostsFile
     $current = if (Test-Path $hostsFile) { Get-Content $hostsFile -Raw } else { '' }
-
-    # backup uma vez
-    if (-not (Test-Path $p.HostsBackup)) {
-        $current | Set-Content -Path $p.HostsBackup -Encoding ASCII
-    }
     $clean = Remove-HostsBlockText -Content $current
+
+    # backup uma vez, do hosts LIMPO (sem bloco SENTINELA), para ser um
+    # ponto de restauracao fiel mesmo se ja havia bloco de execucao anterior.
+    if (-not (Test-Path $p.HostsBackup)) {
+        $clean | Set-Content -Path $p.HostsBackup -Encoding ASCII
+    }
     $block = Get-SentinelaHostsBlock
     $new = ($clean.TrimEnd() + "`r`n`r`n" + $block + "`r`n")
     $new | Set-Content -Path $hostsFile -Encoding ASCII

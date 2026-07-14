@@ -105,7 +105,7 @@ sentinela/
 │   ├── gui/
 │   │   └── Sentinela-Painel.ps1   Painel gráfico (status, PIN, supervisão)
 │   └── Testes/
-│       └── Executar-Testes.ps1    51 testes automatizados (simulação)
+│       └── Executar-Testes.ps1    83 testes automatizados (simulação)
 └── docs/
     ├── COMO-INSTALAR.md        Guia passo a passo para leigos
     ├── PITCH.md                Material de apresentação (SEBRAE)
@@ -121,7 +121,7 @@ Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporá
 .\app\Testes\Executar-Testes.ps1
 ```
 
-Saída esperada: `RESULTADO: 61 passaram, 0 falharam`.
+Saída esperada: `RESULTADO: 83 passaram, 0 falharam`.
 
 Para testar só a IA local de classificação (inclui tentativas de evasão):
 

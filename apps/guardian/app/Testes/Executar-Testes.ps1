@@ -128,6 +128,12 @@ $txt = Get-Content (Get-SentinelaPaths).HostsFile -Raw
 $ocorrencias = ([regex]::Matches($txt, [regex]::Escape('>>> SENTINELA'))).Count
 Assert 'Bloco hosts aparece apenas 1 vez'          ($ocorrencias -eq 1)
 
+# BUG-08: se o hosts ja tinha um bloco na 1a ativacao, o backup nao deve conte-lo
+Reset-Sandbox
+"127.0.0.1 localhost`r`n# >>> SENTINELA (nao edite esta secao) >>>`r`n216.239.38.120 www.google.com`r`n# <<< SENTINELA <<<" | Set-Content (Get-SentinelaPaths).HostsFile -Encoding ASCII
+Enable-Sentinela -Simular
+Assert 'Backup do hosts nao contem bloco SENTINELA' (-not ((Get-Content (Get-SentinelaPaths).HostsBackup -Raw) -match '>>> SENTINELA'))
+
 # --- Grupo 5: IA local de classificacao -----------------------------
 Write-Host ''
 Write-Host '  Grupo 5: IA local de classificacao (anti-evasao)'
@@ -175,6 +181,8 @@ Write-Host '  Grupo 6: bloqueio amplo e configuravel'
 Reset-Sandbox
 Assert 'Muitos temas cobertos (>= 8)'              ((Get-TemasDisponiveis).Count -ge 8)
 Assert 'Tigrinho (aposta) e bloqueado'             (Test-ConteudoImproprio 'jogo do tigrinho')
+Assert 'bet365 (marca com digitos) e bloqueado'    (Test-ConteudoImproprio 'bet365')
+Assert 'leet ainda funciona apos dupla variante'   (Test-ConteudoImproprio 's3x0')
 Assert 'Autolesao e bloqueada'                     (Test-ConteudoImproprio 'como se matar')
 # responsavel desativa um tema
 Save-SentinelaConfig -Config ([pscustomobject]@{ classificador = [pscustomobject]@{ temasDesativados = @('Apostas') } })
@@ -190,6 +198,9 @@ Save-SentinelaConfig -Config ([pscustomobject]@{})
 Assert 'Tema opcional (redes sociais) OFF por padrao' (-not (Test-ConteudoImproprio 'tiktok'))
 Save-SentinelaConfig -Config ([pscustomobject]@{ classificador = [pscustomobject]@{ temasAtivados = @('Redes sociais'); modoRigido = $true } })
 Assert 'Tema opcional ativado passa a bloquear'    (Test-ConteudoImproprio 'tiktok')
+# BUG-11: desativar tema por nome SEM acento tambem funciona
+Save-SentinelaConfig -Config ([pscustomobject]@{ classificador = [pscustomobject]@{ temasDesativados = @('Conteudo adulto') } })
+Assert 'Desativar tema por nome sem acento (BUG-11)' (-not (Test-ConteudoImproprio 'pornografia'))
 
 # --- Grupo 7: supervisao (fiscalizacao) -----------------------------
 Write-Host ''
@@ -236,6 +247,14 @@ if (Get-NavegadorParaEmpacotar) {
 } else {
     Write-Host '  [--]   (sem navegador; teste ponta-a-ponta de empacotamento pulado)' -ForegroundColor DarkGray
 }
+# BUG-13: crx corrompido/truncado lanca erro tratado
+$crxCorrupto = Join-Path (Get-SentinelaPaths).Base 'corrupto.crx'
+[System.IO.File]::WriteAllBytes($crxCorrupto, ([byte[]](0x43,0x72,0x32,0x34,3,0,0,0,255,255,0,0,1,2,3)))
+$lancouErro = $false; try { Get-CrxExtensionId -CrxPath $crxCorrupto | Out-Null } catch { $lancouErro = $true }
+Assert 'CRX truncado lanca erro tratado (BUG-13)'   $lancouErro
+# BUG-14: New-UpdateXml escapa caracteres XML
+$xmlEsc = New-UpdateXml -ExtensionId 'abcdefghijklmnopabcdefghijklmnop' -Codebase 'http://127.0.0.1/a&b.crx'
+Assert 'New-UpdateXml escapa & (BUG-14)'            (($xmlEsc -match '&amp;') -and -not ($xmlEsc -match '&(?!amp;|lt;|gt;|apos;|quot;)'))
 
 # --- Grupo 9: servidor local (force-install http) -------------------
 Write-Host ''

@@ -22,12 +22,17 @@ if (-not $Simular -and $env:SENTINELA_SIMULAR -ne '1') {
 }
 
 Write-Host ''
-Write-Host '  Desligar o Sentinela exige o PIN do responsavel.' -ForegroundColor Yellow
-if (-not (Request-SentinelaPin -Prompt 'PIN do responsavel')) {
-    Write-Host ''
-    Write-Host '  Acesso negado. O Sentinela continua ATIVO.' -ForegroundColor Red
-    Write-SentinelaLog 'Tentativa de desativar bloqueada: PIN incorreto (esgotou tentativas).' 'WARN'
-    exit 1
+if (-not (Test-SentinelaPinConfigured)) {
+    # Sem PIN definido nao ha o que proteger; permite desativar e avisa.
+    Write-Host '  Nenhum PIN configurado - desativando (defina um PIN ao reativar).' -ForegroundColor Yellow
+} else {
+    Write-Host '  Desligar o Sentinela exige o PIN do responsavel.' -ForegroundColor Yellow
+    if (-not (Request-SentinelaPin -Prompt 'PIN do responsavel')) {
+        Write-Host ''
+        Write-Host '  Acesso negado. O Sentinela continua ATIVO.' -ForegroundColor Red
+        Write-SentinelaLog 'Tentativa de desativar bloqueada: PIN incorreto (esgotou tentativas).' 'WARN'
+        exit 1
+    }
 }
 
 Disable-Sentinela -Simular:$Simular

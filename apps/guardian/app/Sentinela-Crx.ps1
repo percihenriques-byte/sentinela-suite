@@ -36,9 +36,13 @@ function ConvertTo-CrxIdFromHash {
 function Get-CrxPublicKey {
     param([Parameter(Mandatory)][string]$CrxPath)
     $bytes = [System.IO.File]::ReadAllBytes($CrxPath)
+    if ($bytes.Length -lt 16) { throw "CRX invalido/curto demais: $CrxPath" }
     $magic = [System.Text.Encoding]::ASCII.GetString($bytes[0..3])
     if ($magic -ne 'Cr24') { throw "Arquivo nao e um CRX valido: $CrxPath" }
     $hlen = [BitConverter]::ToUInt32($bytes, 8)
+    if ($hlen -le 0 -or (12 + $hlen) -gt $bytes.Length) {
+        throw "CRX corrompido: cabecalho ($hlen bytes) maior que o arquivo ($($bytes.Length) bytes)."
+    }
     $hdr = New-Object 'byte[]' $hlen
     [Array]::Copy($bytes, 12, $hdr, 0, $hlen)
 
@@ -135,11 +139,16 @@ function New-UpdateXml {
         if (-not $CrxPath) { throw 'Informe -Codebase (URL) ou -CrxPath (arquivo).' }
         $Codebase = 'file:///' + ($CrxPath -replace '\\', '/')
     }
+    # escapa para atributo XML (BUG-14): & < > ' "
+    $esc = { param($s) ([string]$s).Replace('&','&amp;').Replace('<','&lt;').Replace('>','&gt;').Replace("'",'&apos;').Replace('"','&quot;') }
+    $eId  = & $esc $ExtensionId
+    $eCb  = & $esc $Codebase
+    $eVer = & $esc $Versao
     return @"
 <?xml version='1.0' encoding='UTF-8'?>
 <gupdate xmlns='http://www.google.com/update2/response' protocol='2.0'>
-  <app appid='$ExtensionId'>
-    <updatecheck codebase='$codebase' version='$Versao' />
+  <app appid='$eId'>
+    <updatecheck codebase='$eCb' version='$eVer' />
   </app>
 </gupdate>
 "@
