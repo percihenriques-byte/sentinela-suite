@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "description": "Analisa com IA local (sem internet) o que a criança vê — a busca E o conteúdo de texto da página — e bloqueia o impróprio, registrando a atividade para o responsável.",
   "permissions": ["storage"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js" },
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
