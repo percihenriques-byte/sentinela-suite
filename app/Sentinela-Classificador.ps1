@@ -55,13 +55,15 @@ $script:CATEGORIAS = @(
     @{ Nome='Conteudo adulto'; Padrao=$true; SemReducao=$false; Termos=@{
         'porno'=1.0;'pornografia'=1.0;'pornografico'=1.0;'xvideos'=1.0;'xnxx'=1.0;'nudes'=1.0;'hentai'=1.0;
         'putaria'=1.0;'conteudo adulto'=1.0;'sexo explicito'=1.0;'onlyfans'=1.0;'camgirl'=1.0;
-        'sexo'=0.5;'nudez'=0.5;'pelada'=0.5;'pelado'=0.5;'+18'=0.5;'nu'=0.35;'seios'=0.35 } },
+        'sexo'=1.0;'transar'=1.0;'nudez'=1.0;'nudez infantil'=1.0;'pornografia infantil'=1.0;'zoofilia'=1.0;
+        'masturbacao'=1.0;'punheta'=1.0;'siririca'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
         'violencia'=0.5;'sangue'=0.35;'briga'=0.35;'assassinato'=0.5;'massacre'=0.5 } },
     @{ Nome='Autolesao e suicidio'; Padrao=$true; SemReducao=$true; Termos=@{
-        'suicidio'=1.0;'como se matar'=1.0;'automutilacao'=1.0;'me cortar'=1.0;'tirar a propria vida'=1.0;
+        'suicidio'=1.0;'como se matar'=1.0;'me matar'=1.0;'quero morrer'=1.0;'vontade de morrer'=1.0;
+        'automutilacao'=1.0;'me cortar'=1.0;'tirar a propria vida'=1.0;'tirar minha vida'=1.0;
         'anorexia dicas'=1.0;'pro ana'=1.0 } },
     @{ Nome='Armas'; Padrao=$true; SemReducao=$true; Termos=@{
         'como fazer bomba'=1.0;'fabricar arma'=1.0;'arma caseira'=1.0;'explosivo'=0.5;
@@ -70,8 +72,8 @@ $script:CATEGORIAS = @(
         'como usar drogas'=1.0;'comprar maconha'=1.0;'cocaina'=0.5;'crack'=0.5;'maconha'=0.5;
         'lsd'=0.5;'ecstasy'=0.5;'droga'=0.35;'entorpecente'=0.5 } },
     @{ Nome='Apostas'; Padrao=$true; SemReducao=$true; Termos=@{
-        'cassino online'=1.0;'aposta esportiva'=1.0;'jogo do bicho'=1.0;'aposta'=0.5;'bet'=0.35;'cassino'=0.5;
-        'tigrinho'=1.0;'jogo do tigrinho'=1.0 } },
+        'cassino online'=1.0;'aposta esportiva'=1.0;'jogo do bicho'=1.0;'aposta'=0.5;'cassino'=0.5;
+        'tigrinho'=1.0;'jogo do tigrinho'=1.0;'bet365'=1.0;'betano'=1.0;'sportingbet'=1.0;'blaze aposta'=1.0 } },
     @{ Nome='Burlar protecao'; Padrao=$true; SemReducao=$true; Termos=@{
         'burlar filtro'=1.0;'burlar o filtro'=1.0;'driblar o filtro'=1.0;'desativar safesearch'=1.0;
         'desbloquear sites'=1.0;'filtro da escola'=1.0;'vpn para escola'=1.0;'como burlar'=0.5;'proxy anonimo'=0.5 } },
