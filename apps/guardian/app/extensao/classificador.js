@@ -15,12 +15,12 @@
 
   // Padrao: true = bloqueia por padrao; false = tema opcional (responsavel ativa)
   var CATS = [
-    { nome:'Conteúdo adulto', padrao:true, semReducao:false, termos:{'porno':1,'pornografia':1,'pornografico':1,'xvideos':1,'xnxx':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'onlyfans':1,'camgirl':1,'sexo':.5,'nudez':.5,'pelada':.5,'pelado':.5,'+18':.5,'nu':.35,'seios':.35}},
+    { nome:'Conteúdo adulto', padrao:true, semReducao:false, termos:{'porno':1,'pornografia':1,'pornografico':1,'xvideos':1,'xnxx':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'onlyfans':1,'camgirl':1,'sexo':1,'transar':1,'nudez':1,'nudez infantil':1,'pornografia infantil':1,'zoofilia':1,'masturbacao':1,'punheta':1,'siririca':1,'pelada':.5,'pelado':.5,'+18':.5}},
     { nome:'Violência', padrao:true, semReducao:false, termos:{'decapitacao':1,'tortura':1,'gore':1,'estupro':1,'espancamento':.5,'violencia extrema':1,'videos de violencia':1,'briga de rua':1,'violencia':.5,'sangue':.35,'briga':.35,'assassinato':.5,'massacre':.5}},
-    { nome:'Autolesão e suicídio', padrao:true, semReducao:true, termos:{'suicidio':1,'como se matar':1,'automutilacao':1,'me cortar':1,'tirar a propria vida':1,'anorexia dicas':1,'pro ana':1}},
+    { nome:'Autolesão e suicídio', padrao:true, semReducao:true, termos:{'suicidio':1,'como se matar':1,'me matar':1,'quero morrer':1,'vontade de morrer':1,'automutilacao':1,'me cortar':1,'tirar a propria vida':1,'tirar minha vida':1,'anorexia dicas':1,'pro ana':1}},
     { nome:'Armas', padrao:true, semReducao:true, termos:{'como fazer bomba':1,'fabricar arma':1,'arma caseira':1,'explosivo':.5,'pistola':.35,'rifle':.35,'municao':.35}},
     { nome:'Drogas', padrao:true, semReducao:false, termos:{'como usar drogas':1,'comprar maconha':1,'cocaina':.5,'crack':.5,'maconha':.5,'lsd':.5,'ecstasy':.5,'droga':.35,'entorpecente':.5}},
-    { nome:'Apostas', padrao:true, semReducao:true, termos:{'cassino online':1,'aposta esportiva':1,'jogo do bicho':1,'aposta':.5,'bet':.35,'cassino':.5,'tigrinho':1,'jogo do tigrinho':1}},
+    { nome:'Apostas', padrao:true, semReducao:true, termos:{'cassino online':1,'aposta esportiva':1,'jogo do bicho':1,'aposta':.5,'cassino':.5,'tigrinho':1,'jogo do tigrinho':1,'bet365':1,'betano':1,'sportingbet':1,'blaze aposta':1}},
     { nome:'Burlar proteção', padrao:true, semReducao:true, termos:{'burlar filtro':1,'burlar o filtro':1,'driblar o filtro':1,'desativar safesearch':1,'desbloquear sites':1,'filtro da escola':1,'vpn para escola':1,'como burlar':.5,'proxy anonimo':.5}},
     { nome:'Linguagem imprópria', padrao:true, semReducao:true, termos:{'caralho':.5,'porra':.5,'buceta':1,'piroca':1}},
     { nome:'Namoro e relacionamento', padrao:false, semReducao:true, termos:{'app de namoro':1,'tinder':1,'como beijar':.5,'namorada online':.5,'pegar meninas':.5}},

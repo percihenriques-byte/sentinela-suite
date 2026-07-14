@@ -127,6 +127,22 @@ Assert 'Busca comum e liberada'                    (-not (Test-ConteudoImproprio
 Assert 'Busca comum 2 e liberada'                  (-not (Test-ConteudoImproprio 'filhotes de golden retriever'))
 Assert 'Conteudo adulto direto e bloqueado'        (Test-ConteudoImproprio 'conteudo adulto +18')
 Assert 'Violencia extrema e bloqueada'              (Test-ConteudoImproprio 'videos de violencia extrema')
+# --- ancoras que devem bloquear SOZINHAS (BUG-01/02/04) ---
+Assert 'sexo (sozinho) e bloqueado'                 (Test-ConteudoImproprio 'sexo')
+Assert 's3x0 (sozinho) e bloqueado'                 (Test-ConteudoImproprio 's3x0')
+Assert 'como fazer sexo e bloqueado'                (Test-ConteudoImproprio 'como fazer sexo')
+Assert 'nudez e bloqueada'                          (Test-ConteudoImproprio 'nudez')
+Assert 'nudez infantil e bloqueada'                 (Test-ConteudoImproprio 'nudez infantil')
+Assert 'transar e bloqueado'                        (Test-ConteudoImproprio 'transar')
+Assert 'zoofilia e bloqueada'                       (Test-ConteudoImproprio 'zoofilia')
+# --- autolesao: variacoes (BUG-03) ---
+Assert 'quero me matar e bloqueado'                 (Test-ConteudoImproprio 'quero me matar')
+Assert 'quero morrer e bloqueado'                   (Test-ConteudoImproprio 'quero morrer')
+# --- substrings curtas nao geram sinal falso (BUG-05) ---
+Assert 'menu do restaurante nao vira adulto'        ($null -eq (Get-ClassificacaoConteudo -Texto 'menu do restaurante').Categoria)
+Assert 'numero de telefone nao vira adulto'         ($null -eq (Get-ClassificacaoConteudo -Texto 'numero de telefone').Categoria)
+Assert 'aprender o alfabeto nao vira apostas'       ($null -eq (Get-ClassificacaoConteudo -Texto 'aprender o alfabeto').Categoria)
+Assert 'apostila de matematica continua liberada'   (-not (Test-ConteudoImproprio 'apostila de matematica'))
 Assert 'Evasao leetspeak (s3x0) e bloqueada'       (Test-ConteudoImproprio 's3x0 expl1c1t0')
 Assert 'Evasao letras espacadas (p o r n) bloqueada' (Test-ConteudoImproprio 'p o r n o')
 Assert 'Evasao com pontos (p.o.r.n) bloqueada'     (Test-ConteudoImproprio 'p.o.r.n.o.g.r.a.f.i.a')
