@@ -11,10 +11,10 @@
     s = s.replace(/[\u0430\u043e\u0435\u0440\u0441\u0445\u0443\u0456\u0455\u0458]/g, function (c) { return homo[c] || c; });
     // NFKD resolve full-width (\uff53\uff45\uff58\uff4f) e ligaduras; depois remove acentos
     s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    var raw = s.replace(/(.)\1{2,}/g, '$1');
     var mapa = { '0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','+':'t' };
-    s = s.replace(/[01345789@$+]/g, function (c) { return mapa[c] || c; });
-    s = s.replace(/(.)\1{2,}/g, '$1');                 // encolhe repetições
-    return { texto: s, colado: s.replace(/[^a-z0-9]/g, '') };
+    var leet = s.replace(/[01345789@$+]/g, function (c) { return mapa[c] || c; }).replace(/(.)\1{2,}/g, '$1');
+    return { texto: leet, colado: leet.replace(/[^a-z0-9]/g, ''), textoRaw: raw, coladoRaw: raw.replace(/[^a-z0-9]/g, '') };
   }
 
   // Padrao: true = bloqueia por padrao; false = tema opcional (responsavel ativa)
@@ -32,10 +32,13 @@
   ];
   var CTX_SEGURO = ['dever de casa','trabalho escolar','feira de ciencias','aula de ciencias','biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de'];
 
+  function nrmNome(s) { return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+
   function classify(texto, config) {
     config = config || {};
-    var desativados = config.temasDesativados || [];
-    var ativados = config.temasAtivados || [];
+    // nomes de tema comparados sem acento/caixa (BUG-11)
+    var desativados = (config.temasDesativados || []).map(nrmNome);
+    var ativados = (config.temasAtivados || []).map(nrmNome);
     var termosExtra = config.termosPersonalizados || [];
     var limiar = config.modoRigido ? 0.5 : 1.0;
 
@@ -46,8 +49,9 @@
     var cats = [];
     for (var c = 0; c < CATS.length; c++) {
       var cat = CATS[c];
-      if (desativados.indexOf(cat.nome) !== -1) continue;
-      if (!cat.padrao && ativados.indexOf(cat.nome) === -1) continue;
+      var cn = nrmNome(cat.nome);
+      if (desativados.indexOf(cn) !== -1) continue;
+      if (!cat.padrao && ativados.indexOf(cn) === -1) continue;
       cats.push(cat);
     }
     if (termosExtra.length) {
@@ -64,7 +68,9 @@
       var ct = cats[k], score = 0, sinais = [];
       for (var termo in ct.termos) {
         var colado = termo.replace(/[^a-z0-9]/g, '');
-        if (n.texto.indexOf(termo) !== -1 || (colado.length >= 3 && n.colado.indexOf(colado) !== -1)) {
+        var achou = n.texto.indexOf(termo) !== -1 || n.textoRaw.indexOf(termo) !== -1;
+        if (!achou && colado.length >= 3) { achou = n.colado.indexOf(colado) !== -1 || n.coladoRaw.indexOf(colado) !== -1; }
+        if (achou) {
           score += ct.termos[termo]; sinais.push(termo);
         }
       }

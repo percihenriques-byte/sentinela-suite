@@ -39,7 +39,13 @@ function Add-SupervisaoRegistro {
         bloqueado = [bool]$Resultado.Bloquear
     }
     $linha = ($registro | ConvertTo-Json -Compress)
-    Add-Content -Path (Get-SupervisaoArquivo) -Value $linha -Encoding UTF8
+    $arq = Get-SupervisaoArquivo
+    Add-Content -Path $arq -Value $linha -Encoding UTF8
+    # cap: mantem apenas as ultimas 2000 linhas (evita crescimento sem limite) - BUG-12
+    $todas = @(Get-Content $arq -Encoding UTF8)
+    if ($todas.Count -gt 2000) {
+        $todas[($todas.Count - 2000)..($todas.Count - 1)] | Set-Content -Path $arq -Encoding UTF8
+    }
 
     if ($Resultado.Bloquear) {
         Write-SentinelaLog ("SUPERVISAO: busca bloqueada [{0}] '{1}' (origem {2})" -f $Resultado.Categoria, $Texto, $Origem) 'WARN'
