@@ -107,12 +107,53 @@
     } catch (e) { /* silencioso */ }
   }
 
+  // ---- 3) IMAGENS ----
+  function borrarImagem(img, ratio) {
+    img.style.setProperty('filter', 'blur(30px)', 'important');
+    img.style.setProperty('clip-path', 'inset(1px)', 'important');
+    img.setAttribute('data-sentinela-oculta', ratio || '');
+    img.title = 'Imagem ocultada pelo Sentinela';
+  }
+  function analisarImagens() {
+    var imgs;
+    try { imgs = document.images; } catch (e) { return; }
+    for (var i = 0; i < imgs.length; i++) {
+      var img = imgs[i];
+      if (img.__sentinelaImg) continue;
+      var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+      if (w < 128 || h < 128) continue;         // ignora icones/thumbs pequenos
+      img.__sentinelaImg = true;
+      var src = img.currentSrc || img.src;
+      if (!src) continue;
+      (function (elImg, elSrc) {
+        try {
+          chrome.runtime.sendMessage({ tipo: 'analisarImagem', url: elSrc }, function (res) {
+            if (chrome.runtime.lastError) return;
+            if (res && res.flag) {
+              borrarImagem(elImg, res.skinRatio);
+              registrar({ hora: new Date().toISOString(), busca: '[imagem] ' + location.hostname, origem: 'imagem', tema: 'Imagem suspeita', confianca: res.skinRatio || 0, bloqueado: true });
+            }
+          });
+        } catch (e) { /* silencioso */ }
+      })(img, src);
+    }
+  }
+  function talvezAnalisarImagens() {
+    try {
+      chrome.storage.local.get({ sentinela_config: {} }, function (d) {
+        var cfg = d.sentinela_config || {};
+        if (cfg.analisarImagens === false) return;   // toggle (padrao: ligado)
+        analisarImagens();
+      });
+    } catch (e) { /* silencioso */ }
+  }
+
   // avaliacao inicial da busca (imediata, antes de renderizar)
   verificarBusca();
   // analise de conteudo apos o texto existir
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', analisarPagina); }
   else { analisarPagina(); }
-  window.addEventListener('load', analisarPagina);
+  window.addEventListener('load', function () { analisarPagina(); talvezAnalisarImagens(); });
 
   // navegacao SPA (troca sem recarregar)
   window.addEventListener('popstate', function () { verificarBusca(); setTimeout(analisarPagina, 600); });
@@ -125,4 +166,6 @@
       verificarBusca(); setTimeout(analisarPagina, 700);
     }
   }, 500);
+  // re-varre imagens que aparecem depois (scroll/lazy-load), de forma leve
+  setInterval(talvezAnalisarImagens, 2500);
 })();

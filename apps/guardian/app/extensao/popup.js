@@ -70,6 +70,7 @@
           '<input type="checkbox" id="t_' + esc(t.tema) + '" data-tema="' + esc(t.tema) + '" data-padrao="' + t.padraoLigado + '" ' + (ligado ? 'checked' : '') + '></div>';
       }).join('');
       $('rigido').checked = !!cfg.modoRigido;
+      $('imagens').checked = (cfg.analisarImagens !== false); // padrao: ligado
       $('termos').value = (cfg.termosPersonalizados || []).join('\n');
     });
   }
@@ -82,7 +83,7 @@
       if (!padrao && chk.checked) ativados.push(tema);
     });
     var termos = $('termos').value.split('\n').map(function (s) { return s.trim(); }).filter(function (s) { return s.length; });
-    var cfg = { temasDesativados: desativados, temasAtivados: ativados, modoRigido: $('rigido').checked, termosPersonalizados: termos };
+    var cfg = { temasDesativados: desativados, temasAtivados: ativados, modoRigido: $('rigido').checked, analisarImagens: $('imagens').checked, termosPersonalizados: termos };
     chrome.storage.local.set({ sentinela_config: cfg }, function () {
       $('salvo').textContent = '✔ Configurações salvas.';
       setTimeout(function () { $('salvo').textContent = ''; }, 2000);

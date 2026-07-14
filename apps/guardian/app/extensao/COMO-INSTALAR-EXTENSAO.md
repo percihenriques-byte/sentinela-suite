@@ -5,8 +5,13 @@ Google/YouTube, a extensão:
 
 - **bloqueia na hora** buscas de temas que o modo seguro não cobre (apostas, autolesão,
   violência, "burlar filtro"...), usando a **IA local** (sem internet);
-- **registra o que a criança busca** para o responsável revisar (supervisão);
-- deixa você **escolher os temas** e adicionar **palavras próprias**.
+- **analisa o TEXTO da página** que a criança está vendo (não só a busca) e bloqueia a
+  página se o conteúdo for impróprio;
+- **analisa as IMAGENS** da página e borra as suspeitas (heurístico local; dá para plugar
+  um modelo treinado — veja `modelo/COMO-ADICIONAR-MODELO.md`);
+- **registra o que a criança busca/vê** para o responsável revisar (supervisão);
+- deixa você **escolher os temas**, adicionar **palavras próprias** e **ligar/desligar a
+  análise de imagens**.
 
 ## Instalar (Chrome ou Edge)
 
