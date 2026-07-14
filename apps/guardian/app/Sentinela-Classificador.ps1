@@ -28,7 +28,9 @@
 function ConvertTo-SemAcento {
     param([string]$Texto)
     if (-not $Texto) { return '' }
-    $d = $Texto.Normalize([System.Text.NormalizationForm]::FormD)
+    # FormKD (compatibilidade) resolve caracteres "full-width" (ｓｅｘｏ) e ligaduras,
+    # alem de decompor acentos para remocao logo abaixo.
+    $d = $Texto.Normalize([System.Text.NormalizationForm]::FormKD)
     $sb = New-Object System.Text.StringBuilder
     foreach ($c in $d.ToCharArray()) {
         $cat = [System.Globalization.CharUnicodeInfo]::GetUnicodeCategory($c)
@@ -40,6 +42,11 @@ function ConvertTo-SemAcento {
 function Get-TextoNormalizado {
     param([string]$Texto)
     $t = (ConvertTo-SemAcento $Texto).ToLowerInvariant()
+    # homoglifos cirilicos que imitam letras latinas (evasao "pоrnо")
+    $homo = @{ ([char]0x0430)='a'; ([char]0x043E)='o'; ([char]0x0435)='e'; ([char]0x0440)='p';
+               ([char]0x0441)='c'; ([char]0x0445)='x'; ([char]0x0443)='y'; ([char]0x0456)='i';
+               ([char]0x0455)='s'; ([char]0x0458)='j' }
+    foreach ($k in $homo.Keys) { $t = $t.Replace([string]$k, $homo[$k]) }
     $mapa = @{ '0'='o'; '1'='i'; '3'='e'; '4'='a'; '5'='s'; '7'='t'; '8'='b'; '9'='g'; '@'='a'; '$'='s'; '+'='t' }
     foreach ($k in $mapa.Keys) { $t = $t.Replace($k, $mapa[$k]) }
     $t = [regex]::Replace($t, '(.)\1{2,}', '$1')

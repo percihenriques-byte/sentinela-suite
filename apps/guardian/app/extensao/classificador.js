@@ -6,7 +6,11 @@
 (function (global) {
   function normalizar(s) {
     s = (s || '').toLowerCase();
-    s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // tira acentos
+    // homoglifos cirilicos -> latinos (evasao "p\u043ern\u043e")
+    var homo = {'\u0430':'a','\u043e':'o','\u0435':'e','\u0440':'p','\u0441':'c','\u0445':'x','\u0443':'y','\u0456':'i','\u0455':'s','\u0458':'j'};
+    s = s.replace(/[\u0430\u043e\u0435\u0440\u0441\u0445\u0443\u0456\u0455\u0458]/g, function (c) { return homo[c] || c; });
+    // NFKD resolve full-width (\uff53\uff45\uff58\uff4f) e ligaduras; depois remove acentos
+    s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     var mapa = { '0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','+':'t' };
     s = s.replace(/[01345789@$+]/g, function (c) { return mapa[c] || c; });
     s = s.replace(/(.)\1{2,}/g, '$1');                 // encolhe repetições
