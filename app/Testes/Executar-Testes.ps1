@@ -155,6 +155,11 @@ Assert 'Evasao leetspeak (s3x0) e bloqueada'       (Test-ConteudoImproprio 's3x0
 Assert 'Evasao letras espacadas (p o r n) bloqueada' (Test-ConteudoImproprio 'p o r n o')
 Assert 'Evasao com pontos (p.o.r.n) bloqueada'     (Test-ConteudoImproprio 'p.o.r.n.o.g.r.a.f.i.a')
 Assert 'Evasao repeticao (poooorno) bloqueada'     (Test-ConteudoImproprio 'pooooorno')
+# BUG-10: homoglifo cirilico e full-width (construidos por codigo p/ nao depender do encoding do .ps1)
+$evCirilico  = 'p' + [char]0x043E + 'rn' + [char]0x043E                              # "porno" com o cirilico
+$evFullwidth = [string]([char]0xFF53 + [char]0xFF45 + [char]0xFF58 + [char]0xFF4F)   # "sexo" full-width
+Assert 'Evasao homoglifo cirilico bloqueada'       (Test-ConteudoImproprio $evCirilico)
+Assert 'Evasao full-width bloqueada'               (Test-ConteudoImproprio $evFullwidth)
 Assert 'Burlar filtro (mesmo com "escola") bloqueado' (Test-ConteudoImproprio 'como burlar o filtro da escola')
 Assert 'Desativar safesearch com leet bloqueado'   (Test-ConteudoImproprio 'desativar s4f3s34rch')
 Assert 'Contexto saude NAO gera falso-positivo'    (-not (Test-ConteudoImproprio 'cancer de mama sintomas'))
