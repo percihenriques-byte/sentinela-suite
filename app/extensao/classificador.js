@@ -89,5 +89,50 @@
     };
   }
 
-  global.SentinelaIA = { classify: classify, temas: CATS.map(function (c) { return { tema: c.nome, padraoLigado: c.padrao }; }) };
+  function contarOcorrencias(hay, needle) {
+    if (!needle) return 0;
+    var n = 0, i = 0;
+    while ((i = hay.indexOf(needle, i)) >= 0) { n++; i += needle.length; }
+    return n;
+  }
+
+  // Analisa o CONTEUDO de uma pagina inteira (o que a crianca VE), contando
+  // ocorrencias, com limiar mais alto p/ nao bloquear mencao incidental.
+  function classifyPagina(texto, config, limiar) {
+    config = config || {}; limiar = limiar || 3.0;
+    if (!texto || !texto.trim()) return { block: false, category: null, score: 0, signals: [] };
+    var n = normalizar(texto);
+    var desativados = (config.temasDesativados || []).map(nrmNome);
+    var ativados = (config.temasAtivados || []).map(nrmNome);
+    var termosExtra = config.termosPersonalizados || [];
+    var cats = [];
+    for (var c = 0; c < CATS.length; c++) {
+      var cat = CATS[c], cn = nrmNome(cat.nome);
+      if (desativados.indexOf(cn) !== -1) continue;
+      if (!cat.padrao && ativados.indexOf(cn) === -1) continue;
+      cats.push(cat);
+    }
+    if (termosExtra.length) {
+      var extra = {};
+      for (var e = 0; e < termosExtra.length; e++) {
+        var t = (termosExtra[e] || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (t) extra[t] = 1;
+      }
+      cats.push({ nome: 'Bloqueio do responsável', padrao: true, semReducao: true, termos: extra });
+    }
+    var melhor = null;
+    for (var k = 0; k < cats.length; k++) {
+      var ct = cats[k], score = 0, sinais = [];
+      for (var termo in ct.termos) {
+        var occ = contarOcorrencias(n.texto, termo);
+        if (occ === 0) occ = contarOcorrencias(n.textoRaw, termo);
+        if (occ > 0) { score += ct.termos[termo] * Math.min(occ, 3); sinais.push(occ + 'x' + termo); }
+      }
+      if (score > 0 && (!melhor || score > melhor.score)) melhor = { category: ct.nome, score: score, signals: sinais };
+    }
+    if (!melhor) return { block: false, category: null, score: 0, signals: [] };
+    return { block: melhor.score >= limiar, category: melhor.category, score: Math.round(melhor.score * 10) / 10, signals: melhor.signals };
+  }
+
+  global.SentinelaIA = { classify: classify, classifyPagina: classifyPagina, temas: CATS.map(function (c) { return { tema: c.nome, padraoLigado: c.padrao }; }) };
 })(this);
