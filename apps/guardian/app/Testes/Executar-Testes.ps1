@@ -283,6 +283,19 @@ if ($okPing) {
     Write-Host '  [--]   (servidor nao subiu neste ambiente; teste pulado)' -ForegroundColor DarkGray
 }
 
+# --- Grupo 10: analise de CONTEUDO da pagina (o que a crianca ve) ----
+Write-Host ''
+Write-Host '  Grupo 10: analise de conteudo da pagina'
+Reset-Sandbox; Save-SentinelaConfig -Config ([pscustomobject]@{}) | Out-Null
+Assert 'Pagina adulta (varios termos) bloqueia'    ((Get-ClassificacaoPagina -Texto 'pornografia sexo nudez porno putaria sexo explicito').Bloquear)
+Assert 'Pagina de apostas bloqueia'                ((Get-ClassificacaoPagina -Texto 'cassino online aposta esportiva jogo do tigrinho bet365 aposta').Bloquear)
+Assert 'Palavra adulta repetida (5x) bloqueia'     ((Get-ClassificacaoPagina -Texto 'sexo sexo sexo sexo sexo').Bloquear)
+Assert 'Noticia com violencia 1x NAO bloqueia'     (-not (Get-ClassificacaoPagina -Texto 'programa contra a violencia urbana no centro da cidade').Bloquear)
+Assert 'Blog de receita NAO bloqueia'              (-not (Get-ClassificacaoPagina -Texto 'bolo de cenoura com cobertura de chocolate receita simples e rapida').Bloquear)
+Assert 'Aula de reproducao NAO bloqueia'           (-not (Get-ClassificacaoPagina -Texto 'aula de ciencias reproducao humana sistema reprodutor biologia').Bloquear)
+Assert 'Pagina vazia NAO bloqueia'                 (-not (Get-ClassificacaoPagina -Texto '').Bloquear)
+Assert 'Analise de pagina retorna score'           ((Get-ClassificacaoPagina -Texto 'pornografia pornografia pornografia').Score -ge 3)
+
 # --- Relatorio ------------------------------------------------------
 Write-Host ''
 Write-Host '  ------------------------------------------' -ForegroundColor DarkGray

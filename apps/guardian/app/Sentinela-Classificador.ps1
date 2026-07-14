@@ -213,6 +213,78 @@ function Test-ConteudoImproprio {
     return (Get-ClassificacaoConteudo -Texto $Texto).Bloquear
 }
 
+# conta ocorrencias (nao sobrepostas) de um trecho
+function Measure-Ocorrencias {
+    param([string]$Texto, [string]$Termo)
+    if (-not $Termo) { return 0 }
+    $n = 0; $i = 0
+    while (($i = $Texto.IndexOf($Termo, $i)) -ge 0) { $n++; $i += $Termo.Length }
+    return $n
+}
+
+<#
+  Analisa o CONTEUDO de uma pagina inteira (o texto que a crianca esta VENDO),
+  nao apenas a busca. Conta OCORRENCIAS dos termos e exige um limiar mais alto
+  (a pagina tem muito texto), para nao bloquear uma mencao incidental num
+  artigo/noticia. Cada termo contribui no maximo 3x o seu peso.
+#>
+function Get-ClassificacaoPagina {
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Texto, [double]$LimiarPagina = 3.0)
+    if ([string]::IsNullOrWhiteSpace($Texto)) {
+        return [pscustomobject]@{ Bloquear=$false; Categoria=$null; Score=0.0; Sinais=@() }
+    }
+    $norm = Get-TextoNormalizado -Texto $Texto
+    $conf = Get-ClassificadorConfig
+
+    $desativados = @(); $termosExtra = @()
+    if ($conf) {
+        if ((Test-Prop $conf 'temasDesativados') -and $conf.temasDesativados) { $desativados = @($conf.temasDesativados) }
+        if ((Test-Prop $conf 'termosPersonalizados') -and $conf.termosPersonalizados) { $termosExtra = @($conf.termosPersonalizados) }
+    }
+    $normNome = { param($s) (ConvertTo-SemAcento ([string]$s)).ToLowerInvariant().Trim() }
+    $desativadosN = @($desativados | ForEach-Object { & $normNome $_ })
+    $ativadosN = if (Test-Prop $conf 'temasAtivados') { @($conf.temasAtivados | ForEach-Object { & $normNome $_ }) } else { @() }
+
+    # categorias ativas (+ termos personalizados do responsavel)
+    $cats = @()
+    foreach ($cat in $script:CATEGORIAS) {
+        $nomeN = & $normNome $cat.Nome
+        if ($desativadosN -contains $nomeN) { continue }
+        if (-not $cat.Padrao -and ($ativadosN -notcontains $nomeN)) { continue }
+        $cats += $cat
+    }
+    if ($termosExtra.Count -gt 0) {
+        $mapaExtra = @{}
+        foreach ($t in $termosExtra) { $mapaExtra[(ConvertTo-SemAcento ([string]$t)).ToLowerInvariant()] = 1.0 }
+        $cats += @{ Nome='Bloqueio do responsavel'; Padrao=$true; SemReducao=$true; Termos=$mapaExtra }
+    }
+
+    $melhor = $null
+    foreach ($cat in $cats) {
+        $score = 0.0; $sinais = @()
+        foreach ($termo in $cat.Termos.Keys) {
+            $occ = Measure-Ocorrencias $norm.Texto $termo
+            if ($occ -eq 0) { $occ = Measure-Ocorrencias $norm.TextoRaw $termo }
+            if ($occ -gt 0) {
+                $score += $cat.Termos[$termo] * [math]::Min($occ, 3)
+                $sinais += ('{0}x{1}' -f $occ, $termo)
+            }
+        }
+        if ($score -gt 0 -and ($null -eq $melhor -or $score -gt $melhor.Score)) {
+            $melhor = [pscustomobject]@{ Categoria=$cat.Nome; Score=$score; Sinais=$sinais }
+        }
+    }
+    if ($null -eq $melhor) {
+        return [pscustomobject]@{ Bloquear=$false; Categoria=$null; Score=0.0; Sinais=@() }
+    }
+    return [pscustomobject]@{
+        Bloquear  = ($melhor.Score -ge $LimiarPagina)
+        Categoria = $melhor.Categoria
+        Score     = [math]::Round($melhor.Score, 1)
+        Sinais    = $melhor.Sinais
+    }
+}
+
 # lista os temas disponiveis (para o painel do responsavel montar as opcoes)
 function Get-TemasDisponiveis {
     return $script:CATEGORIAS | ForEach-Object {

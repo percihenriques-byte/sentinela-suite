@@ -2,18 +2,11 @@
   "manifest_version": 3,
   "name": "Sentinela — Filtro e Supervisão",
   "version": "1.0.0",
-  "description": "Bloqueia buscas impróprias com IA local (sem internet) e registra a atividade para o responsável.",
+  "description": "Analisa com IA local (sem internet) o que a criança vê — a busca E o conteúdo de texto da página — e bloqueia o impróprio, registrando a atividade para o responsável.",
   "permissions": ["storage"],
   "content_scripts": [
     {
-      "matches": [
-        "*://www.google.com/search*",
-        "*://www.google.com.br/search*",
-        "*://www.bing.com/search*",
-        "*://duckduckgo.com/*",
-        "*://www.youtube.com/*",
-        "*://m.youtube.com/*"
-      ],
+      "matches": ["http://*/*", "https://*/*"],
       "js": ["classificador.js", "content.js"],
       "run_at": "document_start",
       "all_frames": false
