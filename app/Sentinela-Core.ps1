@@ -165,10 +165,19 @@ function Clear-SentinelaHosts {
 }
 
 function Test-SentinelaHostsApplied {
+    # Valida o CONTEUDO, nao so o marcador: se qualquer linha esperada
+    # (IP + dominio) faltar, considera NAO aplicado -> o guardiao reaplica.
+    # Isso impede burlar mantendo o marcador e apagando os IPs.
     $p = Get-SentinelaPaths
     if (-not (Test-Path $p.HostsFile)) { return $false }
     $c = Get-Content $p.HostsFile -Raw
-    return ($c -and $c.Contains($script:HOSTS_BEGIN))
+    if (-not $c) { return $false }
+    if (-not $c.Contains($script:HOSTS_BEGIN)) { return $false }
+    foreach ($h in $script:SAFE_HOSTS) {
+        $linha = ('{0} {1}' -f $script:SAFE_IP, $h)
+        if (-not $c.Contains($linha)) { return $false }
+    }
+    return $true
 }
 
 # ---------------------------------------------------------------------

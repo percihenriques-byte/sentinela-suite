@@ -73,6 +73,14 @@ Assert 'Adulteracao removeu o bloco hosts'         (-not (Test-SentinelaHostsApp
 & (Join-Path $appDir 'Sentinela-Guardiao.ps1') -Simular | Out-Null
 Assert 'Guardiao reaplicou o bloco hosts'          (Test-SentinelaHostsApplied)
 
+# BUG-07: adulteracao mantendo os marcadores mas apagando um IP esperado
+Enable-Sentinela -Simular
+$hAdult = (Get-Content (Get-SentinelaPaths).HostsFile -Raw) -replace '216\.239\.38\.120 www\.google\.com', ''
+$hAdult | Set-Content (Get-SentinelaPaths).HostsFile -Encoding ASCII
+Assert 'Marcador presente + IP removido = NAO aplicado' (-not (Test-SentinelaHostsApplied))
+& (Join-Path $appDir 'Sentinela-Guardiao.ps1') -Simular | Out-Null
+Assert 'Guardiao reaplica apos IP removido (marcador mantido)' (Test-SentinelaHostsApplied)
+
 # guardiao NAO deve reaplicar se estiver oficialmente desligado
 Disable-Sentinela -Simular
 Clear-SentinelaHosts
