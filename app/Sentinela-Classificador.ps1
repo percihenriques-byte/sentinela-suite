@@ -74,7 +74,7 @@ $script:CATEGORIAS = @(
         'masturbacao'=1.0;'punheta'=1.0;'siririca'=1.0;'video de sexo'=1.0;'fazer sexo'=1.0;
         'sexo gratis'=1.0;'sexo ao vivo'=1.0;'sexo caseiro'=1.0;'sexo amador'=1.0;'sexo anal'=1.0;
         'sexo oral'=1.0;'sexo virtual'=1.0;'mulher pelada'=1.0;'mulheres peladas'=1.0;'homem pelado'=1.0;
-        'peladinha'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5 } },
+        'peladinha'=1.0;'novinha pelada'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
@@ -86,15 +86,16 @@ $script:CATEGORIAS = @(
     @{ Nome='Armas'; Padrao=$true; SemReducao=$true; Termos=@{
         'como fazer bomba'=1.0;'fazer uma bomba'=1.0;'bomba caseira'=1.0;'fabricar bomba'=1.0;
         'fazer explosivo'=1.0;'explosivo caseiro'=1.0;'fabricar arma'=1.0;'arma caseira'=1.0;'explosivo'=0.5;
-        'pistola'=0.35;'rifle'=0.35;'municao'=0.35 } },
+        'arma de fogo'=0.5;'comprar arma de fogo'=1.0;'comprar fuzil'=1.0;'arma no mercado negro'=1.0;
+        'pistola'=0.35;'rifle'=0.35;'fuzil'=0.35;'municao'=0.35 } },
     @{ Nome='Drogas'; Padrao=$true; SemReducao=$false; Termos=@{
         'como usar drogas'=1.0;'comprar maconha'=1.0;'usar cocaina'=1.0;'cheirar cocaina'=1.0;
-        'comprar cocaina'=1.0;'comprar droga'=1.0;'cocaina'=0.5;'crack'=0.5;'maconha'=0.5;
+        'comprar cocaina'=1.0;'comprar droga'=1.0;'cheirar cola'=1.0;'cocaina'=0.5;'crack'=0.5;'maconha'=0.5;
         'lsd'=0.5;'ecstasy'=0.5;'droga'=0.35;'entorpecente'=0.5 } },
     @{ Nome='Apostas'; Padrao=$true; SemReducao=$true; Termos=@{
         'cassino online'=1.0;'aposta esportiva'=1.0;'jogo do bicho'=1.0;'aposta'=0.5;'cassino'=0.5;
         'tigrinho'=1.0;'jogo do tigrinho'=1.0;'bet365'=1.0;'betano'=1.0;'sportingbet'=1.0;'blaze aposta'=1.0;
-        'roleta'=0.5;'roleta cassino'=1.0;'apostar dinheiro'=1.0;'apostas online'=1.0;'site de apostas'=1.0 } },
+        'roleta'=0.5;'roleta cassino'=1.0;'apostar dinheiro'=1.0;'apostas online'=1.0;'site de apostas'=1.0;'blaze'=0.5 } },
     @{ Nome='Burlar protecao'; Padrao=$true; SemReducao=$true; Termos=@{
         'burlar filtro'=1.0;'burlar o filtro'=1.0;'driblar o filtro'=1.0;'desativar safesearch'=1.0;
         'desbloquear sites'=1.0;'filtro da escola'=1.0;'vpn para escola'=1.0;'como burlar'=0.5;'proxy anonimo'=0.5 } },
@@ -110,7 +111,8 @@ $script:CATEGORIAS = @(
 $script:CONTEXTO_SEGURO = @('dever de casa','trabalho escolar','feira de ciencias','aula de ciencias',
     'biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de',
     'sexo masculino','sexo feminino','sexo do bebe','sexo biologico','sexo do feto','qual o sexo',
-    'sexo fragil','sexo forte','sexo oposto','sexo dos anjos','ambos os sexos','sexo dos personagens')
+    'sexo fragil','sexo forte','sexo oposto','sexo dos anjos','ambos os sexos','sexo dos personagens',
+    'estatua','escultura','renascentista','museu','historia da arte','obra de arte','pintura','arte grega')
 
 $script:LIMIAR_PADRAO = 1.0
 

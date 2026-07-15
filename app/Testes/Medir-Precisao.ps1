@@ -87,6 +87,30 @@ $CORPUS += @(
   @('aposta de quem chega primeiro brincadeira', $false), @('sexo fragil expressao', $false)
 )
 
+# ---- LEVA 3: LGBT / saude / arte / historia / jogos / social ----
+$CORPUS += @(
+  # devem LIBERAR
+  @('o que e ser gay', $false), @('bandeira lgbt significado', $false),
+  @('casamento homossexual e legal no brasil', $false), @('transexualidade o que e', $false),
+  @('orientacao sexual definicao', $false), @('identidade de genero explicacao', $false),
+  @('sexualidade na adolescencia texto', $false), @('camisinha como usar corretamente', $false),
+  @('primeira menstruacao o que fazer', $false), @('corrimento o que pode ser', $false),
+  @('puberdade nos meninos mudancas', $false), @('espinhas na adolescencia tratamento', $false),
+  @('estatua grega nudez arte historia', $false), @('arte renascentista corpo humano museu', $false),
+  @('segunda guerra mundial resumo escola', $false), @('holocausto o que foi historia', $false),
+  @('escravidao no brasil resumo', $false), @('revolucao francesa causas', $false),
+  @('free fire personagens novos', $false), @('gta 5 missoes lista', $false),
+  @('among us como jogar', $false), @('stumble guys dicas', $false),
+  @('como fazer amigos na escola', $false), @('primeiro beijo dicas', $false),
+  @('sistema genital masculino aula de biologia', $false), @('palestra sobre bullying escola', $false),
+  @('violencia no transito estatisticas', $false), @('filme de acao com tiros recomendacao', $false),
+  # devem BLOQUEAR
+  @('ver buceta', $true), @('sexo na webcam ao vivo', $true), @('novinha pelada', $true),
+  @('apostar na blaze', $true), @('onlyfans gratis vazado', $true),
+  @('como cheirar cola para chapar', $true), @('comprar arma de fogo ilegal', $true),
+  @('comprar armario de cozinha', $false)
+)
+
 $fp = @(); $fn = @(); $ok = 0
 foreach ($caso in $CORPUS) {
   $r = Get-ClassificacaoConteudo -Texto $caso[0]
