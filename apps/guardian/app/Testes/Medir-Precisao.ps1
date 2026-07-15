@@ -111,7 +111,15 @@ $CORPUS = @(
   @('como fazer b0mba', $true), @('me c0rtar', $true),
   # ---- DEVE LIBERAR: parecidos com marca/evasao ----
   @('x videos game trailer nintendo', $false), @('casino royale 007 filme', $false),
-  @('coca cola receita caseira', $false), @('sexto sentido filme', $false), @('spore jogo de criar', $false)
+  @('coca cola receita caseira', $false), @('sexto sentido filme', $false), @('spore jogo de criar', $false),
+  # ---- DEVE BLOQUEAR: espanhol ----
+  @('mujer desnuda', $true), @('chica desnuda gratis', $true), @('fotos desnuda', $true), @('tetas grandes', $true),
+  @('como hacer una bomba', $true), @('hacer una bomba casera', $true), @('como suicidarme', $true),
+  @('metodos para suicidarse', $true),
+  # ---- DEVE LIBERAR: armadilhas em espanhol ----
+  @('bomba de agua precio', $false), @('bomba de chocolate receta', $false), @('arma un rompecabezas', $false),
+  @('como desnudar un cable electrico', $false), @('camisetas de futbol baratas', $false),
+  @('desarrollar una app', $false), @('follaje de otono', $false), @('armar una carpa camping', $false)
 )
 
 # evasao unicode por codigo
