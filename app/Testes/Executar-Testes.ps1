@@ -295,6 +295,17 @@ $fake = Join-Path (Get-SentinelaPaths).Base 'export-teste.jsonl'
 $importados = Import-SupervisaoDeArquivo -Arquivo $fake
 Assert 'Import da extensao adiciona 1 registro'    ($importados -eq 1)
 Assert 'Apos import, total sobe para 4'             ((Get-SupervisaoResumo).Total -eq 4)
+# privacidade: o registro fica LOCAL (na pasta base do Sentinela), nada de rede
+Assert 'Registro de supervisao fica LOCAL (sob a base)' ((Get-SupervisaoArquivo).StartsWith((Get-SentinelaPaths).Base))
+# cap anti-crescimento: no maximo 2000 linhas, descartando as mais antigas (BUG-12)
+$arqCap = Get-SupervisaoArquivo
+(1..2001 | ForEach-Object { '{"hora":"x","busca":"antigo' + $_ + '","origem":"t","tema":null,"confianca":0,"bloqueado":false}' }) | Set-Content $arqCap -Encoding UTF8
+$semBloqueio = [pscustomobject]@{ Categoria = $null; Confianca = 0; Bloquear = $false }
+Add-SupervisaoRegistro -Texto 'busca mais nova' -Origem 'google' -Resultado $semBloqueio | Out-Null
+$linhasCap = @(Get-Content $arqCap -Encoding UTF8)
+Assert 'Cap de supervisao: no maximo 2000 linhas'  ($linhasCap.Count -eq 2000)
+Assert 'Cap descarta o registro mais antigo'       (($linhasCap -join "`n") -notmatch '"antigo1"')
+Assert 'Cap preserva o registro mais novo'         (($linhasCap -join "`n") -match 'busca mais nova')
 
 # --- Grupo 8: ID da extensao (travamento) ---------------------------
 Write-Host ''
