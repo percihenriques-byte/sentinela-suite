@@ -30,8 +30,8 @@ var casos=[
  ['blob pele 15% (rosto)', blob(0.15,SKIN,GRAY), false],
  ['pele espalhada xadrez (textura)', xadrez(SKIN,GRAY), false],
  ['metade pele (torso)', metade(SKIN,GRAY), true],
- ['LIMITE areia lisa solida', solido(SAND), false],
- ['LIMITE ruido puro cor-de-pele', ruido(SKIN,120), false]
+ ['ruido extremo cor-de-pele (suavidade rejeita)', ruido(SKIN,255), false],
+ ['LIMITE areia lisa solida (so modelo resolve)', solido(SAND), false]
 ];
 var o=[],err=0,limites=0;
 for(var i=0;i<casos.length;i++){ var r=window.SentinelaImg.analisarPixels(casos[i][1],W,H); var ok=(r.flag===casos[i][2]);
