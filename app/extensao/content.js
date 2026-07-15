@@ -136,6 +136,18 @@
       return self.SentinelaImg.analisarPixels(data, cw, ch, limiar);
     } catch (e) { return undefined; }
   }
+  // Só analisa o que a criança realmente VE na tela. Nao marca as ocultas,
+  // para reanalisar se virarem visiveis depois (ex.: slide de carrossel).
+  function imagemVisivel(img) {
+    try {
+      var r = img.getBoundingClientRect();
+      if (r.width < 8 || r.height < 8) return false;   // colapsada / nao renderizada
+      var st = (img.ownerDocument.defaultView || window).getComputedStyle(img);
+      if (st.display === 'none' || st.visibility === 'hidden' || st.visibility === 'collapse') return false;
+      if (parseFloat(st.opacity || '1') === 0) return false;
+      return true;
+    } catch (e) { return true; }                        // na duvida, analisa
+  }
   function analisarImagens(limiar) {
     var imgs;
     try { imgs = document.images; } catch (e) { return; }
@@ -145,6 +157,7 @@
       var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
       if (w < 128 || h < 128) continue;         // ignora icones/thumbs pequenos
       if (img.complete && img.naturalWidth === 0) continue; // quebrada
+      if (!imagemVisivel(img)) continue;        // oculta: NAO marca, reavalia depois
       var src = img.currentSrc || img.src;
       if (!src) continue;
       img.__sentinelaImg = true;
