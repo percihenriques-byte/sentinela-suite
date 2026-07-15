@@ -167,6 +167,12 @@ Assert 'comprar armario NAO bloqueia (nao arma)'    (-not (Test-ConteudoImpropri
 Assert 'novinha pelada bloqueia'                    (Test-ConteudoImproprio 'novinha pelada')
 Assert 'cheirar cola bloqueia'                       (Test-ConteudoImproprio 'como cheirar cola para chapar')
 Assert 'comprar arma de fogo bloqueia'              (Test-ConteudoImproprio 'comprar arma de fogo ilegal')
+Assert 'colado nao junta palavras (frango receita)' (-not (Test-ConteudoImproprio 'peito de frango receita fit'))
+Assert 'ver mulher nua bloqueia'                    (Test-ConteudoImproprio 'ver mulher nua')
+Assert 'cortar os pulsos bloqueia'                  (Test-ConteudoImproprio 'como cortar os pulsos')
+Assert 'jogo aviator bloqueia'                      (Test-ConteudoImproprio 'jogo aviator ganhar dinheiro')
+Assert 'god of war (jogo) NAO bloqueia'             (-not (Test-ConteudoImproprio 'god of war kratos'))
+Assert 'galinha pelada (infantil) NAO bloqueia'     (-not (Test-ConteudoImproprio 'galinha pelada musica infantil'))
 # --- autolesao: variacoes (BUG-03) ---
 Assert 'quero me matar e bloqueado'                 (Test-ConteudoImproprio 'quero me matar')
 Assert 'quero morrer e bloqueado'                   (Test-ConteudoImproprio 'quero morrer')
