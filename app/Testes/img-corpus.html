@@ -28,6 +28,8 @@ function metade(c,bg){ var d=novo(); for(var y=0;y<H;y++)for(var x=0;x<W;x++){va
 function comRoupa(c,roupa,x0,y0,x1,y1){ var d=solido(c); for(var y=y0;y<y1;y++)for(var x=x0;x<x1;x++)setpx(d,x,y,roupa[0],roupa[1],roupa[2]); return d; }
 // so um rosto de pele (raio r) sobre fundo -> foto vestida normal
 function soRosto(c,bg,cx,cy,r){ var d=solido(bg); for(var y=0;y<H;y++)for(var x=0;x<W;x++){ if((x-cx)*(x-cx)+(y-cy)*(y-cy)<r*r) setpx(d,x,y,c[0],c[1],c[2]); } return d; }
+// pele com SOMBRA: gradiente de luminancia (corpo iluminado de um lado) -> deve detectar
+function gradiente(c){ var d=novo(); for(var y=0;y<H;y++)for(var x=0;x<W;x++){ var f=0.55+0.45*(x/W); setpx(d,x,y,c[0]*f,c[1]*f,c[2]*f);} return d; }
 var casos=[
  ['pele cheia (nudez-like)', solido(SKIN), true],
  ['azul (ceu)', solido(BLUE), false],
@@ -40,6 +42,8 @@ var casos=[
  ['roupa de banho: pele dominante (borra - lado seguro)', comRoupa(SKIN,BLUE,38,45,62,75), true],
  ['foto vestida: so rosto (NAO borrar foto normal)', soRosto(SKIN,GRAY,50,30,14), false],
  ['ruido extremo cor-de-pele (suavidade rejeita)', ruido(SKIN,255), false],
+ ['pele com sombra/gradiente (borra - foto real)', gradiente(SKIN), true],
+ ['pele com ruido LEVE tipo JPEG (borra)', ruido(SKIN,24), true],
  ['madeira/marrom saturado (teto de saturacao rejeita)', solido(WOOD), false],
  ['pele ESCURA cheia (deve detectar - nao perder protecao)', solido(SKINDARK), true],
  ['pele MUITO escura cheia (R<95 - protecao inclusiva)', solido(SKINVDARK), true],
