@@ -62,7 +62,16 @@ $CORPUS = @(
   @('alfabeto para criancas', $false), @('betoneira preco', $false),
   @('classico do brasileirao ontem', $false), @('violao aula para iniciantes', $false),
   @('assexuado significado biologia', $false), @('sexta-feira feriado', $false),
-  @('analise sintatica exercicios', $false), @('massa de pizza caseira', $false)
+  @('analise sintatica exercicios', $false), @('massa de pizza caseira', $false),
+  # ---- DEVE BLOQUEAR: odio / extremismo (apologetico) ----
+  @('apologia ao nazismo', $true), @('como ser racista', $true), @('piadas racistas', $true),
+  @('grupo neonazista telegram', $true), @('simbolo nazista comprar', $true),
+  @('saudacao nazista video', $true), @('raca superior', $true),
+  # ---- DEVE LIBERAR: historia / educacao sobre esses temas ----
+  @('o que foi o nazismo trabalho escolar', $false), @('holocausto segunda guerra historia', $false),
+  @('racismo estrutural o que e', $false), @('preconceito racial debate escola', $false),
+  @('museu do holocausto', $false), @('ditadura militar no brasil resumo', $false),
+  @('o que e limpeza etnica aula de historia', $false)
 )
 
 # evasao unicode por codigo

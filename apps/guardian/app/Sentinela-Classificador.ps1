@@ -107,6 +107,13 @@ $script:CATEGORIAS = @(
         'desbloquear sites'=1.0;'filtro da escola'=1.0;'vpn para escola'=1.0;'como burlar'=0.5;'proxy anonimo'=0.5 } },
     @{ Nome='Linguagem impropria'; Padrao=$true; SemReducao=$true; Termos=@{
         'caralho'=0.5;'porra'=0.5;'buceta'=1.0;'piroca'=1.0;'xingamentos pesados'=0.5 } },
+    # Odio/extremismo: so frases APOLOGETICAS bloqueiam; historia/educacao (nazismo,
+    # holocausto, racismo estrutural) sao liberadas (termos especificos + reducao por contexto).
+    @{ Nome='Odio e extremismo'; Padrao=$true; SemReducao=$false; Termos=@{
+        'apologia ao nazismo'=1.0;'apologia ao racismo'=1.0;'grupo neonazista'=1.0;'ser neonazista'=1.0;
+        'como ser racista'=1.0;'piada racista'=1.0;'piadas racistas'=1.0;'raca superior'=1.0;
+        'superioridade da raca'=1.0;'saudacao nazista'=1.0;'simbolo nazista'=1.0;
+        'grupo de odio'=1.0;'supremacia branca'=0.5;'limpeza etnica'=0.5 } },
     # temas OPCIONAIS (o responsavel decide se ativa):
     @{ Nome='Namoro e relacionamento'; Padrao=$false; SemReducao=$true; Termos=@{
         'app de namoro'=1.0;'tinder'=1.0;'como beijar'=0.5;'namorada online'=0.5;'pegar meninas'=0.5 } },

@@ -30,6 +30,8 @@
     { nome:'Apostas', padrao:true, semReducao:true, termos:{'cassino online':1,'aposta esportiva':1,'jogo do bicho':1,'aposta':.5,'cassino':.5,'tigrinho':1,'jogo do tigrinho':1,'bet365':1,'betano':1,'sportingbet':1,'blaze aposta':1,'roleta':.5,'roleta cassino':1,'apostar dinheiro':1,'apostas online':1,'site de apostas':1,'blaze':.5,'aviator':.5,'jogo aviator':1,'fortune tiger':1}},
     { nome:'Burlar proteção', padrao:true, semReducao:true, termos:{'burlar filtro':1,'burlar o filtro':1,'driblar o filtro':1,'desativar safesearch':1,'desbloquear sites':1,'filtro da escola':1,'vpn para escola':1,'como burlar':.5,'proxy anonimo':.5}},
     { nome:'Linguagem imprópria', padrao:true, semReducao:true, termos:{'caralho':.5,'porra':.5,'buceta':1,'piroca':1}},
+    // Odio/extremismo: so frases apologeticas bloqueiam; historia/educacao liberada.
+    { nome:'Ódio e extremismo', padrao:true, semReducao:false, termos:{'apologia ao nazismo':1,'apologia ao racismo':1,'grupo neonazista':1,'ser neonazista':1,'como ser racista':1,'piada racista':1,'piadas racistas':1,'raca superior':1,'superioridade da raca':1,'saudacao nazista':1,'simbolo nazista':1,'grupo de odio':1,'supremacia branca':.5,'limpeza etnica':.5}},
     { nome:'Namoro e relacionamento', padrao:false, semReducao:true, termos:{'app de namoro':1,'tinder':1,'como beijar':.5,'namorada online':.5,'pegar meninas':.5}},
     { nome:'Redes sociais', padrao:false, semReducao:true, termos:{'tiktok':.5,'instagram':.5,'kwai':.5,'snapchat':.5}}
   ];
