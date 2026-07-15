@@ -69,7 +69,7 @@ Arquivos-chave:
   Sussex, nudez-arte, seaweed, filme xXx). Usar frases (`sex video`, `nude pics`…).
 - Imagem: maior região **conexa** de pele + Kovac **R>75 (inclusivo p/ pele escura)** +
   YCbCr + **teto de saturação HSV ≤0.58** (corta madeira) + gate de suavidade + só analisa
-  imagens **visíveis** + sensibilidade configurável. img-corpus **18 casos / 0 erros reais**.
+  imagens **visíveis** + sensibilidade configurável. img-corpus **20 casos / 0 erros reais**.
 - **Limites honestos** (só um modelo treinado resolve): superfícies lisas cor-de-pele
   (areia, pinho, torrada) podem ser borradas; slot para modelo em `app/extensao/modelo/`.
 
