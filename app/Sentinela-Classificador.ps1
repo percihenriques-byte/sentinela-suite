@@ -88,6 +88,7 @@ $script:CATEGORIAS = @(
         'blowjob'=1.0;'blow job'=1.0;'deepthroat'=1.0;'handjob'=1.0;'boobs'=1.0;'tits'=1.0;'milf'=1.0;'nsfw'=1.0;'dick pic'=1.0;
         # marcas de site adulto (nomes proprios, sem risco de substring comum)
         'brazzers'=1.0;'spankbang'=1.0;'chaturbate'=1.0;'stripchat'=1.0;'bongacams'=1.0;'erome'=1.0;'motherless'=1.0;'rule34'=1.0;'rule 34'=1.0;'youporn'=1.0;'nhentai'=1.0;
+        'youjizz'=1.0;'fapello'=1.0;'coomer party'=1.0;'simpcity'=1.0;'eporner'=1.0;'hqporner'=1.0;
         # CSAM / aliciamento (bloqueio critico)
         'pedofilia'=1.0;'pedofilo'=1.0;'conteudo sexual infantil'=1.0;'menor de idade nua'=1.0;'sexo com menor'=1.0;
         'mandar foto pelada'=1.0;'tirar foto intima'=1.0;'mandar foto intima'=1.0;
@@ -136,7 +137,10 @@ $script:CATEGORIAS = @(
         'jogar no bicho'=1.0;'raspadinha valendo'=1.0;'raspadinha online'=1.0;'raspadinha premiada'=1.0;
         # marcas de aposta (frases/nomes seguros contra substring: nada de 'stake'/'kto' puros)
         'stake bet'=1.0;'stake casino'=1.0;'1xbet'=1.0;'pixbet'=1.0;'esportes da sorte'=1.0;'superbet'=1.0;
-        'betfair'=1.0;'kto bet'=1.0;'kto apostas'=1.0;'sportsbet'=1.0;'blaze apostas'=1.0 } },
+        'betfair'=1.0;'kto bet'=1.0;'kto apostas'=1.0;'sportsbet'=1.0;'blaze apostas'=1.0;
+        # casas de aposta BR atuais (nomes proprios; cuidado substring conferido)
+        'estrelabet'=1.0;'vaidebet'=1.0;'realsbet'=1.0;'betnacional'=1.0;'bet nacional'=1.0;'multibet'=1.0;
+        'br4bet'=1.0;'brabet'=1.0;'f12bet'=1.0;'f12 bet'=1.0;'pagbet'=1.0;'7games bet'=1.0 } },
     @{ Nome='Burlar protecao'; Padrao=$true; SemReducao=$true; Termos=@{
         'burlar filtro'=1.0;'burlar o filtro'=1.0;'driblar o filtro'=1.0;'desativar safesearch'=1.0;
         'desbloquear sites'=1.0;'filtro da escola'=1.0;'vpn para escola'=1.0;'como burlar'=0.5;'proxy anonimo'=0.5 } },
