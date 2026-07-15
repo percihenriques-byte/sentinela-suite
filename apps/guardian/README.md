@@ -38,10 +38,15 @@ escolas e provedores. **Não depende de nenhuma API externa nem de servidor pago
 
 1. **Camada de rede (DNS + hosts)** — força o modo seguro do Google/YouTube/Bing em
    qualquer navegador, até no incógnito. Trava por PIN, com Guardião anti-adulteração.
-2. **Camada de IA local (extensão do navegador)** — bloqueia na hora os temas que o modo
-   seguro *não* cobre (apostas, autolesão, violência, "burlar filtro"...), com um
-   classificador que roda **na própria máquina** (sem internet) e entende tentativas de
-   driblar (`p0rn0`, `p o r n o`). O responsável escolhe os temas e adiciona palavras.
+2. **Camada de IA local (extensão do navegador)** — analisa **o que a criança vê**, na
+   própria máquina (sem internet):
+   - a **busca** e o **texto da página** (bloqueia páginas com conteúdo impróprio, por
+     ocorrências, com limiar alto para não pegar menção incidental);
+   - as **imagens** da página (borra as suspeitas via heurístico local: maior região
+     conexa de tom de pele + suavidade; encaixe pronto para um modelo treinado);
+   - entende tentativas de driblar (`p0rn0`, `p o r n o`, homóglifos, full-width) e o
+     contexto legítimo (biologia, arte, saúde). O responsável escolhe os temas e adiciona
+     palavras. Precisão medida: **100%** num corpus de 147 casos difíceis.
 3. **Supervisão** — a extensão **registra o que a criança busca** (tema, confiança, hora)
    para o responsável revisar no popup da extensão ou no painel. Tudo fica **local**;
    nada é enviado para a internet (privacidade por design).
@@ -97,6 +102,9 @@ sentinela/
 │   ├── Ver-Supervisao.ps1      Ver/importar o registro de supervisão
 │   ├── extensao/               Extensão Chrome/Edge: bloqueio por IA + captura
 │   │   ├── manifest.json  content.js  classificador.js  popup.html  popup.js
+│   │   ├── background.js       Service worker (análise de imagem cross-origin)
+│   │   ├── analise-imagem.js   Heurístico local de imagem (tom de pele)
+│   │   ├── modelo/             Encaixe para um modelo treinado (opcional)
 │   │   └── COMO-INSTALAR-EXTENSAO.md
 │   ├── TRAVAR-EXTENSAO.bat     ← trava a extensão (force-install)
 │   ├── Travar-Extensao.ps1     Aplica ExtensionInstallForcelist (Edge+Chrome)
@@ -105,7 +113,9 @@ sentinela/
 │   ├── gui/
 │   │   └── Sentinela-Painel.ps1   Painel gráfico (status, PIN, supervisão)
 │   └── Testes/
-│       └── Executar-Testes.ps1    83 testes automatizados (simulação)
+│       ├── Executar-Testes.ps1    110 testes automatizados (simulação)
+│       ├── Medir-Precisao.ps1     acurácia do classificador (corpus de 147 casos)
+│       └── img-corpus.html        teste do heurístico de imagem
 └── docs/
     ├── COMO-INSTALAR.md        Guia passo a passo para leigos
     ├── PITCH.md                Material de apresentação (SEBRAE)
@@ -121,7 +131,15 @@ Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporá
 .\app\Testes\Executar-Testes.ps1
 ```
 
-Saída esperada: `RESULTADO: 83 passaram, 0 falharam`.
+Saída esperada: `RESULTADO: 110 passaram, 0 falharam`.
+
+Para medir a **acurácia** do classificador num corpus de 147 casos difíceis:
+
+```powershell
+.\app\Testes\Medir-Precisao.ps1
+```
+
+Saída esperada: `acuracia: 100%` (0 falsos-positivos, 0 falsos-negativos).
 
 Para testar só a IA local de classificação (inclui tentativas de evasão):
 

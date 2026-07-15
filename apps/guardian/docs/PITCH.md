@@ -111,6 +111,12 @@ Começa **gratuito e de código aberto** (ganha confiança e adoção). Receita 
   não consegue desativar (mesmo mecanismo das escolas).
 - ✅ **Cobertura de SPA** — reavalia a busca a cada navegação interna (YouTube/DuckDuckGo
   que trocam resultados sem recarregar).
+- ✅ **Análise do conteúdo da página** — a IA lê o **texto** que a criança vê (não só a
+  busca) e bloqueia a página se for impróprio, sem pegar menção incidental. Precisão
+  medida: **100%** num corpus de 147 casos difíceis (biologia/arte/saúde liberados).
+- ✅ **Análise de imagens (local)** — borra imagens suspeitas com um heurístico que roda no
+  navegador (região conexa de tom de pele + suavidade), com encaixe para um modelo treinado.
+- 🔜 **Modelo de imagem treinado** — precisão de nível profissional nas imagens (local).
 - 🔜 **IA na nuvem opcional** — modelo maior para categorização ainda mais fina no painel.
 - 🔜 **App de roteador** — proteção para a casa inteira num só lugar.
 
