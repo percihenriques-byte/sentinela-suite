@@ -83,25 +83,31 @@ $script:CATEGORIAS = @(
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
-        'violencia'=0.5;'sangue'=0.35;'briga'=0.35;'assassinato'=0.5;'massacre'=0.5 } },
+        'violencia'=0.5;'sangue'=0.35;'briga'=0.35;'assassinato'=0.5;'massacre'=0.5;
+        'dar um tiro em alguem'=1.0;'atirar em alguem'=1.0;'como matar alguem'=1.0;'como matar uma pessoa'=1.0 } },
     @{ Nome='Autolesao e suicidio'; Padrao=$true; SemReducao=$true; Termos=@{
         'suicidio'=1.0;'como se matar'=1.0;'me matar'=1.0;'quero morrer'=1.0;'vontade de morrer'=1.0;
         'automutilacao'=1.0;'me cortar'=1.0;'cortar os pulsos'=1.0;'tirar a propria vida'=1.0;'tirar minha vida'=1.0;
-        'anorexia dicas'=1.0;'pro ana'=1.0 } },
+        'anorexia dicas'=1.0;'pro ana'=1.0;'me enforcar'=1.0;'como se enforcar'=1.0 } },
     @{ Nome='Armas'; Padrao=$true; SemReducao=$true; Termos=@{
         'como fazer bomba'=1.0;'fazer uma bomba'=1.0;'bomba caseira'=1.0;'fabricar bomba'=1.0;
         'fazer explosivo'=1.0;'explosivo caseiro'=1.0;'fabricar arma'=1.0;'arma caseira'=1.0;'explosivo'=0.5;
         'arma de fogo'=0.5;'comprar arma de fogo'=1.0;'comprar fuzil'=1.0;'arma no mercado negro'=1.0;
+        'comprar arma ilegal'=1.0;'vender arma ilegal'=1.0;'arma ilegal'=0.5;
         'pistola'=0.35;'rifle'=0.35;'fuzil'=0.35;'municao'=0.35 } },
     @{ Nome='Drogas'; Padrao=$true; SemReducao=$false; Termos=@{
         'como usar drogas'=1.0;'comprar maconha'=1.0;'usar cocaina'=1.0;'cheirar cocaina'=1.0;
         'comprar cocaina'=1.0;'comprar droga'=1.0;'cheirar cola'=1.0;'cocaina'=0.5;'crack'=0.5;'maconha'=0.5;
-        'lsd'=0.5;'ecstasy'=0.5;'droga'=0.35;'entorpecente'=0.5 } },
+        'lsd'=0.5;'ecstasy'=0.5;'droga'=0.35;'entorpecente'=0.5;
+        'lanca perfume'=1.0;'cheirar lolo'=1.0;'cheirinho da lolo'=1.0;'fumar baseado'=1.0;'baseado de maconha'=1.0;
+        'comprar skunk'=1.0;'skunk droga'=1.0 } },
     @{ Nome='Apostas'; Padrao=$true; SemReducao=$true; Termos=@{
         'cassino online'=1.0;'aposta esportiva'=1.0;'jogo do bicho'=1.0;'aposta'=0.5;'cassino'=0.5;
         'tigrinho'=1.0;'jogo do tigrinho'=1.0;'bet365'=1.0;'betano'=1.0;'sportingbet'=1.0;'blaze aposta'=1.0;
         'roleta'=0.5;'roleta cassino'=1.0;'apostar dinheiro'=1.0;'apostas online'=1.0;'site de apostas'=1.0;
-        'blaze'=0.5;'aviator'=0.5;'jogo aviator'=1.0;'fortune tiger'=1.0 } },
+        'blaze'=0.5;'aviator'=0.5;'jogo aviator'=1.0;'fortune tiger'=1.0;
+        'caca-niquel'=1.0;'caca niquel'=1.0;'jogo de azar'=1.0;'poker valendo'=1.0;'poker a dinheiro'=1.0;
+        'jogar no bicho'=1.0;'raspadinha valendo'=1.0;'raspadinha online'=1.0;'raspadinha premiada'=1.0 } },
     @{ Nome='Burlar protecao'; Padrao=$true; SemReducao=$true; Termos=@{
         'burlar filtro'=1.0;'burlar o filtro'=1.0;'driblar o filtro'=1.0;'desativar safesearch'=1.0;
         'desbloquear sites'=1.0;'filtro da escola'=1.0;'vpn para escola'=1.0;'como burlar'=0.5;'proxy anonimo'=0.5 } },

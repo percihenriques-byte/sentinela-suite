@@ -71,7 +71,18 @@ $CORPUS = @(
   @('o que foi o nazismo trabalho escolar', $false), @('holocausto segunda guerra historia', $false),
   @('racismo estrutural o que e', $false), @('preconceito racial debate escola', $false),
   @('museu do holocausto', $false), @('ditadura militar no brasil resumo', $false),
-  @('o que e limpeza etnica aula de historia', $false)
+  @('o que e limpeza etnica aula de historia', $false),
+  # ---- DEVE BLOQUEAR: girias BR de aposta / droga / violencia / autolesao ----
+  @('caca-niquel online', $true), @('maquina caca niquel', $true), @('jogo de azar', $true),
+  @('poker valendo dinheiro', $true), @('jogar no bicho', $true), @('raspadinha valendo dinheiro', $true),
+  @('lanca perfume onde comprar', $true), @('cheirar lolo', $true), @('comprar skunk', $true),
+  @('fumar baseado', $true), @('me enforcar', $true), @('como se enforcar', $true),
+  @('dar um tiro em alguem', $true), @('vender arma ilegal', $true),
+  # ---- DEVE LIBERAR: parecidos que NAO sao (evitar falso-positivo) ----
+  @('filme baseado em fatos reais', $false), @('raspadinha de morango receita', $false),
+  @('poker face musica', $false), @('jogos de tabuleiro em familia', $false),
+  @('faca de cozinha comprar', $false), @('guerra do vietna resumo', $false),
+  @('reproducao das plantas', $false), @('como fazer slime caseiro', $false)
 )
 
 # evasao unicode por codigo
