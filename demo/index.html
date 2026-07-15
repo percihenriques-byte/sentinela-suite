@@ -376,11 +376,13 @@
     return { texto: s, colado: colado };
   }
   var CATS = [
-    {name:'Conteúdo adulto', termos:{'porno':1,'pornografia':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'sexo':1,'transar':1,'nudez':1,'nudez infantil':1,'zoofilia':1,'masturbacao':1,'pelada':.5,'+18':.5}},
-    {name:'Violência', termos:{'decapitacao':1,'tortura':1,'gore':1,'estupro':1,'suicidio':1,'violencia extrema':1,'videos de violencia':1,'briga de rua':1,'violencia':.5,'sangue':.35,'espancamento':.5}},
-    {name:'Armas', termos:{'como fazer bomba':1,'fabricar arma':1,'arma caseira':1,'explosivo':.5,'pistola':.35}, semReducao:true},
-    {name:'Drogas', termos:{'como usar drogas':1,'comprar maconha':1,'cocaina':.5,'crack':.5,'maconha':.5,'droga':.35}},
-    {name:'Apostas', termos:{'cassino online':1,'aposta esportiva':1,'aposta':.5,'cassino':.5,'tigrinho':1,'betano':1}},
+    {name:'Conteúdo adulto', termos:{'porno':1,'pornografia':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'sexo':1,'transar':1,'nudez':1,'nudez infantil':1,'zoofilia':1,'masturbacao':1,'mulher pelada':1,'pornhub':1,'onlyfans':1,'pelada':.5,'+18':.5,'porn':1,'nude pics':1,'naked girls':1,'sex video':1,'blowjob':1,'boobs':1,'nsfw':1}},
+    {name:'Violência', termos:{'decapitacao':1,'tortura':1,'gore':1,'estupro':1,'violencia extrema':1,'videos de violencia':1,'briga de rua':1,'violencia':.5,'sangue':.35,'espancamento':.5,'dar um tiro em alguem':1,'kill someone':1,'how to kill someone':1}},
+    {name:'Autolesão e suicídio', termos:{'suicidio':1,'como se matar':1,'me cortar':1,'quero morrer':1,'me enforcar':1,'self harm':1,'suicide methods':1,'kill myself':1}, semReducao:true},
+    {name:'Armas', termos:{'como fazer bomba':1,'fabricar arma':1,'arma caseira':1,'explosivo':.5,'pistola':.35,'how to make a bomb':1,'build a bomb':1,'vender arma ilegal':1}, semReducao:true},
+    {name:'Drogas', termos:{'como usar drogas':1,'comprar maconha':1,'cocaina':.5,'crack':.5,'maconha':.5,'droga':.35,'lanca perfume':1,'cheirar lolo':1,'buy weed':1,'buy cocaine':1}},
+    {name:'Apostas', termos:{'cassino online':1,'aposta esportiva':1,'aposta':.5,'cassino':.5,'tigrinho':1,'jogo do tigrinho':1,'betano':1,'blaze':.5,'aviator':.5,'caca-niquel':1,'caca niquel':1,'jogo de azar':1,'jogar no bicho':1,'online casino':1,'sports betting':1}, semReducao:true},
+    {name:'Ódio e extremismo', termos:{'apologia ao nazismo':1,'como ser racista':1,'piadas racistas':1,'grupo neonazista':1,'saudacao nazista':1,'raca superior':1}},
     {name:'Burlar proteção', termos:{'burlar filtro':1,'burlar o filtro':1,'driblar o filtro':1,'desativar safesearch':1,'desbloquear sites':1,'filtro da escola':1,'vpn para escola':1,'como burlar':.5,'proxy anonimo':.5}, semReducao:true}
   ];
   var CTX_SEGURO = ['dever de casa','trabalho escolar','feira de ciencias','aula de ciencias','biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de','sexo masculino','sexo feminino','sexo do bebe','sexo biologico','qual o sexo','sexo dos anjos','sexo fragil','ambos os sexos','estatua','escultura','museu','arte grega'];

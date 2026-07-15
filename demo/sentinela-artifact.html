@@ -1,4 +1,5 @@
 <title>Sentinela — busca segura à prova de incógnito</title>
+<meta name="description" content="Controle de conteúdo infantil que vive na camada de rede — o modo incógnito não desliga. Desafio Liga Jovem / SEBRAE.">
 <style>
   :root{
     --ink:#0B1220; --ink2:#0F1A2A; --panel:#10203033; --line:#1E3A44;
@@ -9,7 +10,7 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
   body{
-    font-family:system-ui, "Segoe UI", Roboto, sans-serif; color:var(--txt);
+    font-family:system-ui,sans-serif; color:var(--txt);
     background:
       radial-gradient(1200px 600px at 80% -10%, #103a3a55, transparent 60%),
       radial-gradient(900px 500px at -10% 20%, #0e2a3a55, transparent 55%),
@@ -19,13 +20,13 @@
   body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.035;z-index:1;
     background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
   .wrap{max-width:1080px;margin:0 auto;padding:0 22px;position:relative;z-index:2}
-  h1,h2,h3,.dsp{font-family:"Segoe UI", system-ui, sans-serif;letter-spacing:-.02em}
-  .mono{font-family:"JetBrains Mono", "Cascadia Mono", Consolas, monospace}
+  h1,h2,h3,.dsp{font-family:system-ui,sans-serif;letter-spacing:-.02em}
+  .mono{font-family:ui-monospace,monospace}
 
   header{padding:34px 0 8px}
   .brand{display:flex;align-items:center;gap:16px}
   .brand .mark{width:58px;height:58px;flex:0 0 auto}
-  .brand .name{font-family:"Segoe UI", system-ui;font-weight:800;font-size:30px;line-height:1}
+  .brand .name{font-family:system-ui;font-weight:800;font-size:30px;line-height:1}
   .brand .tag{color:var(--teal);font-size:13.5px;font-weight:500;margin-top:3px}
 
   .hero{padding:38px 0 18px}
@@ -38,16 +39,16 @@
   .hero p{font-size:17px;color:var(--muted);max-width:640px}
 
   section{padding:30px 0}
-  .eyebrow{font-family:"Segoe UI", system-ui;font-size:12px;font-weight:700;letter-spacing:.16em;
+  .eyebrow{font-family:system-ui;font-size:12px;font-weight:700;letter-spacing:.16em;
     text-transform:uppercase;color:var(--teal-d);margin-bottom:8px}
   h2{font-size:clamp(22px,3.4vw,30px);font-weight:700;margin-bottom:6px}
   .lead{color:var(--muted);max-width:680px;margin-bottom:24px;font-size:15.5px}
 
   .controls{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:18px}
   .ctl{background:#0d1a26;border:1px solid var(--line);border-radius:16px;padding:16px 18px;flex:1;min-width:250px}
-  .ctl .label{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);margin-bottom:11px;font-family:"Segoe UI", system-ui}
+  .ctl .label{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);margin-bottom:11px;font-family:system-ui}
   .pills{display:flex;gap:8px;background:#08131c;border-radius:11px;padding:5px}
-  .pill{flex:1;border:none;background:transparent;color:var(--muted);font-family:"Segoe UI", system-ui;font-weight:600;
+  .pill{flex:1;border:none;background:transparent;color:var(--muted);font-family:system-ui;font-weight:600;
     font-size:13px;padding:10px 8px;border-radius:8px;cursor:pointer;transition:.18s;text-align:center}
   .pill.active{color:var(--ink);background:var(--teal);box-shadow:0 4px 16px var(--teal-glow)}
   .pill.alt.active{background:var(--amber);box-shadow:0 4px 16px #f6b73c44}
@@ -56,7 +57,7 @@
   .sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--muted);transition:.2s}
   .toggle.on .sw{background:#3a2418;border-color:#6b4520}
   .toggle.on .sw::after{left:25px;background:var(--amber)}
-  .toggle .t-txt b{font-family:"Segoe UI", system-ui;font-size:14px;display:block}
+  .toggle .t-txt b{font-family:system-ui;font-size:14px;display:block}
   .toggle .t-txt span{font-size:12px;color:var(--muted2)}
 
   .browser{background:#0a141d;border:1px solid var(--line);border-radius:18px;overflow:hidden;
@@ -71,17 +72,17 @@
   .urlbar{flex:1;display:flex;align-items:center;gap:9px;background:#08131c;border:1px solid var(--line);
     border-radius:999px;padding:9px 15px;font-size:13px;color:var(--muted);min-width:0}
   .urlbar .lock{color:var(--teal);font-size:12px}
-  .layerchip{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;font-family:"Segoe UI", system-ui}
+  .layerchip{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;white-space:nowrap;font-family:system-ui}
   .layerchip.net{background:#0e2a2a;color:var(--teal);border:1px solid #1c4a47}
   .layerchip.brw{background:#2a230e;color:var(--amber);border:1px solid #5a4a16}
 
   .bbody{padding:24px}
   .searchrow{display:flex;gap:10px;margin-bottom:14px}
   .searchrow input{flex:1;background:#08131c;border:1px solid var(--line);border-radius:12px;
-    padding:14px 16px;color:var(--txt);font-size:15px;font-family:system-ui, "Segoe UI", Roboto}
+    padding:14px 16px;color:var(--txt);font-size:15px;font-family:system-ui}
   .searchrow input:focus{outline:none;border-color:var(--teal)}
   .searchrow button{background:var(--teal);color:var(--ink);border:none;border-radius:12px;
-    padding:0 22px;font-family:"Segoe UI", system-ui;font-weight:700;font-size:14px;cursor:pointer;transition:.15s}
+    padding:0 22px;font-family:system-ui;font-weight:700;font-size:14px;cursor:pointer;transition:.15s}
   .searchrow button:hover{background:var(--mint)}
   .chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
   .chip{font-size:12.5px;border:1px solid var(--line);background:#0d1a26;color:var(--muted);
@@ -103,15 +104,15 @@
   .res-ico.ok{background:#0e2a2a;color:var(--teal)}
   .res-ico.shield{background:#0e2a2a;color:var(--teal)}
   .res-ico.warn{background:#2a1212;color:var(--coral)}
-  .res-head h4{font-family:"Segoe UI", system-ui;font-size:16.5px;font-weight:700}
+  .res-head h4{font-family:system-ui;font-size:16.5px;font-weight:700}
   .res-head p{font-size:13px;color:var(--muted)}
   .res-head .coral{color:#ffb3b3}
-  .cat-tag{display:inline-block;font-size:11px;font-weight:700;font-family:"Segoe UI", system-ui;margin-top:7px;
+  .cat-tag{display:inline-block;font-size:11px;font-weight:700;font-family:system-ui;margin-top:7px;
     padding:3px 9px;border-radius:999px;background:#2a1212;color:#ffb3b3;border:1px solid #5a2a2a}
 
   .safe-list{display:grid;gap:10px}
   .safe-item{background:#0a1a18;border:1px solid #163a37;border-radius:10px;padding:12px 14px}
-  .safe-item .u{font-size:11.5px;color:var(--teal);font-family:"JetBrains Mono", "Cascadia Mono", Consolas, monospace}
+  .safe-item .u{font-size:11.5px;color:var(--teal);font-family:ui-monospace}
   .safe-item .t{font-size:14.5px;font-weight:600;margin:2px 0 3px}
   .safe-item .d{font-size:12.5px;color:var(--muted)}
 
@@ -131,18 +132,18 @@
   .log{display:flex;flex-direction:column;gap:9px;max-height:300px;overflow:auto}
   .logitem{display:flex;gap:11px;align-items:flex-start;background:#08131c;border:1px solid var(--line);
     border-radius:10px;padding:10px 12px;font-size:12.5px}
-  .logitem .ti{font-family:"JetBrains Mono", "Cascadia Mono", Consolas, monospace;color:var(--muted2);font-size:11px;flex:0 0 auto;padding-top:1px}
+  .logitem .ti{font-family:ui-monospace;color:var(--muted2);font-size:11px;flex:0 0 auto;padding-top:1px}
   .logitem.ok{border-color:#1c4a47}
   .logitem.bad{border-color:#5a2a2a}
-  .logitem b{font-family:"Segoe UI", system-ui;font-weight:600}
+  .logitem b{font-family:system-ui;font-weight:600}
   .logitem .by{color:var(--teal)}
   .logitem.bad .by{color:var(--coral)}
   .logempty{color:var(--muted2);font-size:13px;text-align:center;padding:24px 0}
 
   .pinrow{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#08131c;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
-  .pinrow .x b{font-family:"Segoe UI", system-ui;font-size:14px;display:block}
+  .pinrow .x b{font-family:system-ui;font-size:14px;display:block}
   .pinrow .x span{font-size:12px;color:var(--muted2)}
-  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--txt);font-family:"Segoe UI", system-ui;
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--txt);font-family:system-ui;
     font-weight:600;font-size:13px;padding:10px 16px;border-radius:10px;cursor:pointer;transition:.15s}
   .btn-ghost:hover{border-color:var(--coral);color:var(--coral)}
   .pininfo{font-size:12.5px;color:var(--muted);background:#0e2a2a;border:1px solid #1c4a47;border-radius:10px;padding:12px 14px}
@@ -155,12 +156,12 @@
   .modalbox h3{font-size:18px;font-weight:700;margin-bottom:6px}
   .modalbox p{font-size:13px;color:var(--muted);margin-bottom:18px}
   .pinin{display:flex;gap:10px;justify-content:center;margin-bottom:8px}
-  .pinin input{width:52px;height:60px;text-align:center;font-size:24px;font-family:"JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  .pinin input{width:52px;height:60px;text-align:center;font-size:24px;font-family:ui-monospace;
     background:#08131c;border:1px solid var(--line);border-radius:12px;color:var(--txt)}
   .pinin input:focus{outline:none;border-color:var(--teal)}
   .pinerr{color:var(--coral);font-size:12.5px;min-height:18px;margin-bottom:14px;font-weight:500}
   .modalbtns{display:flex;gap:10px}
-  .modalbtns button{flex:1;border:none;border-radius:10px;padding:12px;font-family:"Segoe UI", system-ui;font-weight:700;font-size:13px;cursor:pointer}
+  .modalbtns button{flex:1;border:none;border-radius:10px;padding:12px;font-family:system-ui;font-weight:700;font-size:13px;cursor:pointer}
   .b-cancel{background:#13242f;color:var(--muted)}
   .b-ok{background:var(--coral);color:#fff}
 
@@ -168,17 +169,17 @@
   @media(max-width:760px){.flow{grid-template-columns:1fr}.flow .arrow{transform:rotate(90deg);justify-self:center}}
   .node{background:#0d1a26;border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
   .node .n-ico{font-size:24px;margin-bottom:8px}
-  .node h4{font-family:"Segoe UI", system-ui;font-size:14px;font-weight:700;margin-bottom:5px}
+  .node h4{font-family:system-ui;font-size:14px;font-weight:700;margin-bottom:5px}
   .node p{font-size:12px;color:var(--muted)}
   .node.key{border-color:var(--teal);background:#0c1f1d}
   .arrow{display:grid;place-items:center;color:var(--teal-d);font-size:20px}
-  .dnsbox{margin-top:18px;background:#08131c;border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-family:"JetBrains Mono", "Cascadia Mono", Consolas, monospace;font-size:12.5px;color:var(--muted)}
+  .dnsbox{margin-top:18px;background:#08131c;border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-family:ui-monospace;font-size:12.5px;color:var(--muted)}
   .dnsbox .c{color:var(--mint)}.dnsbox .k{color:var(--teal)}
 
   .cta{background:linear-gradient(135deg,#0c1f1d,#0a1a18);border:1px solid #1c4a47;border-radius:18px;padding:28px;text-align:center;margin-top:8px}
   .cta h3{font-size:20px;margin-bottom:8px}
   .cta p{color:var(--muted);font-size:14px;max-width:520px;margin:0 auto 18px}
-  .cta code{font-family:"JetBrains Mono", "Cascadia Mono", Consolas, monospace;background:#08131c;border:1px solid var(--line);padding:10px 16px;border-radius:10px;color:var(--mint);display:inline-block;font-size:13px}
+  .cta code{font-family:ui-monospace;background:#08131c;border:1px solid var(--line);padding:10px 16px;border-radius:10px;color:var(--mint);display:inline-block;font-size:13px}
 
   footer{padding:40px 0 56px;color:var(--muted2);font-size:13px;text-align:center;border-top:1px solid var(--line);margin-top:24px}
   .disclaimer{font-size:11.5px;color:var(--muted2);max-width:680px;margin:14px auto 0;line-height:1.6}
@@ -365,11 +366,13 @@
     return { texto: s, colado: colado };
   }
   var CATS = [
-    {name:'Conteúdo adulto', termos:{'porno':1,'pornografia':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'sexo':1,'transar':1,'nudez':1,'nudez infantil':1,'zoofilia':1,'masturbacao':1,'pelada':.5,'+18':.5}},
-    {name:'Violência', termos:{'decapitacao':1,'tortura':1,'gore':1,'estupro':1,'suicidio':1,'violencia extrema':1,'videos de violencia':1,'briga de rua':1,'violencia':.5,'sangue':.35,'espancamento':.5}},
-    {name:'Armas', termos:{'como fazer bomba':1,'fabricar arma':1,'arma caseira':1,'explosivo':.5,'pistola':.35}, semReducao:true},
-    {name:'Drogas', termos:{'como usar drogas':1,'comprar maconha':1,'cocaina':.5,'crack':.5,'maconha':.5,'droga':.35}},
-    {name:'Apostas', termos:{'cassino online':1,'aposta esportiva':1,'aposta':.5,'cassino':.5,'tigrinho':1,'betano':1}},
+    {name:'Conteúdo adulto', termos:{'porno':1,'pornografia':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'sexo':1,'transar':1,'nudez':1,'nudez infantil':1,'zoofilia':1,'masturbacao':1,'mulher pelada':1,'pornhub':1,'onlyfans':1,'pelada':.5,'+18':.5,'porn':1,'nude pics':1,'naked girls':1,'sex video':1,'blowjob':1,'boobs':1,'nsfw':1}},
+    {name:'Violência', termos:{'decapitacao':1,'tortura':1,'gore':1,'estupro':1,'violencia extrema':1,'videos de violencia':1,'briga de rua':1,'violencia':.5,'sangue':.35,'espancamento':.5,'dar um tiro em alguem':1,'kill someone':1,'how to kill someone':1}},
+    {name:'Autolesão e suicídio', termos:{'suicidio':1,'como se matar':1,'me cortar':1,'quero morrer':1,'me enforcar':1,'self harm':1,'suicide methods':1,'kill myself':1}, semReducao:true},
+    {name:'Armas', termos:{'como fazer bomba':1,'fabricar arma':1,'arma caseira':1,'explosivo':.5,'pistola':.35,'how to make a bomb':1,'build a bomb':1,'vender arma ilegal':1}, semReducao:true},
+    {name:'Drogas', termos:{'como usar drogas':1,'comprar maconha':1,'cocaina':.5,'crack':.5,'maconha':.5,'droga':.35,'lanca perfume':1,'cheirar lolo':1,'buy weed':1,'buy cocaine':1}},
+    {name:'Apostas', termos:{'cassino online':1,'aposta esportiva':1,'aposta':.5,'cassino':.5,'tigrinho':1,'jogo do tigrinho':1,'betano':1,'blaze':.5,'aviator':.5,'caca-niquel':1,'caca niquel':1,'jogo de azar':1,'jogar no bicho':1,'online casino':1,'sports betting':1}, semReducao:true},
+    {name:'Ódio e extremismo', termos:{'apologia ao nazismo':1,'como ser racista':1,'piadas racistas':1,'grupo neonazista':1,'saudacao nazista':1,'raca superior':1}},
     {name:'Burlar proteção', termos:{'burlar filtro':1,'burlar o filtro':1,'driblar o filtro':1,'desativar safesearch':1,'desbloquear sites':1,'filtro da escola':1,'vpn para escola':1,'como burlar':.5,'proxy anonimo':.5}, semReducao:true}
   ];
   var CTX_SEGURO = ['dever de casa','trabalho escolar','feira de ciencias','aula de ciencias','biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de','sexo masculino','sexo feminino','sexo do bebe','sexo biologico','qual o sexo','sexo dos anjos','sexo fragil','ambos os sexos','estatua','escultura','museu','arte grega'];
