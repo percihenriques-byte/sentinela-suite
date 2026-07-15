@@ -8,6 +8,14 @@
   de pele ficam espalhados). Isso reduz muito o falso-positivo em fotos
   normais (rostos pequenos, mosaicos, thumbnails).
 
+  Comportamento por design (verificado no navegador):
+   - Foto vestida comum (so rosto/maos = pouca pele) NAO e borrada.
+   - Roupa de banho / muita pele exposta E borrada (lado seguro do filtro);
+     quem quiser afrouxar usa a sensibilidade 'conservador' no painel.
+   - Duas figuras separadas de tamanho medio podem nao atingir o limiar
+     (usa a MAIOR regiao conexa, nao a soma) - troca consciente p/ evitar
+     falso-positivo de pele espalhada.
+
   Limite honesto (teto de cor): superficies lisas genuinamente cor-de-pele
   (areia, pinho/madeira clara, torrada/tan) podem ser borradas por engano —
   a cor delas e a mesma da pele. Erra para o lado SEGURO (borrar demais) e
