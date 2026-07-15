@@ -59,6 +59,11 @@ Depois, clique no ícone 🛡️ para ver a **Supervisão** (o que foi buscado) 
 temas** bloqueados. Passo a passo completo em
 [`app/extensao/COMO-INSTALAR-EXTENSAO.md`](../app/extensao/COMO-INSTALAR-EXTENSAO.md).
 
+> 🔒 **Para a criança não conseguir remover a extensão:** na pasta `app`, dê dois cliques
+> em **TRAVAR-EXTENSAO.bat** (pede administrador). A extensão passa a aparecer como
+> "Instalada pela sua organização" e **não pode ser desativada** — o mesmo mecanismo das
+> escolas. Para destravar depois: `Travar-Extensao.ps1 -Destravar`.
+
 ## Como acompanhar o que a criança busca (supervisão)
 
 - **Pelo navegador:** clique no ícone 🛡️ da extensão → aba **Supervisão**.
@@ -114,7 +119,10 @@ O `INSTALAR.bat` chama `Instalar-Sentinela.ps1`, que:
 2. copia os scripts para `C:\ProgramData\Sentinela\app`;
 3. grava o hash do PIN (SHA-256 + salt) em `config.json`;
 4. registra a tarefa agendada `Sentinela-Guardiao` (SYSTEM, a cada 1 min + no boot);
-5. aplica o DNS de filtro (CleanBrowsing Family) e o bloco `hosts` de modo seguro;
+5. aplica o SafeSearch em **3 camadas automáticas**: DNS de filtro (CleanBrowsing Family),
+   bloco `hosts` de modo seguro, e **política de navegador** (Edge/Chrome:
+   `ForceGoogleSafeSearch`, `ForceYouTubeRestrict`, e `DnsOverHttpsMode=off` para o
+   DNS-over-HTTPS não contornar o filtro);
 6. cria o atalho do Painel no Menu Iniciar.
 
 Para experimentar **sem alterar nada** na máquina, rode em modo simulação:
