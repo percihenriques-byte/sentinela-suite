@@ -113,7 +113,7 @@ sentinela/
 │   ├── gui/
 │   │   └── Sentinela-Painel.ps1   Painel gráfico (status, PIN, supervisão)
 │   └── Testes/
-│       ├── Executar-Testes.ps1    124 testes automatizados (simulação)
+│       ├── Executar-Testes.ps1    128 testes automatizados (simulação)
 │       ├── Medir-Precisao.ps1     acurácia do classificador (corpus de 326 casos, PT+EN+ES)
 │       └── img-corpus.html        teste do heurístico de imagem
 └── docs/
@@ -131,7 +131,7 @@ Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporá
 .\app\Testes\Executar-Testes.ps1
 ```
 
-Saída esperada: `RESULTADO: 124 passaram, 0 falharam`.
+Saída esperada: `RESULTADO: 128 passaram, 0 falharam`.
 
 Para medir a **acurácia** do classificador num corpus de 326 casos difíceis:
 
