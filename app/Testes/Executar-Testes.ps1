@@ -149,6 +149,17 @@ Assert 'nudez e bloqueada'                          (Test-ConteudoImproprio 'nud
 Assert 'nudez infantil e bloqueada'                 (Test-ConteudoImproprio 'nudez infantil')
 Assert 'transar e bloqueado'                        (Test-ConteudoImproprio 'transar')
 Assert 'zoofilia e bloqueada'                       (Test-ConteudoImproprio 'zoofilia')
+# --- precisao afinada (falsos +/- dificeis) ---
+Assert 'video de sexo bloqueia'                     (Test-ConteudoImproprio 'video de sexo')
+Assert 'mulheres peladas (plural) bloqueia'         (Test-ConteudoImproprio 'fotos de mulheres peladas')
+Assert 'usar cocaina bloqueia'                      (Test-ConteudoImproprio 'como usar cocaina')
+Assert 'explosivo caseiro bloqueia'                 (Test-ConteudoImproprio 'como fazer explosivo caseiro')
+Assert 'site de apostas online bloqueia'            (Test-ConteudoImproprio 'site de apostas online')
+Assert 'sexo masculino/feminino NAO bloqueia'       (-not (Test-ConteudoImproprio 'sexo masculino ou feminino'))
+Assert 'qual o sexo do bebe NAO bloqueia'           (-not (Test-ConteudoImproprio 'qual o sexo do bebe'))
+Assert 'sexo dos anjos (idiom) NAO bloqueia'        (-not (Test-ConteudoImproprio 'sexo dos anjos significado'))
+Assert 'receita de bomba de chocolate NAO bloqueia' (-not (Test-ConteudoImproprio 'receita de bomba de chocolate'))
+Assert 'roleta russa filme NAO bloqueia'            (-not (Test-ConteudoImproprio 'roleta russa filme'))
 # --- autolesao: variacoes (BUG-03) ---
 Assert 'quero me matar e bloqueado'                 (Test-ConteudoImproprio 'quero me matar')
 Assert 'quero morrer e bloqueado'                   (Test-ConteudoImproprio 'quero morrer')
