@@ -56,7 +56,7 @@ Arquivos-chave:
 
 ## ✅ ESTADO ATUAL (tudo testado no Chromium via Playwright)
 
-- Texto: **corpus 362 casos / 100%** (0 falso-pos/neg), **suíte 139/139**.
+- Texto: **corpus 373 casos / 100%** (0 falso-pos/neg), **suíte 139/139**.
 - Cobertura **PT + inglês + espanhol + francês**: adulto, violência, autolesão/suicídio, armas, drogas,
   apostas, **ódio/extremismo**, burlar proteção, + gírias BR (caça-níquel, lança-perfume),
   marcas de site adulto/aposta, **CSAM/aliciamento** (pedofilia, foto íntima), evasões
