@@ -104,7 +104,14 @@ $CORPUS = @(
   @('cometi um mistake ingles', $false), @('stripe pagamento api', $false), @('rule of three matematica', $false),
   @('erosao do solo geografia', $false), @('mother goose historia infantil', $false),
   @('estranho no ninho filme', $false), @('foto intima significado dicionario', $false),
-  @('ruler online para medir', $false), @('brasil noticias hoje', $false)
+  @('ruler online para medir', $false), @('brasil noticias hoje', $false),
+  # ---- DEVE BLOQUEAR: evasao (leet/espaco/homoglifo/hifen) ----
+  @('p0rn0', $true), @('p o r n o', $true), @('s3x0 explicito', $true), @('br4zzers', $true),
+  @('h3nt4i', $true), @('n u d e s', $true), @('x-videos', $true), @('only-fans', $true), @('red-tube', $true),
+  @('como fazer b0mba', $true), @('me c0rtar', $true),
+  # ---- DEVE LIBERAR: parecidos com marca/evasao ----
+  @('x videos game trailer nintendo', $false), @('casino royale 007 filme', $false),
+  @('coca cola receita caseira', $false), @('sexto sentido filme', $false), @('spore jogo de criar', $false)
 )
 
 # evasao unicode por codigo
