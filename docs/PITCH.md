@@ -37,13 +37,17 @@ gratuita (DNS de filtro + `forcesafesearch`/`restrict.youtube.com`). Resultado:
 
 ## 3. Por que é difícil de burlar
 
-Três camadas trabalhando juntas:
+O SafeSearch **se configura sozinho** na instalação, em três camadas que se reforçam:
 
 1. **DNS de filtro** — muda para onde o computador "pergunta" os endereços, forçando
    o modo seguro em toda a rede.
 2. **Arquivo hosts** — reforço local que continua valendo mesmo se alguém trocar o DNS.
-3. **Guardião** — uma tarefa do sistema que verifica a cada 1 minuto e **reaplica** a
-   proteção se ela for removida. Só o **PIN do responsável** desliga de verdade.
+3. **Política de navegador** — força o SafeSearch do Google e o YouTube restrito no
+   próprio Edge/Chrome e **desliga o DNS-over-HTTPS (DoH)**, fechando a brecha em que o
+   navegador contornaria o filtro de rede. É o que faz o modo seguro **realmente** pegar.
+
+E, por cima de tudo, o **Guardião**: uma tarefa do sistema que verifica a cada 1 minuto e
+**reaplica** qualquer camada removida. Só o **PIN do responsável** desliga de verdade.
 
 > **Honestidade:** nenhum filtro é 100% inviolável para um adulto especialista (dá para
 > usar VPN, outro sistema, etc.). O Sentinela fecha o **caminho fácil** — o que hoje
@@ -63,7 +67,12 @@ derrotar as fugas clássicas das crianças —
 | `p0rn0` / `s3x0` (números) | passa ❌ | **pega** ✅ |
 | `p o r n o` (espaçado) | passa ❌ | **pega** ✅ |
 | `poooorno` (repetição) | passa ❌ | **pega** ✅ |
-| "câncer de mama" (saúde) | bloqueia por engano ❌ | **libera** ✅ (entende o contexto) |
+| `pornhub`, `caça-níquel`, `porn`, `how to make a bomb` | depende | **pega** ✅ (marcas + 4 idiomas) |
+| "câncer de mama" (saúde), "Sussex", "nudez em arte" | bloqueia por engano ❌ | **libera** ✅ (entende o contexto) |
+
+Cobre **português, inglês, espanhol e francês**, gírias brasileiras (caça-níquel, lança-perfume),
+marcas de sites adultos e de aposta, e os temas mais graves (autolesão, aliciamento). Sem
+falso-positivo em armadilhas como "Sussex", "seaweed", "avenue", "bomba de chocolate".
 
 Cada decisão vem com uma **categoria**, um **nível de confiança** e os **sinais** que
 pesaram — dá para explicar aos pais *por que* algo foi bloqueado.
@@ -104,8 +113,9 @@ Começa **gratuito e de código aberto** (ganha confiança e adoção). Receita 
 - ✅ **MVP Windows** — instalador 1 clique, PIN, Guardião, painel (este projeto).
 - 🔜 **Assistente de celular** — guia para configurar DNS de filtro no Wi-Fi de casa.
 - 🔜 **Painel na nuvem** — acompanhar vários aparelhos, relatórios para os pais.
-- ✅ **IA local anti-evasão** — classificador que roda na máquina, entende tentativas de
-  driblar (leetspeak, letras espaçadas) e o contexto educativo (neste projeto).
+- ✅ **IA local anti-evasão, em 4 idiomas** — classificador que roda na máquina (PT/EN/ES/FR),
+  entende tentativas de driblar (leetspeak, letras espaçadas, homóglifos) e o contexto
+  educativo, sem falso-positivo em armadilhas de idioma (neste projeto).
 - ✅ **Extensão travada por política** — force-install (`ExtensionInstallForcelist`) para
   Edge/Chrome, servido por um **servidor local `127.0.0.1`** (sem internet): a criança
   não consegue desativar (mesmo mecanismo das escolas).
@@ -113,9 +123,13 @@ Começa **gratuito e de código aberto** (ganha confiança e adoção). Receita 
   que trocam resultados sem recarregar).
 - ✅ **Análise do conteúdo da página** — a IA lê o **texto** que a criança vê (não só a
   busca) e bloqueia a página se for impróprio, sem pegar menção incidental. Precisão
-  medida: **100%** num corpus de 147 casos difíceis (biologia/arte/saúde liberados).
+  medida: **100%** num corpus de **340 casos difíceis** em 4 idiomas (biologia/arte/saúde
+  liberados; adulto/apostas/violência/autolesão/drogas/ódio/aliciamento bloqueados).
 - ✅ **Análise de imagens (local)** — borra imagens suspeitas com um heurístico que roda no
-  navegador (região conexa de tom de pele + suavidade), com encaixe para um modelo treinado.
+  navegador (maior região conexa de pele + YCbCr + teto de saturação + suavidade),
+  **inclusivo para todo tom de pele**, com encaixe para um modelo treinado.
+- ✅ **SafeSearch auto-configurável em 3 camadas** — DNS + hosts + política de navegador
+  (fecha a brecha do DNS-over-HTTPS); reaplicado pelo Guardião, removido só com o PIN.
 - 🔜 **Modelo de imagem treinado** — precisão de nível profissional nas imagens (local).
 - 🔜 **IA na nuvem opcional** — modelo maior para categorização ainda mais fina no painel.
 - 🔜 **App de roteador** — proteção para a casa inteira num só lugar.
@@ -133,6 +147,7 @@ o bastante para a própria família usar. Tecnologia real, honesta e acessível.
 - **Demo web navegável** (`demo/index.html`): deixe o jurado *tentar burlar* e ver o
   filtro segurar, ao vivo.
 - **App real** (`app/`): instala e funciona de verdade no Windows.
-- **Testes** (`app/Testes/`): 21 verificações automatizadas, todas passando.
+- **Testes** (`app/Testes/`): **139 verificações automatizadas**, todas passando, mais um
+  corpus de **340 casos** com **100%** de acerto (0 falso-positivo, 0 falso-negativo).
 
 > **Sentinela — o filtro de hoje desliga sozinho. O nosso, não.**
