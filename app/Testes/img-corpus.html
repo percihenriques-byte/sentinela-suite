@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<!--
+  Teste do heuristico de imagem (analise-imagem.js) em padroes sinteticos.
+  Abra no navegador (ou via headless --dump-dom) para ver a acuracia.
+  Os 2 casos marcados LIMITE sao o teto do heuristico por cor (so um
+  modelo treinado distingue): superficie lisa cor-de-pele (areia) e
+  ruido puro cor-de-pele. Nao ocorrem em fotos reais como aqui (solidos).
+-->
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Sentinela — teste de imagem</title></head>
+<body style="font-family:system-ui,sans-serif"><h3>Heuristico de imagem</h3><pre id="out">rodando...</pre>
+<script src="../extensao/analise-imagem.js"></script>
+<script>
+var W=100,H=100;
+function novo(){ return new Uint8ClampedArray(W*H*4); }
+function setpx(d,x,y,r,g,b){ var i=(y*W+x)*4; d[i]=r;d[i+1]=g;d[i+2]=b;d[i+3]=255; }
+var SKIN=[205,133,96], GRAY=[128,128,128], BLUE=[30,60,200], GREEN=[40,170,60], SAND=[210,180,140];
+function solido(c){ var d=novo(); for(var y=0;y<H;y++)for(var x=0;x<W;x++)setpx(d,x,y,c[0],c[1],c[2]); return d; }
+function blob(frac,c,bg){ var d=solido(bg); var s=Math.round(Math.sqrt(frac)*W); var o=Math.round((W-s)/2);
+  for(var y=o;y<o+s;y++)for(var x=o;x<o+s;x++)setpx(d,x,y,c[0],c[1],c[2]); return d; }
+function xadrez(c,bg){ var d=novo(); for(var y=0;y<H;y++)for(var x=0;x<W;x++){var v=((x+y)%2===0)?c:bg;setpx(d,x,y,v[0],v[1],v[2]);} return d; }
+function ruido(c,amp){ var d=novo(); var seed=1; function rnd(){seed=(seed*1103515245+12345)&0x7fffffff;return (seed/0x7fffffff);}
+  for(var y=0;y<H;y++)for(var x=0;x<W;x++){var n=(rnd()-0.5)*amp;setpx(d,x,y,c[0]+n,c[1]+n,c[2]+n);} return d; }
+function metade(c,bg){ var d=novo(); for(var y=0;y<H;y++)for(var x=0;x<W;x++){var v=(y<H/2)?c:bg;setpx(d,x,y,v[0],v[1],v[2]);} return d; }
+var casos=[
+ ['pele cheia (nudez-like)', solido(SKIN), true],
+ ['azul (ceu)', solido(BLUE), false],
+ ['verde (mato)', solido(GREEN), false],
+ ['cinza', solido(GRAY), false],
+ ['blob pele 45% (torso)', blob(0.45,SKIN,GRAY), true],
+ ['blob pele 15% (rosto)', blob(0.15,SKIN,GRAY), false],
+ ['pele espalhada xadrez (textura)', xadrez(SKIN,GRAY), false],
+ ['metade pele (torso)', metade(SKIN,GRAY), true],
+ ['LIMITE areia lisa solida', solido(SAND), false],
+ ['LIMITE ruido puro cor-de-pele', ruido(SKIN,120), false]
+];
+var o=[],err=0,limites=0;
+for(var i=0;i<casos.length;i++){ var r=window.SentinelaImg.analisarPixels(casos[i][1],W,H); var ok=(r.flag===casos[i][2]);
+  var limite=casos[i][0].indexOf('LIMITE')===0;
+  if(!ok){ if(limite) limites++; else err++; }
+  o.push((ok?'ok   ':(limite?'lim  ':'ERRO '))+(r.flag?'FLAG ':'---  ')+'blob='+r.blobRatio+'  '+casos[i][0]); }
+o.unshift('ERROS reais: '+err+' | limites conhecidos (cor): '+limites+' | total '+casos.length);
+document.getElementById('out').textContent=o.join('\n');
+</script></body></html>
