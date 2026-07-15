@@ -62,12 +62,32 @@
       if (count > maior) maior = count;
     }
 
+    // 3) suavidade: gradiente medio de luminancia entre pixels de pele vizinhos.
+    //    Pele/superficies reais sao suaves (~5-25); so RUIDO extremo passa de ~50.
+    //    Serve para nao "borrar" imagens de ruido/corrompidas cor-de-pele.
+    var somaGrad = 0, contGrad = 0;
+    for (var y2 = 0; y2 < h; y2++) {
+      var base = y2 * w;
+      for (var x2 = 0; x2 < w - 1; x2++) {
+        var idx = base + x2;
+        if (mask[idx] && mask[idx + 1]) {
+          var a = idx * 4, b = (idx + 1) * 4;
+          var l1 = 0.299 * data[a] + 0.587 * data[a + 1] + 0.114 * data[a + 2];
+          var l2 = 0.299 * data[b] + 0.587 * data[b + 1] + 0.114 * data[b + 2];
+          somaGrad += Math.abs(l1 - l2); contGrad++;
+        }
+      }
+    }
+    var suavidade = contGrad > 0 ? somaGrad / contGrad : 0;
+    var muitoRuidoso = suavidade > 50;
+
     var blobRatio = maior / n;
     var skinRatio = totalPele / n;
     return {
-      flag: blobRatio >= limiarBlob,
+      flag: (blobRatio >= limiarBlob) && !muitoRuidoso,
       skinRatio: Math.round(skinRatio * 100) / 100,
-      blobRatio: Math.round(blobRatio * 100) / 100
+      blobRatio: Math.round(blobRatio * 100) / 100,
+      suavidade: Math.round(suavidade)
     };
   }
 
