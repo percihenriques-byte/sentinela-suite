@@ -126,7 +126,15 @@ $CORPUS = @(
   # ---- DEVE LIBERAR: armadilhas de substring em frances ----
   @('menu du restaurant', $false), @('avenue des champs elysees', $false), @('nuage de mots', $false),
   @('continue reading please', $false), @('une bombe de bain relaxante', $false),
-  @('droguerie de quartier', $false), @('la nuit etoilee van gogh', $false), @('minute de silence', $false)
+  @('droguerie de quartier', $false), @('la nuit etoilee van gogh', $false), @('minute de silence', $false),
+  # ---- DEVE BLOQUEAR: marcas atuais (site adulto + casas de aposta BR) ----
+  @('youjizz', $true), @('fapello', $true), @('coomer party', $true), @('simpcity forum', $true), @('eporner', $true),
+  @('estrelabet', $true), @('vaidebet', $true), @('betnacional', $true), @('multibet brasil', $true),
+  @('br4bet', $true), @('brabet', $true), @('f12bet', $true), @('pagbet', $true), @('7games bet', $true),
+  # ---- DEVE LIBERAR: armadilhas ----
+  @('coomer significado ingles', $false), @('simplicidade e elegancia', $false), @('estrela do mar', $false),
+  @('multibanco portugal', $false), @('joga bet significado', $false), @('games para criancas', $false),
+  @('fapiao nota fiscal', $false), @('texas holdem regras', $false)
 )
 
 # evasao unicode por codigo
