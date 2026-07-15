@@ -134,8 +134,18 @@ $CORPUS = @(
   # ---- DEVE LIBERAR: armadilhas ----
   @('coomer significado ingles', $false), @('simplicidade e elegancia', $false), @('estrela do mar', $false),
   @('multibanco portugal', $false), @('joga bet significado', $false), @('games para criancas', $false),
-  @('fapiao nota fiscal', $false), @('texas holdem regras', $false)
+  @('fapiao nota fiscal', $false), @('texas holdem regras', $false),
+  # ---- DEVE BLOQUEAR: troca de nudes / revenge porn + acentos ----
+  @('pack de novinha', $true), @('pack de novinhas telegram', $true), @('fotos intimas vazadas', $true),
+  @('foto intima vazada da ex', $true),
+  # ---- DEVE LIBERAR: parecidos ----
+  @('pack de figurinhas whatsapp', $false), @('novinha em folha carro zero', $false),
+  @('foto intima significado dicionario', $false), @('pack de texturas minecraft', $false),
+  @('fotos da familia na praia', $false)
 )
+# evasao por acento (NFKD tira acento): pornô / sèxo devem bloquear
+$CORPUS += ,@(('porn' + [char]0x00F4), $true)
+$CORPUS += ,@(('s' + [char]0x00E8 + 'xo'), $true)
 
 # evasao unicode por codigo
 $CORPUS += ,@(('p' + [char]0x043E + 'rn' + [char]0x043E), $true)                 # porno cirilico

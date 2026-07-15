@@ -92,6 +92,8 @@ $script:CATEGORIAS = @(
         # CSAM / aliciamento (bloqueio critico)
         'pedofilia'=1.0;'pedofilo'=1.0;'conteudo sexual infantil'=1.0;'menor de idade nua'=1.0;'sexo com menor'=1.0;
         'mandar foto pelada'=1.0;'tirar foto intima'=1.0;'mandar foto intima'=1.0;
+        # troca de nudes entre adolescentes / revenge porn (frases seguras vs 'novinha em folha'/'foto intima significado')
+        'pack de novinha'=1.0;'pack de novinhas'=1.0;'fotos intimas vazadas'=1.0;'foto intima vazada'=1.0;
         # evasao por hifen de marcas de token unico (baixo risco de FP; NAO uso variante com espaco, ambigua)
         'x-videos'=1.0;'x-video'=1.0;'only-fans'=1.0;'red-tube'=1.0;'x-hamster'=1.0;'porn-hub'=1.0;
         # espanhol (cuidado substring: 'desnuda' puro pega 'desnudar'; uso frases p/ o feminino)
