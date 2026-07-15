@@ -56,9 +56,15 @@ Arquivos-chave:
 
 ## ✅ ESTADO ATUAL (tudo testado no Chromium via Playwright)
 
-- Texto: **corpus 310 casos / 100%** (0 falso-pos/neg), **suíte 124/124**.
-- Cobertura **PT + inglês**: adulto, violência, autolesão/suicídio, armas, drogas, apostas,
-  **ódio/extremismo**, burlar proteção, + gírias BR (caça-níquel, lança-perfume, etc.).
+- Texto: **corpus 326 casos / 100%** (0 falso-pos/neg), **suíte 124/124**.
+- Cobertura **PT + inglês + espanhol**: adulto, violência, autolesão/suicídio, armas, drogas,
+  apostas, **ódio/extremismo**, burlar proteção, + gírias BR (caça-níquel, lança-perfume),
+  marcas de site adulto/aposta, **CSAM/aliciamento** (pedofilia, foto íntima), evasões
+  (leet/espaço/homóglifo/hífen).
+- **SafeSearch se auto-configura em 3 camadas** (Enable-Sentinela): DNS de filtro + hosts +
+  **política de navegador** (ForceGoogleSafeSearch, ForceYouTubeRestrict=2, DnsOverHttpsMode=off,
+  BuiltInDnsClientEnabled=0) — fecha a brecha do DNS-over-HTTPS. Guardião reaplica; Disable/
+  Desinstalar removem. Em simulação as políticas vão para `HKCU:\Software\SentinelaTeste`.
 - Cuidado com **substring**: NÃO usar `sex`/`nude`/`naked`/`weed`/`xxx` puros (pegariam
   Sussex, nudez-arte, seaweed, filme xXx). Usar frases (`sex video`, `nude pics`…).
 - Imagem: maior região **conexa** de pele + Kovac **R>75 (inclusivo p/ pele escura)** +
@@ -69,8 +75,9 @@ Arquivos-chave:
 
 Últimos commits do loop (repo `percihenriques-byte/sentinela`, privado, branch `main`):
 `dbd36c2` só-visíveis · `2d0fa1f` ódio · `22ae2da` saturação · `ffa6d22` pele escura ·
-`67d73ea` gírias BR · `a84faf7` roupa de banho · `c71925f` inglês · `628cdef` readme ·
-`00b3b68` demo sincronizada.
+`67d73ea` gírias BR · `a84faf7` roupa de banho · `c71925f` inglês · `00b3b68` demo sincronizada ·
+`f6065b2` handoff · `a7455a4` marcas+CSAM · `c922de9` evasões hífen · `158220d` SafeSearch 3 camadas ·
+`fc545d4` espanhol.
 
 ## 🔧 COMO TESTAR (comandos exatos)
 
