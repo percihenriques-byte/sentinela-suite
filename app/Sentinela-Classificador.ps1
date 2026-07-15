@@ -54,11 +54,15 @@ function Get-TextoNormalizado {
     $leet = $t
     foreach ($k in $mapa.Keys) { $leet = $leet.Replace($k, $mapa[$k]) }
     $leet = [regex]::Replace($leet, '(.)\1{2,}', '$1')
+    # "colado": junta APENAS sequencias de caracteres isolados (evasao "p o r n o"),
+    # sem juntar palavras inteiras (evita 'gore' casar em "frango receita").
+    $colapsaIsolados = { param($m) ($m.Value -replace '[^a-z0-9]', '') }
+    $padraoIsolados = '\b[a-z0-9]\b(?:[\s._\-]+\b[a-z0-9]\b)+'
     return [pscustomobject]@{
         Texto     = $leet
-        Colado    = [regex]::Replace($leet, '[^a-z0-9]', '')
+        Colado    = [regex]::Replace($leet, $padraoIsolados, $colapsaIsolados)
         TextoRaw  = $raw
-        ColadoRaw = [regex]::Replace($raw, '[^a-z0-9]', '')
+        ColadoRaw = [regex]::Replace($raw, $padraoIsolados, $colapsaIsolados)
     }
 }
 
@@ -74,14 +78,15 @@ $script:CATEGORIAS = @(
         'masturbacao'=1.0;'punheta'=1.0;'siririca'=1.0;'video de sexo'=1.0;'fazer sexo'=1.0;
         'sexo gratis'=1.0;'sexo ao vivo'=1.0;'sexo caseiro'=1.0;'sexo amador'=1.0;'sexo anal'=1.0;
         'sexo oral'=1.0;'sexo virtual'=1.0;'mulher pelada'=1.0;'mulheres peladas'=1.0;'homem pelado'=1.0;
-        'peladinha'=1.0;'novinha pelada'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5 } },
+        'peladinha'=1.0;'novinha pelada'=1.0;'mulher nua'=1.0;'homem nu'=1.0;'pornhub'=1.0;'redtube'=1.0;
+        'xhamster'=1.0;'xvideo'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
         'violencia'=0.5;'sangue'=0.35;'briga'=0.35;'assassinato'=0.5;'massacre'=0.5 } },
     @{ Nome='Autolesao e suicidio'; Padrao=$true; SemReducao=$true; Termos=@{
         'suicidio'=1.0;'como se matar'=1.0;'me matar'=1.0;'quero morrer'=1.0;'vontade de morrer'=1.0;
-        'automutilacao'=1.0;'me cortar'=1.0;'tirar a propria vida'=1.0;'tirar minha vida'=1.0;
+        'automutilacao'=1.0;'me cortar'=1.0;'cortar os pulsos'=1.0;'tirar a propria vida'=1.0;'tirar minha vida'=1.0;
         'anorexia dicas'=1.0;'pro ana'=1.0 } },
     @{ Nome='Armas'; Padrao=$true; SemReducao=$true; Termos=@{
         'como fazer bomba'=1.0;'fazer uma bomba'=1.0;'bomba caseira'=1.0;'fabricar bomba'=1.0;
@@ -95,7 +100,8 @@ $script:CATEGORIAS = @(
     @{ Nome='Apostas'; Padrao=$true; SemReducao=$true; Termos=@{
         'cassino online'=1.0;'aposta esportiva'=1.0;'jogo do bicho'=1.0;'aposta'=0.5;'cassino'=0.5;
         'tigrinho'=1.0;'jogo do tigrinho'=1.0;'bet365'=1.0;'betano'=1.0;'sportingbet'=1.0;'blaze aposta'=1.0;
-        'roleta'=0.5;'roleta cassino'=1.0;'apostar dinheiro'=1.0;'apostas online'=1.0;'site de apostas'=1.0;'blaze'=0.5 } },
+        'roleta'=0.5;'roleta cassino'=1.0;'apostar dinheiro'=1.0;'apostas online'=1.0;'site de apostas'=1.0;
+        'blaze'=0.5;'aviator'=0.5;'jogo aviator'=1.0;'fortune tiger'=1.0 } },
     @{ Nome='Burlar protecao'; Padrao=$true; SemReducao=$true; Termos=@{
         'burlar filtro'=1.0;'burlar o filtro'=1.0;'driblar o filtro'=1.0;'desativar safesearch'=1.0;
         'desbloquear sites'=1.0;'filtro da escola'=1.0;'vpn para escola'=1.0;'como burlar'=0.5;'proxy anonimo'=0.5 } },

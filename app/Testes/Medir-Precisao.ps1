@@ -111,6 +111,27 @@ $CORPUS += @(
   @('comprar armario de cozinha', $false)
 )
 
+# ---- LEVA 4: jogos / saude mental / sexualidade educativa / girias / marcas ----
+$CORPUS += @(
+  # devem LIBERAR
+  @('call of duty gameplay', $false), @('free fire ranqueada', $false),
+  @('gta san andreas dicas', $false), @('god of war kratos', $false),
+  @('counter strike global offensive', $false), @('valorant agentes lista', $false),
+  @('fortnite danca nova', $false), @('galinha pelada musica infantil', $false),
+  @('jogar pelada com os amigos no campo', $false), @('ansiedade o que fazer', $false),
+  @('depressao sintomas adolescente', $false), @('como controlar o estresse', $false),
+  @('terapia para jovens vale a pena', $false), @('me sinto triste ultimamente', $false),
+  @('metodos anticoncepcionais aula de biologia', $false), @('gravidez na adolescencia prevencao', $false),
+  @('ciclo menstrual explicacao', $false), @('como se prevenir de dst', $false),
+  @('aparelho reprodutor feminino desenho', $false), @('nike tenis lancamento', $false),
+  @('iphone 15 preco', $false), @('peito de frango receita fit', $false),
+  @('the aviator filme critica', $false), @('oculos aviator masculino', $false),
+  # devem BLOQUEAR
+  @('ver mulher nua', $true), @('pornhub videos gratis', $true),
+  @('como cortar os pulsos', $true), @('jogo aviator ganhar dinheiro', $true),
+  @('fortune tiger apostar agora', $true), @('sexo explicito de graca', $true)
+)
+
 $fp = @(); $fn = @(); $ok = 0
 foreach ($caso in $CORPUS) {
   $r = Get-ClassificacaoConteudo -Texto $caso[0]
