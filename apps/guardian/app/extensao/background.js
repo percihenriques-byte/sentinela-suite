@@ -11,7 +11,7 @@
 */
 try { importScripts('analise-imagem.js'); } catch (e) { /* sem analisador */ }
 
-async function analisarImagemUrl(url) {
+async function analisarImagemUrl(url, limiar) {
   try {
     if (!url || url.indexOf('http') !== 0) return { flag: false };
     var resp = await fetch(url);
@@ -30,7 +30,7 @@ async function analisarImagemUrl(url) {
     bmp.close && bmp.close();
     var img = ctx.getImageData(0, 0, cw, ch);
     if (!self.SentinelaImg) return { flag: false };
-    return self.SentinelaImg.analisarPixels(img.data, cw, ch);
+    return self.SentinelaImg.analisarPixels(img.data, cw, ch, limiar);
   } catch (e) {
     return { flag: false, erro: String(e && e.message || e) };
   }
@@ -38,7 +38,7 @@ async function analisarImagemUrl(url) {
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   if (msg && msg.tipo === 'analisarImagem') {
-    analisarImagemUrl(msg.url).then(function (r) { sendResponse(r); });
+    analisarImagemUrl(msg.url, msg.limiar).then(function (r) { sendResponse(r); });
     return true; // resposta assincrona
   }
 });

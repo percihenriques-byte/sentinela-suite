@@ -122,7 +122,7 @@
   }
   // tenta analisar a imagem no proprio content script (data:, mesma origem,
   // ou CORS liberado). Retorna undefined se nao der (cross-origin tainted).
-  function analisarLocal(img) {
+  function analisarLocal(img, limiar) {
     try {
       if (!self.SentinelaImg || !img.complete) return undefined;
       var w = img.naturalWidth, h = img.naturalHeight;
@@ -133,10 +133,10 @@
       var ctx = cv.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, 0, 0, cw, ch);
       var data = ctx.getImageData(0, 0, cw, ch).data; // SecurityError se cross-origin tainted
-      return self.SentinelaImg.analisarPixels(data, cw, ch);
+      return self.SentinelaImg.analisarPixels(data, cw, ch, limiar);
     } catch (e) { return undefined; }
   }
-  function analisarImagens() {
+  function analisarImagens(limiar) {
     var imgs;
     try { imgs = document.images; } catch (e) { return; }
     for (var i = 0; i < imgs.length; i++) {
@@ -148,7 +148,7 @@
       var src = img.currentSrc || img.src;
       if (!src) continue;
       img.__sentinelaImg = true;
-      var local = analisarLocal(img);
+      var local = analisarLocal(img, limiar);
       if (local !== undefined) {                 // deu para ler os pixels aqui
         acaoImg(img, local);
         continue;
@@ -156,7 +156,7 @@
       // cross-origin: o background busca e analisa
       (function (elImg, elSrc) {
         try {
-          chrome.runtime.sendMessage({ tipo: 'analisarImagem', url: elSrc }, function (res) {
+          chrome.runtime.sendMessage({ tipo: 'analisarImagem', url: elSrc, limiar: limiar }, function (res) {
             if (chrome.runtime.lastError) return;
             acaoImg(elImg, res);
           });
@@ -169,7 +169,9 @@
       chrome.storage.local.get({ sentinela_config: {} }, function (d) {
         var cfg = d.sentinela_config || {};
         if (cfg.analisarImagens === false) return;   // toggle (padrao: ligado)
-        analisarImagens();
+        var s = cfg.imagemSensibilidade || 'normal';
+        var limiar = s === 'conservador' ? 0.40 : (s === 'rigido' ? 0.22 : 0.30);
+        analisarImagens(limiar);
       });
     } catch (e) { /* silencioso */ }
   }
