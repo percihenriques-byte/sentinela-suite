@@ -343,6 +343,13 @@ Assert 'Blog de receita NAO bloqueia'              (-not (Get-ClassificacaoPagin
 Assert 'Aula de reproducao NAO bloqueia'           (-not (Get-ClassificacaoPagina -Texto 'aula de ciencias reproducao humana sistema reprodutor biologia').Bloquear)
 Assert 'Pagina vazia NAO bloqueia'                 (-not (Get-ClassificacaoPagina -Texto '').Bloquear)
 Assert 'Analise de pagina retorna score'           ((Get-ClassificacaoPagina -Texto 'pornografia pornografia pornografia').Score -ge 3)
+# mencao incidental num texto GRANDE educativo NAO bloqueia (evita falso-positivo)
+$paginaEdu = 'A puberdade e uma fase natural do desenvolvimento humano. Nesta aula de biologia estudamos o corpo, a reproducao e a saude. O professor explicou o sistema reprodutor e a higiene. A palavra sexo aqui significa o sexo biologico, masculino ou feminino. Isso e ciencia, nao ha motivo de verganha.'
+Assert 'Texto educativo grande (1 mencao) NAO bloqueia' (-not (Get-ClassificacaoPagina -Texto $paginaEdu).Bloquear)
+# pagina cheia de conteudo improprio bloqueia - EN e ES tambem
+Assert 'Pagina adulta em INGLES bloqueia'          ((Get-ClassificacaoPagina -Texto 'porn porn free sex video blowjob nude pics nsfw deepthroat onlyfans leak').Bloquear)
+Assert 'Pagina adulta em ESPANHOL bloqueia'        ((Get-ClassificacaoPagina -Texto 'porno porno mujer desnuda chica desnuda tetas fotos desnuda sexo gratis').Bloquear)
+Assert 'Pagina educativa sobre drogas NAO bloqueia' (-not (Get-ClassificacaoPagina -Texto 'artigo educativo sobre prevencao: os perigos da maconha e da cocaina para adolescentes, procure ajuda de um profissional de saude').Bloquear)
 
 # --- Relatorio ------------------------------------------------------
 Write-Host ''
