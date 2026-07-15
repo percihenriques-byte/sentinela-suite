@@ -85,7 +85,12 @@ $script:CATEGORIAS = @(
         # 'nude' puro fica de fora: e substring de 'nudez' (PT) e causaria FP em arte/biologia
         'porn'=1.0;'nude pic'=1.0;'nude pics'=1.0;'nude photos'=1.0;'nude video'=1.0;'naked girls'=1.0;'naked woman'=1.0;'naked women'=1.0;
         'sex video'=1.0;'sex videos'=1.0;'free sex'=1.0;'sex tape'=1.0;'sex scene'=1.0;'having sex'=1.0;'group sex'=1.0;
-        'blowjob'=1.0;'blow job'=1.0;'deepthroat'=1.0;'handjob'=1.0;'boobs'=1.0;'tits'=1.0;'milf'=1.0;'nsfw'=1.0;'dick pic'=1.0 } },
+        'blowjob'=1.0;'blow job'=1.0;'deepthroat'=1.0;'handjob'=1.0;'boobs'=1.0;'tits'=1.0;'milf'=1.0;'nsfw'=1.0;'dick pic'=1.0;
+        # marcas de site adulto (nomes proprios, sem risco de substring comum)
+        'brazzers'=1.0;'spankbang'=1.0;'chaturbate'=1.0;'stripchat'=1.0;'bongacams'=1.0;'erome'=1.0;'motherless'=1.0;'rule34'=1.0;'rule 34'=1.0;'youporn'=1.0;'nhentai'=1.0;
+        # CSAM / aliciamento (bloqueio critico)
+        'pedofilia'=1.0;'pedofilo'=1.0;'conteudo sexual infantil'=1.0;'menor de idade nua'=1.0;'sexo com menor'=1.0;
+        'mandar foto pelada'=1.0;'tirar foto intima'=1.0;'mandar foto intima'=1.0 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
@@ -119,7 +124,10 @@ $script:CATEGORIAS = @(
         'roleta'=0.5;'roleta cassino'=1.0;'apostar dinheiro'=1.0;'apostas online'=1.0;'site de apostas'=1.0;
         'blaze'=0.5;'aviator'=0.5;'jogo aviator'=1.0;'fortune tiger'=1.0;
         'caca-niquel'=1.0;'caca niquel'=1.0;'jogo de azar'=1.0;'poker valendo'=1.0;'poker a dinheiro'=1.0;
-        'jogar no bicho'=1.0;'raspadinha valendo'=1.0;'raspadinha online'=1.0;'raspadinha premiada'=1.0 } },
+        'jogar no bicho'=1.0;'raspadinha valendo'=1.0;'raspadinha online'=1.0;'raspadinha premiada'=1.0;
+        # marcas de aposta (frases/nomes seguros contra substring: nada de 'stake'/'kto' puros)
+        'stake bet'=1.0;'stake casino'=1.0;'1xbet'=1.0;'pixbet'=1.0;'esportes da sorte'=1.0;'superbet'=1.0;
+        'betfair'=1.0;'kto bet'=1.0;'kto apostas'=1.0;'sportsbet'=1.0;'blaze apostas'=1.0 } },
     @{ Nome='Burlar protecao'; Padrao=$true; SemReducao=$true; Termos=@{
         'burlar filtro'=1.0;'burlar o filtro'=1.0;'driblar o filtro'=1.0;'desativar safesearch'=1.0;
         'desbloquear sites'=1.0;'filtro da escola'=1.0;'vpn para escola'=1.0;'como burlar'=0.5;'proxy anonimo'=0.5 } },
