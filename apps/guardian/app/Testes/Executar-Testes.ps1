@@ -160,6 +160,13 @@ Assert 'qual o sexo do bebe NAO bloqueia'           (-not (Test-ConteudoImpropri
 Assert 'sexo dos anjos (idiom) NAO bloqueia'        (-not (Test-ConteudoImproprio 'sexo dos anjos significado'))
 Assert 'receita de bomba de chocolate NAO bloqueia' (-not (Test-ConteudoImproprio 'receita de bomba de chocolate'))
 Assert 'roleta russa filme NAO bloqueia'            (-not (Test-ConteudoImproprio 'roleta russa filme'))
+Assert 'nudez em arte/museu NAO bloqueia'           (-not (Test-ConteudoImproprio 'estatua grega nudez arte historia'))
+Assert 'tema LGBT (ser gay) NAO bloqueia'           (-not (Test-ConteudoImproprio 'o que e ser gay'))
+Assert 'camisinha como usar NAO bloqueia'           (-not (Test-ConteudoImproprio 'camisinha como usar corretamente'))
+Assert 'comprar armario NAO bloqueia (nao arma)'    (-not (Test-ConteudoImproprio 'comprar armario de cozinha'))
+Assert 'novinha pelada bloqueia'                    (Test-ConteudoImproprio 'novinha pelada')
+Assert 'cheirar cola bloqueia'                       (Test-ConteudoImproprio 'como cheirar cola para chapar')
+Assert 'comprar arma de fogo bloqueia'              (Test-ConteudoImproprio 'comprar arma de fogo ilegal')
 # --- autolesao: variacoes (BUG-03) ---
 Assert 'quero me matar e bloqueado'                 (Test-ConteudoImproprio 'quero me matar')
 Assert 'quero morrer e bloqueado'                   (Test-ConteudoImproprio 'quero morrer')
