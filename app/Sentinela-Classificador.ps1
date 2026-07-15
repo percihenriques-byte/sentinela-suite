@@ -90,7 +90,9 @@ $script:CATEGORIAS = @(
         'brazzers'=1.0;'spankbang'=1.0;'chaturbate'=1.0;'stripchat'=1.0;'bongacams'=1.0;'erome'=1.0;'motherless'=1.0;'rule34'=1.0;'rule 34'=1.0;'youporn'=1.0;'nhentai'=1.0;
         # CSAM / aliciamento (bloqueio critico)
         'pedofilia'=1.0;'pedofilo'=1.0;'conteudo sexual infantil'=1.0;'menor de idade nua'=1.0;'sexo com menor'=1.0;
-        'mandar foto pelada'=1.0;'tirar foto intima'=1.0;'mandar foto intima'=1.0 } },
+        'mandar foto pelada'=1.0;'tirar foto intima'=1.0;'mandar foto intima'=1.0;
+        # evasao por hifen de marcas de token unico (baixo risco de FP; NAO uso variante com espaco, ambigua)
+        'x-videos'=1.0;'x-video'=1.0;'only-fans'=1.0;'red-tube'=1.0;'x-hamster'=1.0;'porn-hub'=1.0 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
