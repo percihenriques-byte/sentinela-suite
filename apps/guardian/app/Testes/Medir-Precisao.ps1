@@ -132,6 +132,25 @@ $CORPUS += @(
   @('fortune tiger apostar agora', $true), @('sexo explicito de graca', $true)
 )
 
+# ---- LEVA 5: esportes / filmes / memes / girias (limites de violencia/arma) ----
+$CORPUS += @(
+  # devem LIBERAR
+  @('tiro ao alvo esporte olimpico', $false), @('campeonato de tiro esportivo', $false),
+  @('luta livre wwe hoje', $false), @('boxe treino para iniciante', $false),
+  @('mma nocaute highlights', $false), @('jiu jitsu faixa branca aula', $false),
+  @('sangue bom novela resumo', $false), @('sangue de cristo oracao', $false),
+  @('jogos mortais filme saw', $false), @('matar o tempo o que fazer', $false),
+  @('matar aula e errado', $false), @('detonar no free fire', $false),
+  @('explodir de rir memes', $false), @('bomba na champions contratacao', $false),
+  @('aposto que voce nao sabia curiosidades', $false), @('the walking dead zumbis', $false),
+  @('arma branca museu medieval', $false), @('guerra dos tronos resumo', $false),
+  @('nerf arma de brinquedo', $false), @('call of duty warzone gameplay', $false),
+  # devem BLOQUEAR
+  @('filme pornografico onde assistir', $true), @('site de sexo ao vivo', $true),
+  @('ganhar dinheiro no cassino online', $true), @('como se cortar os pulsos', $true),
+  @('ver mulheres nuas de graca', $true)
+)
+
 $fp = @(); $fn = @(); $ok = 0
 foreach ($caso in $CORPUS) {
   $r = Get-ClassificacaoConteudo -Texto $caso[0]
