@@ -142,6 +142,29 @@ $h2 = (Get-SentinelaConfig).pinHash
 Assert 'Trocar o PIN muda o hash guardado'         ($h1 -ne $h2)
 Assert 'Novo PIN passa a valer'                    (Test-SentinelaPin -Pin '9999')
 
+# --- Grupo 3b: configuracao do responsavel --------------------------
+Write-Host ''
+Write-Host '  Grupo 3b: config do responsavel (custom, temas, modo rigido)'
+Reset-Sandbox
+function Set-CfgClassificador($c) { Save-SentinelaConfig -Config ([pscustomobject]@{ classificador = $c }) | Out-Null }
+# baseline: tema opcional nao bloqueia, categoria padrao bloqueia, termo fraco passa
+Set-CfgClassificador ([pscustomobject]@{})
+Assert 'baseline: tema opcional (tinder) NAO bloqueia'  (-not (Get-ClassificacaoConteudo -Texto 'app de namoro tinder').Bloquear)
+Assert 'baseline: categoria padrao (cassino) bloqueia'  ((Get-ClassificacaoConteudo -Texto 'cassino online').Bloquear)
+# (a) termos personalizados do responsavel
+Set-CfgClassificador ([pscustomobject]@{ termosPersonalizados = @('xyzcustom123') })
+Assert '(a) termo personalizado do responsavel bloqueia' ((Get-ClassificacaoConteudo -Texto 'quero xyzcustom123').Bloquear)
+# (b) tema opcional so bloqueia quando ATIVADO
+Set-CfgClassificador ([pscustomobject]@{ temasAtivados = @('Namoro e relacionamento') })
+Assert '(b) tema opcional ATIVADO passa a bloquear'      ((Get-ClassificacaoConteudo -Texto 'app de namoro tinder').Bloquear)
+# (c) desativar uma categoria padrao
+Set-CfgClassificador ([pscustomobject]@{ temasDesativados = @('Apostas') })
+Assert '(c) categoria padrao DESATIVADA para de bloquear' (-not (Get-ClassificacaoConteudo -Texto 'cassino online').Bloquear)
+# (d) modo rigido baixa o limiar (pega termo fraco, sem pegar comum)
+Set-CfgClassificador ([pscustomobject]@{ modoRigido = $true })
+Assert '(d) modo rigido bloqueia termo fraco (maconha)'   ((Get-ClassificacaoConteudo -Texto 'maconha').Bloquear)
+Assert '(d) modo rigido NAO bloqueia busca comum'         (-not (Get-ClassificacaoConteudo -Texto 'receita de bolo de cenoura').Bloquear)
+
 # --- Grupo 4: idempotencia ------------------------------------------
 Write-Host ''
 Write-Host '  Grupo 4: idempotencia (ativar duas vezes nao duplica)'
