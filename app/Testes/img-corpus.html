@@ -15,6 +15,8 @@ function novo(){ return new Uint8ClampedArray(W*H*4); }
 function setpx(d,x,y,r,g,b){ var i=(y*W+x)*4; d[i]=r;d[i+1]=g;d[i+2]=b;d[i+3]=255; }
 var SKIN=[205,133,96], GRAY=[128,128,128], BLUE=[30,60,200], GREEN=[40,170,60], SAND=[210,180,140];
 var WOOD=[120,72,40], SKINDARK=[120,90,70];  // madeira (saturada, nao-pele) vs pele escura (deve detectar)
+var SKINVDARK=[100,76,60], SKINVDARK2=[85,64,50];  // pele muito escura (R<95): proteção tem de valer
+var PINE=[178,128,80], TOAST=[200,160,110];        // pinho / torrada: limite de cor (cor-de-pele real)
 function solido(c){ var d=novo(); for(var y=0;y<H;y++)for(var x=0;x<W;x++)setpx(d,x,y,c[0],c[1],c[2]); return d; }
 function blob(frac,c,bg){ var d=solido(bg); var s=Math.round(Math.sqrt(frac)*W); var o=Math.round((W-s)/2);
   for(var y=o;y<o+s;y++)for(var x=o;x<o+s;x++)setpx(d,x,y,c[0],c[1],c[2]); return d; }
@@ -34,6 +36,10 @@ var casos=[
  ['ruido extremo cor-de-pele (suavidade rejeita)', ruido(SKIN,255), false],
  ['madeira/marrom saturado (teto de saturacao rejeita)', solido(WOOD), false],
  ['pele ESCURA cheia (deve detectar - nao perder protecao)', solido(SKINDARK), true],
+ ['pele MUITO escura cheia (R<95 - protecao inclusiva)', solido(SKINVDARK), true],
+ ['pele MUITO escura 2 (R=85 - protecao inclusiva)', solido(SKINVDARK2), true],
+ ['LIMITE pinho/madeira clara (cor-de-pele real)', solido(PINE), false],
+ ['LIMITE torrada/tan (cor-de-pele real)', solido(TOAST), false],
  ['LIMITE areia lisa solida (so modelo resolve)', solido(SAND), false]
 ];
 var o=[],err=0,limites=0;

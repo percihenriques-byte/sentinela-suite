@@ -8,9 +8,11 @@
   de pele ficam espalhados). Isso reduz muito o falso-positivo em fotos
   normais (rostos pequenos, mosaicos, thumbnails).
 
-  Limite honesto: cor sozinha nao distingue pele de areia/madeira lisas;
-  para precisao real, plugar um modelo treinado (ver
-  modelo/COMO-ADICIONAR-MODELO.md). Enquanto isso, este heuristico.
+  Limite honesto (teto de cor): superficies lisas genuinamente cor-de-pele
+  (areia, pinho/madeira clara, torrada/tan) podem ser borradas por engano —
+  a cor delas e a mesma da pele. Erra para o lado SEGURO (borrar demais) e
+  detecta todo tom de pele, do claro ao muito escuro. Para separar isso de
+  verdade, plugar um modelo treinado (modelo/COMO-ADICIONAR-MODELO.md).
 
   Expõe self.SentinelaImg.analisarPixels(data, w, h) -> { flag, skinRatio, blobRatio }
 */
@@ -18,7 +20,10 @@
   // Pele: combina regra RGB (Kovac) com faixa YCbCr (mais robusta).
   function ehPele(r, g, b) {
     var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-    var rgb = r > 95 && g > 40 && b > 20 && (mx - mn) > 15 &&
+    // R>75 (nao 95) para NAO perder pele escura/muito escura — protecao tem de
+    // valer para todo tom de pele. O teto de saturacao abaixo barra os marrons
+    // saturados que essa faixa mais ampla poderia deixar entrar.
+    var rgb = r > 75 && g > 40 && b > 20 && (mx - mn) > 15 &&
               Math.abs(r - g) > 15 && r > g && r > b;
     if (!rgb) return false;
     // Saturacao (HSV): pele humana (clara a escura) fica ~0.2-0.55; marrom de
