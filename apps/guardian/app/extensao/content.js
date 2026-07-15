@@ -114,6 +114,28 @@
     img.setAttribute('data-sentinela-oculta', ratio || '');
     img.title = 'Imagem ocultada pelo Sentinela';
   }
+  function acaoImg(elImg, res) {
+    if (res && res.flag) {
+      borrarImagem(elImg, res.skinRatio);
+      registrar({ hora: new Date().toISOString(), busca: '[imagem] ' + location.hostname, origem: 'imagem', tema: 'Imagem suspeita', confianca: res.skinRatio || 0, bloqueado: true });
+    }
+  }
+  // tenta analisar a imagem no proprio content script (data:, mesma origem,
+  // ou CORS liberado). Retorna undefined se nao der (cross-origin tainted).
+  function analisarLocal(img) {
+    try {
+      if (!self.SentinelaImg || !img.complete) return undefined;
+      var w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) return undefined;
+      var esc = Math.min(1, 400 / Math.max(w, h));
+      var cw = Math.max(1, Math.round(w * esc)), ch = Math.max(1, Math.round(h * esc));
+      var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+      var ctx = cv.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, cw, ch);
+      var data = ctx.getImageData(0, 0, cw, ch).data; // SecurityError se cross-origin tainted
+      return self.SentinelaImg.analisarPixels(data, cw, ch);
+    } catch (e) { return undefined; }
+  }
   function analisarImagens() {
     var imgs;
     try { imgs = document.images; } catch (e) { return; }
@@ -122,17 +144,21 @@
       if (img.__sentinelaImg) continue;
       var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
       if (w < 128 || h < 128) continue;         // ignora icones/thumbs pequenos
-      img.__sentinelaImg = true;
+      if (img.complete && img.naturalWidth === 0) continue; // quebrada
       var src = img.currentSrc || img.src;
       if (!src) continue;
+      img.__sentinelaImg = true;
+      var local = analisarLocal(img);
+      if (local !== undefined) {                 // deu para ler os pixels aqui
+        acaoImg(img, local);
+        continue;
+      }
+      // cross-origin: o background busca e analisa
       (function (elImg, elSrc) {
         try {
           chrome.runtime.sendMessage({ tipo: 'analisarImagem', url: elSrc }, function (res) {
             if (chrome.runtime.lastError) return;
-            if (res && res.flag) {
-              borrarImagem(elImg, res.skinRatio);
-              registrar({ hora: new Date().toISOString(), busca: '[imagem] ' + location.hostname, origem: 'imagem', tema: 'Imagem suspeita', confianca: res.skinRatio || 0, bloqueado: true });
-            }
+            acaoImg(elImg, res);
           });
         } catch (e) { /* silencioso */ }
       })(img, src);

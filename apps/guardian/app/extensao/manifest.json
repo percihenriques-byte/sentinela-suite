@@ -9,7 +9,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*", "file:///*"],
-      "js": ["classificador.js", "content.js"],
+      "js": ["classificador.js", "analise-imagem.js", "content.js"],
       "run_at": "document_start",
       "all_frames": false
     }
