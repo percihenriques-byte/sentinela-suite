@@ -72,6 +72,9 @@ Arquivos-chave:
   imagens **visíveis** + sensibilidade configurável. img-corpus **20 casos / 0 erros reais**.
 - **Limites honestos** (só um modelo treinado resolve): superfícies lisas cor-de-pele
   (areia, pinho, torrada) podem ser borradas; slot para modelo em `app/extensao/modelo/`.
+- **E2E ponta-a-ponta confirmado (8/8)** no Chromium com a extensão real: busca imprópria
+  (PT/EN/marca) bloqueia, busca comum passa, página adulta bloqueia, página comum passa,
+  imagem de pele em página benigna é borrada. Detecção de busca lê a URL (`?q=`) dos buscadores.
 
 Últimos commits do loop (repo `percihenriques-byte/sentinela`, privado, branch `main`):
 `dbd36c2` só-visíveis · `2d0fa1f` ódio · `22ae2da` saturação · `ffa6d22` pele escura ·
