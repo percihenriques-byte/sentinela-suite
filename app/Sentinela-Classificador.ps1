@@ -92,7 +92,9 @@ $script:CATEGORIAS = @(
         'pedofilia'=1.0;'pedofilo'=1.0;'conteudo sexual infantil'=1.0;'menor de idade nua'=1.0;'sexo com menor'=1.0;
         'mandar foto pelada'=1.0;'tirar foto intima'=1.0;'mandar foto intima'=1.0;
         # evasao por hifen de marcas de token unico (baixo risco de FP; NAO uso variante com espaco, ambigua)
-        'x-videos'=1.0;'x-video'=1.0;'only-fans'=1.0;'red-tube'=1.0;'x-hamster'=1.0;'porn-hub'=1.0 } },
+        'x-videos'=1.0;'x-video'=1.0;'only-fans'=1.0;'red-tube'=1.0;'x-hamster'=1.0;'porn-hub'=1.0;
+        # espanhol (cuidado substring: 'desnuda' puro pega 'desnudar'; uso frases p/ o feminino)
+        'desnudo'=1.0;'desnudos'=1.0;'desnudas'=1.0;'mujer desnuda'=1.0;'chica desnuda'=1.0;'fotos desnuda'=1.0;'tetas'=1.0 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
@@ -104,13 +106,15 @@ $script:CATEGORIAS = @(
         'automutilacao'=1.0;'me cortar'=1.0;'cortar os pulsos'=1.0;'tirar a propria vida'=1.0;'tirar minha vida'=1.0;
         'anorexia dicas'=1.0;'pro ana'=1.0;'me enforcar'=1.0;'como se enforcar'=1.0;
         'self harm'=1.0;'suicide methods'=1.0;'commit suicide'=1.0;'how to commit suicide'=1.0;'kill myself'=1.0;
-        'want to die'=1.0;'end my life'=1.0;'ways to die'=1.0 } },
+        'want to die'=1.0;'end my life'=1.0;'ways to die'=1.0;
+        'suicidarme'=1.0;'suicidarse'=1.0 } },
     @{ Nome='Armas'; Padrao=$true; SemReducao=$true; Termos=@{
         'como fazer bomba'=1.0;'fazer uma bomba'=1.0;'bomba caseira'=1.0;'fabricar bomba'=1.0;
         'fazer explosivo'=1.0;'explosivo caseiro'=1.0;'fabricar arma'=1.0;'arma caseira'=1.0;'explosivo'=0.5;
         'arma de fogo'=0.5;'comprar arma de fogo'=1.0;'comprar fuzil'=1.0;'arma no mercado negro'=1.0;
         'comprar arma ilegal'=1.0;'vender arma ilegal'=1.0;'arma ilegal'=0.5;
         'how to make a bomb'=1.0;'make a bomb'=1.0;'build a bomb'=1.0;'pipe bomb'=1.0;'buy a gun illegally'=1.0;
+        'como hacer una bomba'=1.0;'hacer una bomba casera'=1.0;
         'pistola'=0.35;'rifle'=0.35;'fuzil'=0.35;'municao'=0.35 } },
     @{ Nome='Drogas'; Padrao=$true; SemReducao=$false; Termos=@{
         'como usar drogas'=1.0;'comprar maconha'=1.0;'usar cocaina'=1.0;'cheirar cocaina'=1.0;
