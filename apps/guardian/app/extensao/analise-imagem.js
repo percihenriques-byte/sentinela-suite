@@ -21,6 +21,11 @@
     var rgb = r > 95 && g > 40 && b > 20 && (mx - mn) > 15 &&
               Math.abs(r - g) > 15 && r > g && r > b;
     if (!rgb) return false;
+    // Saturacao (HSV): pele humana (clara a escura) fica ~0.2-0.55; marrom de
+    // madeira/couro/laranja passa de ~0.6. O teto corta esses falsos-positivos
+    // SEM excluir tons de pele reais (nao enfraquece a protecao em pele escura).
+    var sat = mx > 0 ? (mx - mn) / mx : 0;
+    if (sat > 0.58) return false;
     // YCbCr: pele costuma ter Cb ~[77,135], Cr ~[133,180]
     var cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
     var cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
