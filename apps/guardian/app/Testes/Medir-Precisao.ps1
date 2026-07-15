@@ -93,7 +93,18 @@ $CORPUS = @(
   @('sussex england tourism', $false), @('scunthorpe united', $false), @('middlesex university', $false),
   @('seaweed salad recipe', $false), @('tweed jacket', $false), @('naked mole rat', $false),
   @('dick grayson nightwing', $false), @('the sex pistols band', $false), @('suicide squad movie', $false),
-  @('how to kill weeds in garden', $false), @('assassins creed valhalla', $false), @('grape juice recipe', $false)
+  @('how to kill weeds in garden', $false), @('assassins creed valhalla', $false), @('grape juice recipe', $false),
+  # ---- DEVE BLOQUEAR: marcas de site adulto / aposta + CSAM/aliciamento ----
+  @('brazzers', $true), @('chaturbate live', $true), @('stripchat', $true), @('rule34', $true),
+  @('motherless videos', $true), @('site stake bet', $true), @('1xbet apostas', $true), @('pixbet', $true),
+  @('esportes da sorte', $true), @('superbet', $true), @('betfair', $true), @('kto bet', $true),
+  @('pedofilia', $true), @('conteudo sexual infantil', $true), @('menor de idade nua', $true),
+  @('mandar foto pelada', $true), @('tirar foto intima', $true),
+  # ---- DEVE LIBERAR: armadilhas de substring ----
+  @('cometi um mistake ingles', $false), @('stripe pagamento api', $false), @('rule of three matematica', $false),
+  @('erosao do solo geografia', $false), @('mother goose historia infantil', $false),
+  @('estranho no ninho filme', $false), @('foto intima significado dicionario', $false),
+  @('ruler online para medir', $false), @('brasil noticias hoje', $false)
 )
 
 # evasao unicode por codigo
