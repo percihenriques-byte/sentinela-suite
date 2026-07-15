@@ -114,7 +114,7 @@ sentinela/
 │   │   └── Sentinela-Painel.ps1   Painel gráfico (status, PIN, supervisão)
 │   └── Testes/
 │       ├── Executar-Testes.ps1    116 testes automatizados (simulação)
-│       ├── Medir-Precisao.ps1     acurácia do classificador (corpus de 216 casos)
+│       ├── Medir-Precisao.ps1     acurácia do classificador (corpus de 238 casos)
 │       └── img-corpus.html        teste do heurístico de imagem
 └── docs/
     ├── COMO-INSTALAR.md        Guia passo a passo para leigos
