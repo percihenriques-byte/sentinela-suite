@@ -2,41 +2,73 @@
   analise-imagem.js — analisador de imagem LOCAL do Sentinela.
   Roda no service worker (background) e, se quiser, num teste isolado.
 
-  Duas camadas:
-   1) HEURISTICO (sempre disponivel, sem download): proporcao de pixels
-      em tom de pele. Cru — pode errar em fotos normais de pessoas —, por
-      isso o limiar e conservador. Serve como 1a linha offline.
-   2) MODELO (opcional, preciso): se os arquivos de um modelo NSFW forem
-      colocados na pasta modelo/ da extensao, o background pode usa-lo.
-      Veja modelo/COMO-ADICIONAR-MODELO.md. Enquanto nao houver modelo,
-      usa-se o heuristico.
+  Heuristico (sem download): deteccao de pele em RGB + YCbCr e, o mais
+  importante, a MAIOR REGIAO CONECTADA de pele (um corpo tende a ser um
+  grande bloco continuo de pele, enquanto texturas/colagens/cenarios cor
+  de pele ficam espalhados). Isso reduz muito o falso-positivo em fotos
+  normais (rostos pequenos, mosaicos, thumbnails).
 
-  Expõe self.SentinelaImg.analisarPixels(data, w, h) -> { flag, skinRatio }
+  Limite honesto: cor sozinha nao distingue pele de areia/madeira lisas;
+  para precisao real, plugar um modelo treinado (ver
+  modelo/COMO-ADICIONAR-MODELO.md). Enquanto isso, este heuristico.
+
+  Expõe self.SentinelaImg.analisarPixels(data, w, h) -> { flag, skinRatio, blobRatio }
 */
 (function (global) {
-  // Regra de pele em RGB (Kovac et al.) — rapida e sem dependencias.
+  // Pele: combina regra RGB (Kovac) com faixa YCbCr (mais robusta).
   function ehPele(r, g, b) {
     var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-    return r > 95 && g > 40 && b > 20 &&
-           (mx - mn) > 15 &&
-           Math.abs(r - g) > 15 && r > g && r > b;
+    var rgb = r > 95 && g > 40 && b > 20 && (mx - mn) > 15 &&
+              Math.abs(r - g) > 15 && r > g && r > b;
+    if (!rgb) return false;
+    // YCbCr: pele costuma ter Cb ~[77,135], Cr ~[133,180]
+    var cb = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+    var cr = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+    return cb >= 77 && cb <= 135 && cr >= 133 && cr <= 180;
   }
 
-  // data = Uint8ClampedArray RGBA. Retorna proporcao de pele e o veredito.
-  // Limiar conservador (0.45) + exige imagem com area minima (checada por quem chama).
-  function analisarPixels(data, w, h, limiar) {
-    limiar = limiar || 0.45;
-    var total = 0, pele = 0;
-    // amostra 1 a cada N pixels para performance
-    var passo = 4 * Math.max(1, Math.floor((w * h) / 40000));
-    for (var i = 0; i < data.length; i += passo) {
-      var r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-      if (a < 125) continue; // ignora transparente
-      total++;
-      if (ehPele(r, g, b)) pele++;
+  // data = Uint8ClampedArray RGBA (w x h).
+  // flag = a MAIOR regiao conexa de pele cobre >= limiarBlob da imagem.
+  function analisarPixels(data, w, h, limiarBlob) {
+    limiarBlob = limiarBlob || 0.30;
+    var n = w * h;
+    if (n === 0) return { flag: false, skinRatio: 0, blobRatio: 0 };
+
+    // 1) mascara de pele
+    var mask = new Uint8Array(n);
+    var totalPele = 0;
+    for (var i = 0; i < n; i++) {
+      var p = i * 4;
+      if (data[p + 3] >= 125 && ehPele(data[p], data[p + 1], data[p + 2])) { mask[i] = 1; totalPele++; }
     }
-    var ratio = total > 0 ? (pele / total) : 0;
-    return { flag: ratio >= limiar, skinRatio: Math.round(ratio * 100) / 100 };
+
+    // 2) maior componente conexo (4-conectividade, DFS iterativo)
+    var visit = new Uint8Array(n);
+    var maior = 0;
+    var stack = new Int32Array(n);
+    for (var s = 0; s < n; s++) {
+      if (!mask[s] || visit[s]) continue;
+      var top = 0, count = 0;
+      stack[top++] = s; visit[s] = 1;
+      while (top > 0) {
+        var c = stack[--top]; count++;
+        var x = c % w, y = (c / w) | 0;
+        var l = c - 1, r = c + 1, u = c - w, d = c + w;
+        if (x > 0 && mask[l] && !visit[l]) { visit[l] = 1; stack[top++] = l; }
+        if (x < w - 1 && mask[r] && !visit[r]) { visit[r] = 1; stack[top++] = r; }
+        if (y > 0 && mask[u] && !visit[u]) { visit[u] = 1; stack[top++] = u; }
+        if (y < h - 1 && mask[d] && !visit[d]) { visit[d] = 1; stack[top++] = d; }
+      }
+      if (count > maior) maior = count;
+    }
+
+    var blobRatio = maior / n;
+    var skinRatio = totalPele / n;
+    return {
+      flag: blobRatio >= limiarBlob,
+      skinRatio: Math.round(skinRatio * 100) / 100,
+      blobRatio: Math.round(blobRatio * 100) / 100
+    };
   }
 
   global.SentinelaImg = { analisarPixels: analisarPixels, ehPele: ehPele };
