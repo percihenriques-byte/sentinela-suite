@@ -94,7 +94,9 @@ $script:CATEGORIAS = @(
         # evasao por hifen de marcas de token unico (baixo risco de FP; NAO uso variante com espaco, ambigua)
         'x-videos'=1.0;'x-video'=1.0;'only-fans'=1.0;'red-tube'=1.0;'x-hamster'=1.0;'porn-hub'=1.0;
         # espanhol (cuidado substring: 'desnuda' puro pega 'desnudar'; uso frases p/ o feminino)
-        'desnudo'=1.0;'desnudos'=1.0;'desnudas'=1.0;'mujer desnuda'=1.0;'chica desnuda'=1.0;'fotos desnuda'=1.0;'tetas'=1.0 } },
+        'desnudo'=1.0;'desnudos'=1.0;'desnudas'=1.0;'mujer desnuda'=1.0;'chica desnuda'=1.0;'fotos desnuda'=1.0;'tetas'=1.0;
+        # frances por FRASE (nunca 'nu'/'nue'/'sexe' puros: pegariam menu/avenue/continue)
+        'femme nue'=1.0;'femmes nues'=1.0;'fille nue'=1.0;'photos nues'=1.0;'sexe gratuit'=1.0;'sexe en direct'=1.0 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
@@ -107,7 +109,7 @@ $script:CATEGORIAS = @(
         'anorexia dicas'=1.0;'pro ana'=1.0;'me enforcar'=1.0;'como se enforcar'=1.0;
         'self harm'=1.0;'suicide methods'=1.0;'commit suicide'=1.0;'how to commit suicide'=1.0;'kill myself'=1.0;
         'want to die'=1.0;'end my life'=1.0;'ways to die'=1.0;
-        'suicidarme'=1.0;'suicidarse'=1.0 } },
+        'suicidarme'=1.0;'suicidarse'=1.0;'se suicider'=1.0;'suicider'=1.0 } },
     @{ Nome='Armas'; Padrao=$true; SemReducao=$true; Termos=@{
         'como fazer bomba'=1.0;'fazer uma bomba'=1.0;'bomba caseira'=1.0;'fabricar bomba'=1.0;
         'fazer explosivo'=1.0;'explosivo caseiro'=1.0;'fabricar arma'=1.0;'arma caseira'=1.0;'explosivo'=0.5;
@@ -122,7 +124,8 @@ $script:CATEGORIAS = @(
         'lsd'=0.5;'ecstasy'=0.5;'droga'=0.35;'entorpecente'=0.5;
         'lanca perfume'=1.0;'cheirar lolo'=1.0;'cheirinho da lolo'=1.0;'fumar baseado'=1.0;'baseado de maconha'=1.0;
         'comprar skunk'=1.0;'skunk droga'=1.0;
-        'buy weed'=1.0;'smoke weed'=1.0;'weed dealer'=1.0;'buy cocaine'=1.0;'buy drugs'=1.0;'how to get high'=0.5;'cocaine'=0.5 } },
+        'buy weed'=1.0;'smoke weed'=1.0;'weed dealer'=1.0;'buy cocaine'=1.0;'buy drugs'=1.0;'how to get high'=0.5;'cocaine'=0.5;
+        'acheter de la drogue'=1.0 } },
     @{ Nome='Apostas'; Padrao=$true; SemReducao=$true; Termos=@{
         'cassino online'=1.0;'aposta esportiva'=1.0;'jogo do bicho'=1.0;'aposta'=0.5;'cassino'=0.5;
         'tigrinho'=1.0;'jogo do tigrinho'=1.0;'bet365'=1.0;'betano'=1.0;'sportingbet'=1.0;'blaze aposta'=1.0;

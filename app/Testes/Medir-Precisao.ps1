@@ -119,7 +119,14 @@ $CORPUS = @(
   # ---- DEVE LIBERAR: armadilhas em espanhol ----
   @('bomba de agua precio', $false), @('bomba de chocolate receta', $false), @('arma un rompecabezas', $false),
   @('como desnudar un cable electrico', $false), @('camisetas de futbol baratas', $false),
-  @('desarrollar una app', $false), @('follaje de otono', $false), @('armar una carpa camping', $false)
+  @('desarrollar una app', $false), @('follaje de otono', $false), @('armar una carpa camping', $false),
+  # ---- DEVE BLOQUEAR: frances ----
+  @('film porno', $true), @('femme nue', $true), @('photos nues', $true), @('sexe gratuit', $true),
+  @('se suicider', $true), @('acheter de la drogue', $true),
+  # ---- DEVE LIBERAR: armadilhas de substring em frances ----
+  @('menu du restaurant', $false), @('avenue des champs elysees', $false), @('nuage de mots', $false),
+  @('continue reading please', $false), @('une bombe de bain relaxante', $false),
+  @('droguerie de quartier', $false), @('la nuit etoilee van gogh', $false), @('minute de silence', $false)
 )
 
 # evasao unicode por codigo
