@@ -372,7 +372,8 @@
     var mapa = {'0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','+':'t'};
     s = s.replace(/[01345789@$+]/g, function(c){ return mapa[c] || c; });
     s = s.replace(/(.)\1{2,}/g, '$1');                     // encolhe repetições
-    return { texto: s, colado: s.replace(/[^a-z0-9]/g,'') };
+    var colado = s.replace(/\b[a-z0-9]\b(?:[\s._\-]+\b[a-z0-9]\b)+/g, function(m){ return m.replace(/[^a-z0-9]/g,''); });
+    return { texto: s, colado: colado };
   }
   var CATS = [
     {name:'Conteúdo adulto', termos:{'porno':1,'pornografia':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'sexo':1,'transar':1,'nudez':1,'nudez infantil':1,'zoofilia':1,'masturbacao':1,'pelada':.5,'+18':.5}},
@@ -382,7 +383,7 @@
     {name:'Apostas', termos:{'cassino online':1,'aposta esportiva':1,'aposta':.5,'cassino':.5,'tigrinho':1,'betano':1}},
     {name:'Burlar proteção', termos:{'burlar filtro':1,'burlar o filtro':1,'driblar o filtro':1,'desativar safesearch':1,'desbloquear sites':1,'filtro da escola':1,'vpn para escola':1,'como burlar':.5,'proxy anonimo':.5}, semReducao:true}
   ];
-  var CTX_SEGURO = ['dever de casa','trabalho escolar','feira de ciencias','aula de ciencias','biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de'];
+  var CTX_SEGURO = ['dever de casa','trabalho escolar','feira de ciencias','aula de ciencias','biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de','sexo masculino','sexo feminino','sexo do bebe','sexo biologico','qual o sexo','sexo dos anjos','sexo fragil','ambos os sexos','estatua','escultura','museu','arte grega'];
   var LIMIAR = 1.0;
   function classify(q){
     var n = normalizar(q);
