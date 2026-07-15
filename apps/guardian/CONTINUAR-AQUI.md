@@ -50,13 +50,13 @@ Arquivos-chave:
 - `app/extensao/classificador.js` — **espelho JS** do PS (tem de ficar sincronizado).
 - `app/extensao/analise-imagem.js` — heurístico de imagem (pele conexa + YCbCr + saturação).
 - `app/extensao/content.js` / `background.js` — injeção, análise de página e imagem.
-- `app/Testes/Executar-Testes.ps1` (116 testes) · `Medir-Precisao.ps1` (corpus rotulado).
+- `app/Testes/Executar-Testes.ps1` (124 testes) · `Medir-Precisao.ps1` (corpus rotulado).
 - `app/Testes/img-corpus.html` — teste versionado do heurístico de imagem.
 - `demo/index.html` + `demo/sentinela-artifact.html` — demo do pitch (já sincronizadas).
 
 ## ✅ ESTADO ATUAL (tudo testado no Chromium via Playwright)
 
-- Texto: **corpus 268 casos / 100%** (0 falso-pos/neg), **suíte 116/116**.
+- Texto: **corpus 310 casos / 100%** (0 falso-pos/neg), **suíte 124/124**.
 - Cobertura **PT + inglês**: adulto, violência, autolesão/suicídio, armas, drogas, apostas,
   **ódio/extremismo**, burlar proteção, + gírias BR (caça-níquel, lança-perfume, etc.).
 - Cuidado com **substring**: NÃO usar `sex`/`nude`/`naked`/`weed`/`xxx` puros (pegariam
@@ -99,7 +99,7 @@ Python com Playwright (SÓ EXECUTAR, não gravar na CRM):
 2. Mais **stress de imagem** (tons intermediários, fundos variados) sem enfraquecer a
    detecção real de nudez.
 3. Manter README/PITCH/`~/sentinela-testlog.md` coerentes. **Não** republicar Artifact.
-4. Sempre: manter Medir-Precisao 100% e suíte 116/116; PS+JS+demo sincronizados; commit+push
+4. Sempre: manter Medir-Precisao 100% e suíte 124/124; PS+JS+demo sincronizados; commit+push
    incremental por melhoria.
 
 ## 📌 Onde está o resto do histórico

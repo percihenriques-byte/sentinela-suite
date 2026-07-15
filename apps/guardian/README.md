@@ -46,7 +46,7 @@ escolas e provedores. **Não depende de nenhuma API externa nem de servidor pago
      conexa de tom de pele + suavidade; encaixe pronto para um modelo treinado);
    - entende tentativas de driblar (`p0rn0`, `p o r n o`, homóglifos, full-width) e o
      contexto legítimo (biologia, arte, saúde). O responsável escolhe os temas e adiciona
-     palavras. Precisão medida: **100%** num corpus de 147 casos difíceis.
+     palavras. Precisão medida: **100%** num corpus de 310 casos difíceis.
 3. **Supervisão** — a extensão **registra o que a criança busca** (tema, confiança, hora)
    para o responsável revisar no popup da extensão ou no painel. Tudo fica **local**;
    nada é enviado para a internet (privacidade por design).
@@ -113,7 +113,7 @@ sentinela/
 │   ├── gui/
 │   │   └── Sentinela-Painel.ps1   Painel gráfico (status, PIN, supervisão)
 │   └── Testes/
-│       ├── Executar-Testes.ps1    116 testes automatizados (simulação)
+│       ├── Executar-Testes.ps1    124 testes automatizados (simulação)
 │       ├── Medir-Precisao.ps1     acurácia do classificador (corpus de 310 casos, PT+EN)
 │       └── img-corpus.html        teste do heurístico de imagem
 └── docs/
@@ -131,9 +131,9 @@ Todos os scripts têm **modo simulação** (`-Simular`): usam uma pasta temporá
 .\app\Testes\Executar-Testes.ps1
 ```
 
-Saída esperada: `RESULTADO: 116 passaram, 0 falharam`.
+Saída esperada: `RESULTADO: 124 passaram, 0 falharam`.
 
-Para medir a **acurácia** do classificador num corpus de 147 casos difíceis:
+Para medir a **acurácia** do classificador num corpus de 310 casos difíceis:
 
 ```powershell
 .\app\Testes\Medir-Precisao.ps1

@@ -109,9 +109,10 @@ if ($Simular) {
 
 # ---- 4. ligar a protecao -------------------------------------------
 Write-Host ''
-Write-Host '  [4/5] Ligando a protecao...' -ForegroundColor White
+Write-Host '  [4/5] Ligando a protecao (SafeSearch se configura sozinho)...' -ForegroundColor White
 Enable-Sentinela -Simular:$Simular
-Write-Host '        Protecao ATIVA.' -ForegroundColor Green
+Write-Host '        Protecao ATIVA: DNS de filtro + hosts + SafeSearch de' -ForegroundColor Green
+Write-Host '        navegador (Google/YouTube estrito) + DoH desligado.' -ForegroundColor Green
 
 # ---- 5. atalhos -----------------------------------------------------
 Write-Host ''

@@ -37,6 +37,12 @@ if (-not (Test-SentinelaDnsApplied)) {
     $reaplicou = $true
 }
 
+if (-not (Test-SentinelaSafeSearchApplied)) {
+    Set-SentinelaSafeSearch -Simular:$Simular
+    Write-SentinelaLog 'GUARDIAO: politicas de SafeSearch do navegador haviam sido removidas - reaplicadas.' 'WARN'
+    $reaplicou = $true
+}
+
 if ($reaplicou) {
     Write-Host 'Guardiao reaplicou a protecao do Sentinela.' -ForegroundColor Yellow
 } else {

@@ -40,6 +40,10 @@ function Assert {
 function Reset-Sandbox {
     $p = Get-SentinelaPaths
     if (Test-Path $p.Base) { Remove-Item $p.Base -Recurse -Force -ErrorAction SilentlyContinue }
+    # limpa o ramo de teste das politicas de SafeSearch (HKCU, so em simulacao)
+    if (Test-Path 'HKCU:\Software\SentinelaTeste') {
+        Remove-Item 'HKCU:\Software\SentinelaTeste' -Recurse -Force -ErrorAction SilentlyContinue
+    }
     Initialize-SentinelaStore | Out-Null
 }
 
@@ -57,11 +61,31 @@ $hostsTxt = Get-Content (Get-SentinelaPaths).HostsFile -Raw
 Assert 'hosts contem www.google.com forcado'      ($hostsTxt -match 'www\.google\.com')
 Assert 'hosts contem restrict do youtube (IP)'    ($hostsTxt -match '216\.239\.38\.120')
 
+Assert 'Apos ativar, SafeSearch de navegador aplicado' (Test-SentinelaSafeSearchApplied)
+
 Disable-Sentinela -Simular
 Assert 'Apos desativar, o estado e DESLIGADO'      ((Get-SentinelaState).ativo -eq $false)
 Assert 'Apos desativar, o bloco hosts sumiu'       (-not (Test-SentinelaHostsApplied))
+Assert 'Apos desativar, SafeSearch de navegador removido' (-not (Test-SentinelaSafeSearchApplied))
 $hostsTxt2 = Get-Content (Get-SentinelaPaths).HostsFile -Raw
 Assert 'hosts original preservado (localhost)'     ($hostsTxt2 -match '127\.0\.0\.1')
+
+# --- Grupo SafeSearch: politica de navegador auto-configuravel ------
+Write-Host '  Grupo 1b: SafeSearch por politica (Edge+Chrome)'
+Reset-Sandbox
+Set-SentinelaSafeSearch -Simular
+Assert 'SafeSearch: ForceGoogleSafeSearch=1 no Edge' `
+    ((Get-ItemProperty 'HKCU:\Software\SentinelaTeste\Microsoft\Edge' -Name ForceGoogleSafeSearch).ForceGoogleSafeSearch -eq 1)
+Assert 'SafeSearch: YouTube restrito estrito (=2) no Chrome' `
+    ((Get-ItemProperty 'HKCU:\Software\SentinelaTeste\Google\Chrome' -Name ForceYouTubeRestrict).ForceYouTubeRestrict -eq 2)
+Assert 'SafeSearch: DoH desligado (impede furar o filtro)' `
+    ((Get-ItemProperty 'HKCU:\Software\SentinelaTeste\Microsoft\Edge' -Name DnsOverHttpsMode).DnsOverHttpsMode -eq 'off')
+Assert 'SafeSearch: Test-* confirma aplicado'      (Test-SentinelaSafeSearchApplied)
+# adulteracao: apagar uma politica deve fazer o teste falhar (guardiao reaplicaria)
+Remove-ItemProperty 'HKCU:\Software\SentinelaTeste\Google\Chrome' -Name ForceGoogleSafeSearch -ErrorAction SilentlyContinue
+Assert 'SafeSearch: remover 1 politica = NAO aplicado' (-not (Test-SentinelaSafeSearchApplied))
+Clear-SentinelaSafeSearch
+Assert 'SafeSearch: apos limpar, nada aplicado'    (-not (Test-SentinelaSafeSearchApplied))
 
 # --- Grupo 2: guardiao ----------------------------------------------
 Write-Host ''

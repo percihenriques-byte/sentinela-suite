@@ -45,6 +45,18 @@ $script:SAFE_HOSTS = @(
 $script:HOSTS_BEGIN = '# >>> SENTINELA (nao edite esta secao) >>>'
 $script:HOSTS_END   = '# <<< SENTINELA <<<'
 
+# Politicas de navegador que AUTO-CONFIGURAM o SafeSearch de forma robusta.
+# O hosts/DNS sozinho pode ser furado pelo DNS-over-HTTPS (DoH) do navegador;
+# estas politicas forcam o SafeSearch no proprio navegador e desligam o DoH,
+# fazendo o filtro voltar a valer. Aplicadas em HKLM (real) ou num ramo de
+# teste em HKCU (simulacao). Valem para Edge e Chrome (base Chromium).
+$script:SAFE_POLICIES = @(
+    @{ Nome='ForceGoogleSafeSearch';   Tipo='DWord';  Valor=1 },      # Google sempre em SafeSearch
+    @{ Nome='ForceYouTubeRestrict';    Tipo='DWord';  Valor=2 },      # YouTube em modo restrito ESTRITO
+    @{ Nome='DnsOverHttpsMode';        Tipo='String'; Valor='off' },  # sem DoH: o hosts/DNS de filtro volta a valer
+    @{ Nome='BuiltInDnsClientEnabled'; Tipo='DWord';  Valor=0 }       # usa o resolvedor do SO (respeita o hosts)
+)
+
 # ---------------------------------------------------------------------
 # Caminhos
 # ---------------------------------------------------------------------
@@ -247,13 +259,66 @@ function Test-SentinelaDnsApplied {
 }
 
 # ---------------------------------------------------------------------
+# SafeSearch por politica de navegador (Edge + Chrome) - auto-configura
+# ---------------------------------------------------------------------
+function Get-SentinelaPolicyRoots {
+    # Em simulacao grava num ramo de teste em HKCU (sem admin, reversivel).
+    if ((Get-SentinelaPaths).Simular) {
+        return @(
+            @{ Nome='Edge';   Path='HKCU:\Software\SentinelaTeste\Microsoft\Edge' },
+            @{ Nome='Chrome'; Path='HKCU:\Software\SentinelaTeste\Google\Chrome' }
+        )
+    }
+    return @(
+        @{ Nome='Edge';   Path='HKLM:\SOFTWARE\Policies\Microsoft\Edge' },
+        @{ Nome='Chrome'; Path='HKLM:\SOFTWARE\Policies\Google\Chrome' }
+    )
+}
+
+function Set-SentinelaSafeSearch {
+    param([switch]$Simular)
+    foreach ($r in (Get-SentinelaPolicyRoots)) {
+        if (-not (Test-Path $r.Path)) { New-Item -Path $r.Path -Force | Out-Null }
+        foreach ($pol in $script:SAFE_POLICIES) {
+            New-ItemProperty -Path $r.Path -Name $pol.Nome -Value $pol.Valor -PropertyType $pol.Tipo -Force | Out-Null
+        }
+    }
+    Write-SentinelaLog 'Politicas de SafeSearch de navegador aplicadas (Google/YouTube estrito, DoH off).' 'ACAO'
+}
+
+function Clear-SentinelaSafeSearch {
+    foreach ($r in (Get-SentinelaPolicyRoots)) {
+        if (-not (Test-Path $r.Path)) { continue }
+        foreach ($pol in $script:SAFE_POLICIES) {
+            Remove-ItemProperty -Path $r.Path -Name $pol.Nome -ErrorAction SilentlyContinue
+        }
+    }
+    Write-SentinelaLog 'Politicas de SafeSearch de navegador removidas.' 'ACAO'
+}
+
+function Test-SentinelaSafeSearchApplied {
+    $roots = Get-SentinelaPolicyRoots
+    if ($roots.Count -eq 0) { return $false }
+    foreach ($r in $roots) {
+        if (-not (Test-Path $r.Path)) { return $false }
+        foreach ($pol in $script:SAFE_POLICIES) {
+            $prop = Get-ItemProperty -Path $r.Path -Name $pol.Nome -ErrorAction SilentlyContinue
+            if ($null -eq $prop) { return $false }
+            if ($prop.$($pol.Nome) -ne $pol.Valor) { return $false }
+        }
+    }
+    return $true
+}
+
+# ---------------------------------------------------------------------
 # Acoes de alto nivel
 # ---------------------------------------------------------------------
 function Enable-Sentinela {
     param([switch]$Simular)
     Initialize-SentinelaStore | Out-Null
-    Set-SentinelaHosts -Simular:$Simular
-    Set-SentinelaDns   -Simular:$Simular
+    Set-SentinelaHosts      -Simular:$Simular
+    Set-SentinelaDns        -Simular:$Simular
+    Set-SentinelaSafeSearch -Simular:$Simular
     Set-SentinelaState -Ativo $true
     Write-SentinelaLog 'Sentinela ATIVADO.' 'ACAO'
 }
@@ -261,7 +326,8 @@ function Enable-Sentinela {
 function Disable-Sentinela {
     param([switch]$Simular)
     Clear-SentinelaHosts
-    Restore-SentinelaDns -Simular:$Simular
+    Restore-SentinelaDns   -Simular:$Simular
+    Clear-SentinelaSafeSearch
     Set-SentinelaState -Ativo $false
     Write-SentinelaLog 'Sentinela DESATIVADO.' 'ACAO'
 }
@@ -269,10 +335,11 @@ function Disable-Sentinela {
 function Get-SentinelaStatus {
     $state = Get-SentinelaState
     [pscustomobject]@{
-        Ativo        = [bool]$state.ativo
-        DnsAplicado  = Test-SentinelaDnsApplied
-        HostsAplicado= Test-SentinelaHostsApplied
-        Desde        = $state.desde
-        Simulacao    = (Get-SentinelaPaths).Simular
+        Ativo            = [bool]$state.ativo
+        DnsAplicado      = Test-SentinelaDnsApplied
+        HostsAplicado    = Test-SentinelaHostsApplied
+        SafeSearchAplicado = Test-SentinelaSafeSearchApplied
+        Desde            = $state.desde
+        Simulacao        = (Get-SentinelaPaths).Simular
     }
 }
