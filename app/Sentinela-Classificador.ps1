@@ -79,7 +79,7 @@ $script:CATEGORIAS = @(
         'sexo gratis'=1.0;'sexo ao vivo'=1.0;'sexo caseiro'=1.0;'sexo amador'=1.0;'sexo anal'=1.0;
         'sexo oral'=1.0;'sexo virtual'=1.0;'mulher pelada'=1.0;'mulheres peladas'=1.0;'homem pelado'=1.0;
         'peladinha'=1.0;'novinha pelada'=1.0;'mulher nua'=1.0;'homem nu'=1.0;'pornhub'=1.0;'redtube'=1.0;
-        'xhamster'=1.0;'xvideo'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5 } },
+        'xhamster'=1.0;'xvideo'=1.0;'mulheres nuas'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
