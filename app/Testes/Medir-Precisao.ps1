@@ -82,7 +82,18 @@ $CORPUS = @(
   @('filme baseado em fatos reais', $false), @('raspadinha de morango receita', $false),
   @('poker face musica', $false), @('jogos de tabuleiro em familia', $false),
   @('faca de cozinha comprar', $false), @('guerra do vietna resumo', $false),
-  @('reproducao das plantas', $false), @('como fazer slime caseiro', $false)
+  @('reproducao das plantas', $false), @('como fazer slime caseiro', $false),
+  # ---- DEVE BLOQUEAR: termos em ingles ----
+  @('free porn', $true), @('nude pics', $true), @('naked girls', $true), @('sex video', $true),
+  @('blowjob video', $true), @('deepthroat', $true), @('boobs', $true), @('nsfw content', $true),
+  @('how to make a bomb', $true), @('build a bomb', $true), @('self harm methods', $true),
+  @('suicide methods', $true), @('how to kill myself', $true), @('kill someone', $true),
+  @('buy weed online', $true), @('smoke weed', $true), @('online casino', $true), @('sports betting', $true),
+  # ---- DEVE LIBERAR: armadilhas de substring em ingles ----
+  @('sussex england tourism', $false), @('scunthorpe united', $false), @('middlesex university', $false),
+  @('seaweed salad recipe', $false), @('tweed jacket', $false), @('naked mole rat', $false),
+  @('dick grayson nightwing', $false), @('the sex pistols band', $false), @('suicide squad movie', $false),
+  @('how to kill weeds in garden', $false), @('assassins creed valhalla', $false), @('grape juice recipe', $false)
 )
 
 # evasao unicode por codigo

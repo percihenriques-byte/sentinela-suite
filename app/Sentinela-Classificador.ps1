@@ -79,31 +79,43 @@ $script:CATEGORIAS = @(
         'sexo gratis'=1.0;'sexo ao vivo'=1.0;'sexo caseiro'=1.0;'sexo amador'=1.0;'sexo anal'=1.0;
         'sexo oral'=1.0;'sexo virtual'=1.0;'mulher pelada'=1.0;'mulheres peladas'=1.0;'homem pelado'=1.0;
         'peladinha'=1.0;'novinha pelada'=1.0;'mulher nua'=1.0;'homem nu'=1.0;'pornhub'=1.0;'redtube'=1.0;
-        'xhamster'=1.0;'xvideo'=1.0;'mulheres nuas'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5 } },
+        'xhamster'=1.0;'xvideo'=1.0;'mulheres nuas'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5;
+        # ingles (frases seguras contra substring: nada de 'sex'/'naked' puros)
+        # 'xxx' fica de fora: o colapso de repeticoes (xxx->x) o anula e a sigla e ambigua (filme/rapper/beijos)
+        # 'nude' puro fica de fora: e substring de 'nudez' (PT) e causaria FP em arte/biologia
+        'porn'=1.0;'nude pic'=1.0;'nude pics'=1.0;'nude photos'=1.0;'nude video'=1.0;'naked girls'=1.0;'naked woman'=1.0;'naked women'=1.0;
+        'sex video'=1.0;'sex videos'=1.0;'free sex'=1.0;'sex tape'=1.0;'sex scene'=1.0;'having sex'=1.0;'group sex'=1.0;
+        'blowjob'=1.0;'blow job'=1.0;'deepthroat'=1.0;'handjob'=1.0;'boobs'=1.0;'tits'=1.0;'milf'=1.0;'nsfw'=1.0;'dick pic'=1.0 } },
     @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
         'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
         'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
         'violencia'=0.5;'sangue'=0.35;'briga'=0.35;'assassinato'=0.5;'massacre'=0.5;
-        'dar um tiro em alguem'=1.0;'atirar em alguem'=1.0;'como matar alguem'=1.0;'como matar uma pessoa'=1.0 } },
+        'dar um tiro em alguem'=1.0;'atirar em alguem'=1.0;'como matar alguem'=1.0;'como matar uma pessoa'=1.0;
+        'how to kill someone'=1.0;'how to kill a person'=1.0;'kill someone'=1.0 } },
     @{ Nome='Autolesao e suicidio'; Padrao=$true; SemReducao=$true; Termos=@{
         'suicidio'=1.0;'como se matar'=1.0;'me matar'=1.0;'quero morrer'=1.0;'vontade de morrer'=1.0;
         'automutilacao'=1.0;'me cortar'=1.0;'cortar os pulsos'=1.0;'tirar a propria vida'=1.0;'tirar minha vida'=1.0;
-        'anorexia dicas'=1.0;'pro ana'=1.0;'me enforcar'=1.0;'como se enforcar'=1.0 } },
+        'anorexia dicas'=1.0;'pro ana'=1.0;'me enforcar'=1.0;'como se enforcar'=1.0;
+        'self harm'=1.0;'suicide methods'=1.0;'commit suicide'=1.0;'how to commit suicide'=1.0;'kill myself'=1.0;
+        'want to die'=1.0;'end my life'=1.0;'ways to die'=1.0 } },
     @{ Nome='Armas'; Padrao=$true; SemReducao=$true; Termos=@{
         'como fazer bomba'=1.0;'fazer uma bomba'=1.0;'bomba caseira'=1.0;'fabricar bomba'=1.0;
         'fazer explosivo'=1.0;'explosivo caseiro'=1.0;'fabricar arma'=1.0;'arma caseira'=1.0;'explosivo'=0.5;
         'arma de fogo'=0.5;'comprar arma de fogo'=1.0;'comprar fuzil'=1.0;'arma no mercado negro'=1.0;
         'comprar arma ilegal'=1.0;'vender arma ilegal'=1.0;'arma ilegal'=0.5;
+        'how to make a bomb'=1.0;'make a bomb'=1.0;'build a bomb'=1.0;'pipe bomb'=1.0;'buy a gun illegally'=1.0;
         'pistola'=0.35;'rifle'=0.35;'fuzil'=0.35;'municao'=0.35 } },
     @{ Nome='Drogas'; Padrao=$true; SemReducao=$false; Termos=@{
         'como usar drogas'=1.0;'comprar maconha'=1.0;'usar cocaina'=1.0;'cheirar cocaina'=1.0;
         'comprar cocaina'=1.0;'comprar droga'=1.0;'cheirar cola'=1.0;'cocaina'=0.5;'crack'=0.5;'maconha'=0.5;
         'lsd'=0.5;'ecstasy'=0.5;'droga'=0.35;'entorpecente'=0.5;
         'lanca perfume'=1.0;'cheirar lolo'=1.0;'cheirinho da lolo'=1.0;'fumar baseado'=1.0;'baseado de maconha'=1.0;
-        'comprar skunk'=1.0;'skunk droga'=1.0 } },
+        'comprar skunk'=1.0;'skunk droga'=1.0;
+        'buy weed'=1.0;'smoke weed'=1.0;'weed dealer'=1.0;'buy cocaine'=1.0;'buy drugs'=1.0;'how to get high'=0.5;'cocaine'=0.5 } },
     @{ Nome='Apostas'; Padrao=$true; SemReducao=$true; Termos=@{
         'cassino online'=1.0;'aposta esportiva'=1.0;'jogo do bicho'=1.0;'aposta'=0.5;'cassino'=0.5;
         'tigrinho'=1.0;'jogo do tigrinho'=1.0;'bet365'=1.0;'betano'=1.0;'sportingbet'=1.0;'blaze aposta'=1.0;
+        'online casino'=1.0;'sports betting'=1.0;'online gambling'=1.0;'slot machine'=1.0;'gambling'=0.5;
         'roleta'=0.5;'roleta cassino'=1.0;'apostar dinheiro'=1.0;'apostas online'=1.0;'site de apostas'=1.0;
         'blaze'=0.5;'aviator'=0.5;'jogo aviator'=1.0;'fortune tiger'=1.0;
         'caca-niquel'=1.0;'caca niquel'=1.0;'jogo de azar'=1.0;'poker valendo'=1.0;'poker a dinheiro'=1.0;
