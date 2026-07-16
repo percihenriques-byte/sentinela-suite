@@ -103,7 +103,20 @@ def create_app() -> FastAPI:
     # keeps tests happy in ephemeral environments.
     frontend_dir = Path(__file__).resolve().parents[2] / "frontend"
     if frontend_dir.exists():
-        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+        # StaticFiles subclass que forca no-cache — evita browser servir HTML/JS/CSS
+        # velho apos deploy sem hard-refresh do usuario.
+        from starlette.responses import Response as _Resp
+        from starlette.types import Scope
+
+        class _NoCacheStatic(StaticFiles):
+            async def get_response(self, path: str, scope: Scope) -> _Resp:  # type: ignore[override]
+                resp = await super().get_response(path, scope)
+                resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                resp.headers["Pragma"] = "no-cache"
+                resp.headers["Expires"] = "0"
+                return resp
+
+        app.mount("/", _NoCacheStatic(directory=str(frontend_dir), html=True), name="frontend")
     return app
 
 
