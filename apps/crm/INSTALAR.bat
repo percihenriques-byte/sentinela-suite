@@ -144,12 +144,38 @@ echo.
 echo Servidor: http://127.0.0.1:8000/
 echo Pasta de trabalho: %USERPROFILE%\Documents\VisiQuost
 echo.
-echo Feche esta janela para parar o servidor.
-echo.
-timeout /t 3 /nobreak >nul
-start "" "http://127.0.0.1:8000/"
-pushd backend
-"%VPY%" -m uvicorn app.main:app --host 127.0.0.1 --port 8000
-popd
 
+set "URL=http://127.0.0.1:8000/"
+
+REM ---- Sobe uvicorn em background e espera healthz responder ----
+echo Iniciando servidor em background...
+start "VisiQuost Server" cmd /k "cd /d ""%~dp0backend"" && ""..\%VPY%"" -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
+
+echo Aguardando servidor ficar pronto...
+set "TRIES=0"
+:WAIT
+set /a TRIES+=1
+powershell -NoProfile -Command "try { (Invoke-WebRequest -Uri '%URL%healthz' -TimeoutSec 1 -UseBasicParsing).StatusCode } catch { exit 1 }" >nul 2>&1
+if not errorlevel 1 goto READY
+if %TRIES% GEQ 30 goto TIMEOUT
+timeout /t 1 /nobreak >nul
+goto WAIT
+
+:READY
+echo Servidor OK. Abrindo navegador...
+start "" "%URL%"
+echo.
+echo VisiQuost esta rodando! Feche a janela "VisiQuost Server" para parar.
+echo Da proxima vez, use INICIAR.bat (nao precisa reinstalar).
+echo.
+timeout /t 5 /nobreak >nul
 endlocal
+exit /b 0
+
+:TIMEOUT
+echo.
+echo AVISO: Servidor demorou mais de 30s para iniciar.
+echo Verifique a janela "VisiQuost Server" para ver erros.
+pause
+endlocal
+exit /b 1
