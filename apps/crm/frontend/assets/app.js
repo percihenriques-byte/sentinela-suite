@@ -24,6 +24,19 @@ const DICT = {
     hero_2: "Jarvis: assistant that runs without any external API",
     hero_3: "Kanban, automations, lead scoring, forecast",
     hero_4: "Full workspace import/export",
+    // new hero (redesign)
+    hero_h1_line1: "Your CRM.",
+    hero_h1_line2: "Your machine.",
+    hero_h1_line3: "Zero cloud.",
+    hero_lead: "Kanban, forecast, lead scoring and a Jarvis assistant that runs offline. No OAuth, no subscription, no data leaves your machine.",
+    hero_fc_jarvis_t: "Local Jarvis", hero_fc_jarvis_d: "80+ intents in PT/EN. Creates contacts, schedules meetings, summarizes pipeline — all on your PC.",
+    hero_fc_kanban_t: "Kanban + Forecast", hero_fc_kanban_d: "Drag cards between stages, weighted revenue by probability, WIP limits per stage.",
+    hero_fc_lead_t: "Lead Scoring", hero_fc_lead_d: "Rules that add points by domain, source, engagement. Auto-recompute on create/edit.",
+    hero_fc_crypto_t: "Encryption at rest", hero_fc_crypto_d: "Multi-workspace with full isolation. Portable JSON import/export. Automatic backup.",
+    hero_stats_tests: "tests passing", hero_stats_apis: "external APIs", hero_stats_setup: "full setup",
+    auth_welcome: "Welcome", auth_welcome_sub: "Sign in or create a new workspace in 30 seconds.",
+    auth_demo_btn_t: "Sign in as demo", auth_demo_btn_d: "No signup · sample data ready",
+    auth_badge_local: "100% LOCAL",
     // sidebar
     nav_dashboard: "Dashboard", nav_contacts: "Contacts", nav_companies: "Companies",
     nav_opportunities: "Opportunities", nav_leads: "Leads", nav_kanban: "Pipeline",
@@ -104,6 +117,18 @@ const DICT = {
     auth_demo: "Login demo:",
     hero_tag: "CRM com IA — funciona offline",
     hero_1: "Multi-workspace, criptografia em repouso",
+    hero_h1_line1: "Seu CRM.",
+    hero_h1_line2: "Sua máquina.",
+    hero_h1_line3: "Zero cloud.",
+    hero_lead: "Kanban, forecast, lead scoring e um assistente Jarvis que roda offline. Sem OAuth, sem mensalidade, sem enviar dados pra ninguém.",
+    hero_fc_jarvis_t: "Jarvis local", hero_fc_jarvis_d: "80+ intents em PT/EN. Cria contato, agenda reunião, resume o pipeline — tudo no seu PC.",
+    hero_fc_kanban_t: "Kanban + Forecast", hero_fc_kanban_d: "Arraste cards entre estágios, veja receita ponderada por probabilidade, WIP limits por estágio.",
+    hero_fc_lead_t: "Lead Scoring", hero_fc_lead_d: "Regras que somam pontos por domínio, source, engajamento. Auto-recompute ao criar/editar.",
+    hero_fc_crypto_t: "Criptografia em repouso", hero_fc_crypto_d: "Multi-workspace com isolamento total. Import/export JSON portátil. Backup automático.",
+    hero_stats_tests: "testes passando", hero_stats_apis: "APIs externas", hero_stats_setup: "setup completo",
+    auth_welcome: "Bem-vindo", auth_welcome_sub: "Entre com sua conta ou crie um workspace novo em 30 segundos.",
+    auth_demo_btn_t: "Entrar como demo", auth_demo_btn_d: "Sem cadastro · dados de exemplo já carregados",
+    auth_badge_local: "100% LOCAL",
     hero_2: "Jarvis: assistente que roda sem nenhuma API externa",
     hero_3: "Kanban, automações, lead scoring, forecast",
     hero_4: "Import/export completo do workspace",
@@ -350,23 +375,25 @@ async function tryRestoreSession() {
 }
 
 function applyAuthI18n() {
-  const map = {
-    "auth-lang-select": null,
-  };
+  // Elementos com data-i18n="key" recebem t(key) direto — cobre hero, badge,
+  // welcome, feature cards, stats, demo button. Extensivel: basta anotar
+  // o elemento com o atributo.
+  document.querySelectorAll(".auth-view [data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    const txt = t(key);
+    if (txt) el.textContent = txt;
+  });
+  // Tabs (nao tem data-i18n pra permitir switch classes)
   const q = (sel, txt) => { const el = document.querySelector(sel); if (el) el.textContent = txt; };
   q('.tab[data-tab="login"]', t("auth_login_tab"));
   q('.tab[data-tab="register"]', t("auth_register_tab"));
-  q('.brand-tag', t("hero_tag"));
-  const feats = document.querySelectorAll(".auth-features li");
-  const ftxt = [t("hero_1"), t("hero_2"), t("hero_3"), t("hero_4")];
-  feats.forEach((li, i) => { const s = li.querySelector("span:not(.check)") || li; s.lastChild && (s.lastChild.textContent = " " + ftxt[i]); });
-  // Form labels
+  // Form labels — text node antes do <input>
   document.querySelectorAll("#login-form label, #register-form label").forEach(label => {
     const inp = label.querySelector("input");
     if (!inp) return;
     const nameMap = { email: "auth_email", password: "auth_password", full_name: "auth_fullname", workspace_name: "auth_ws" };
     const key = nameMap[inp.name];
-    if (key && label.firstChild.nodeType === Node.TEXT_NODE) {
+    if (key && label.firstChild?.nodeType === Node.TEXT_NODE) {
       label.firstChild.textContent = t(key) + " ";
     }
   });
@@ -374,8 +401,6 @@ function applyAuthI18n() {
   if (loginBtn) loginBtn.textContent = t("auth_signin") + " →";
   const regBtn = document.querySelector("#register-form button[type='submit']");
   if (regBtn) regBtn.textContent = t("auth_create") + " →";
-  const demo = document.querySelector(".auth-demo .subtle");
-  if (demo) demo.textContent = t("auth_demo");
 }
 
 function bindAuth() {
