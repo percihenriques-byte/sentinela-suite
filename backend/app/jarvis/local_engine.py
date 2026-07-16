@@ -1133,11 +1133,13 @@ def _handle_clear_field(intent: Intent, text: str, snap: WorkspaceSnapshot, ctx:
 def _handle_undo_last(intent: Intent, text: str, snap: WorkspaceSnapshot, ctx: ToolContext) -> IntentResult:
     """Reverse the most recent reversible mutation from conversation history.
 
-    Reads conversation_context.last_tool_calls for an entry with a
-    ``result.old`` (currently produced by update_field) and rolls it back.
+    Supports two operations:
+    - ``update_*`` — restores previous field value from ``result.old``.
+    - ``create_*`` — soft-deletes the record whose id is in ``result.id``.
     """
     from sqlmodel import select
-    from app.models import Contact, Company, Opportunity, Lead
+    from app.models import Contact, Company, Opportunity, Lead, Task
+    from datetime import datetime, timezone
     lang = _detect_lang(text)
     tool_calls = (ctx.conversation_context or {}).get("last_tool_calls") or []
     # Find latest reversible mutation
@@ -1150,13 +1152,48 @@ def _handle_undo_last(intent: Intent, text: str, snap: WorkspaceSnapshot, ctx: T
             # Undo tags its own tool_calls so we don't ping-pong reverses.
             continue
         if name.startswith("update_") and "old" in result and input_.get("id") and input_.get("field"):
-            target = tc
-            break
+            target = tc; break
+        if name.startswith("create_") and result.get("id"):
+            target = tc; break
     if not target:
         return IntentResult.ok(
             "Nada para desfazer na conversa recente." if lang == "pt"
             else "Nothing to undo in recent conversation.",
             intent="undo_last", confidence=0.85,
+        )
+    # Branch: undo a create (soft-delete)
+    tname = (target.get("name") or "").lower()
+    if tname.startswith("create_"):
+        kind = tname.replace("create_", "")
+        create_map = {"contact": Contact, "company": Company, "opportunity": Opportunity, "lead": Lead, "task": Task}
+        Model = create_map.get(kind)
+        if not Model:
+            return IntentResult.ok(
+                "Não sei desfazer esse tipo de criação." if lang == "pt"
+                else "I don't know how to undo that create.",
+                intent="undo_last", confidence=0.7,
+            )
+        from uuid import UUID as _UUID
+        try:
+            new_id = _UUID(target["result"]["id"])
+        except Exception:
+            return IntentResult.ok("Referência interna inválida." if lang == "pt" else "Bad internal reference.", intent="undo_last", confidence=0.5)
+        obj = ctx.session.exec(select(Model).where(Model.workspace_id == ctx.workspace_id, Model.id == new_id)).first()
+        if not obj:
+            return IntentResult.ok(
+                "O registro já não existe." if lang == "pt" else "Record no longer exists.",
+                intent="undo_last", confidence=0.7,
+            )
+        obj.deleted_at = datetime.now(timezone.utc)
+        ctx.session.add(obj); ctx.session.commit()
+        label_pt = {"contact":"Contato","company":"Empresa","opportunity":"Oportunidade","lead":"Lead","task":"Tarefa"}[kind]
+        name = target["result"].get("name") or (getattr(obj, "name", None) or getattr(obj, "title", "") or "")
+        reply = (f"↩️ Criação desfeita: {label_pt} \"{name}\" removido." if lang == "pt"
+                 else f"↩️ Undone: {kind} \"{name}\" removed.")
+        return IntentResult.ok(
+            reply, intent="undo_last", confidence=0.95,
+            tool_calls=[{"name": f"delete_{kind}", "input": {"id": str(new_id)},
+                         "result": {"reason": "undo", "of": tname}}],
         )
     kind = (target.get("name") or "").replace("update_", "")
     model_map = {"contact": Contact, "company": Company, "opportunity": Opportunity, "lead": Lead}
