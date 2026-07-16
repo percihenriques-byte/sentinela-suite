@@ -3262,30 +3262,46 @@ function bindCreateButtons() {
   document.getElementById("contact-search")?.addEventListener("input", debounce(loadContacts, 250));
   document.getElementById("company-search")?.addEventListener("input", debounce(loadCompanies, 250));
 
+  // Paginacao completa — server limita 200/req; junta ate' 5000.
+  async function fetchAllPages(path) {
+    const LIMIT = 200, MAX = 5000;
+    const items = [];
+    let offset = 0;
+    while (offset < MAX) {
+      const sep = path.includes("?") ? "&" : "?";
+      const p = await api(`${path}${sep}limit=${LIMIT}&offset=${offset}`);
+      const batch = p.items || [];
+      items.push(...batch);
+      if (batch.length < LIMIT) break;
+      offset += LIMIT;
+    }
+    return items;
+  }
+
   document.getElementById("export-contacts-csv")?.addEventListener("click", async () => {
-    const page = await api("/contacts?limit=1000");
+    const items = await fetchAllPages("/contacts");
     downloadCsv(`contacts-${new Date().toISOString().slice(0,10)}.csv`,
-      page.items.map(c => ({
+      items.map(c => ({
         first_name: c.first_name || "", last_name: c.last_name || "",
         email: c.email || "", phone: c.phone || "", job_title: c.job_title || "",
         department: c.department || "", created_at: c.created_at || "",
       })));
   });
   document.getElementById("export-companies-csv")?.addEventListener("click", async () => {
-    const page = await api("/companies?limit=1000");
+    const items = await fetchAllPages("/companies");
     downloadCsv(`companies-${new Date().toISOString().slice(0,10)}.csv`,
-      page.items.map(c => ({
+      items.map(c => ({
         name: c.name, domain: c.domain || "", industry: c.industry || "",
         size: c.size || "", website: c.website || "", phone: c.phone || "",
         annual_revenue: c.annual_revenue || "", created_at: c.created_at || "",
       })));
   });
   document.getElementById("export-opps-csv")?.addEventListener("click", async () => {
-    const [page, pipelines] = await Promise.all([api("/opportunities?limit=1000"), api("/pipelines")]);
+    const [items, pipelines] = await Promise.all([fetchAllPages("/opportunities"), api("/pipelines")]);
     const stageById = {};
     for (const p of pipelines) for (const s of p.stages) stageById[s.id] = s.name;
     downloadCsv(`opportunities-${new Date().toISOString().slice(0,10)}.csv`,
-      page.items.map(o => ({
+      items.map(o => ({
         name: o.name, stage: stageById[o.stage_id] || "",
         amount: o.amount || 0, currency: o.currency, status: o.status,
         probability: o.probability, expected_close_date: o.expected_close_date || "",

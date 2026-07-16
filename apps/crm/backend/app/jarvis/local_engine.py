@@ -90,6 +90,16 @@ EN_HINTS = {
     "pipeline", "opportunity", "opportunities", "contact", "contacts",
     "company", "companies", "task", "tasks", "meeting", "meetings",
     "overdue", "upcoming", "help", "hello", "hi",
+    # Palavras adicionadas depois que _detect_lang passou a defaultar pra pt.
+    # Sem elas, comandos puramente ingleses ("weekly digest", "briefing today")
+    # cairiam no default PT.
+    "weekly", "monthly", "digest", "briefing", "today", "tomorrow", "yesterday",
+    "next", "last", "this", "week", "month", "day", "days",
+    "call", "calls", "email", "emails", "deal", "deals",
+    "with", "for", "the", "of", "and", "or", "who", "what", "when",
+    "hot", "lead", "leads", "please", "thanks",
+    "read", "file", "find", "search", "delete", "remove", "update", "edit", "add",
+    "briefing", "digest", "report", "recap",
 }
 
 
@@ -99,9 +109,10 @@ def _detect_lang(text: str) -> str:
     en = len(tokens & EN_HINTS)
     if pt > en:
         return "pt"
-    if en > 0:
+    if en > pt:
         return "en"
-    return "en"
+    # Empate (ou nenhuma pista) — produto BR-first, default PT.
+    return "pt"
 
 
 @dataclass
@@ -211,7 +222,7 @@ def _handle_greeting(intent: Intent, text: str, snap: WorkspaceSnapshot, ctx: To
     else:  # formal (default) or neutral
         if lang == "pt":
             parts = [
-                f"Bom dia{salut_pt}. Jarvis online, sistemas 100% locais.",
+                f"Bom dia{salut_pt}. Jarvis online, tudo rodando local.",
                 f"Estado atual: {c} contatos, {o} oportunidades, {t} tarefas abertas.",
                 "Ao seu dispor. Diga \"briefing\" para o resumo do dia ou \"o que devo fazer\" para prioridades.",
             ]
@@ -6278,7 +6289,7 @@ DEFAULT_INTENTS: list[Intent] = [
     Intent(
         name="top_opportunities",
         patterns=_re([
-            r"\btop\s+\d+\s*(opportunities|deals|opps|oportunidades|neg[oó]cios)\b",
+            r"\btop\s+\d*\s*(opportunities|deals|opps|oportunidades|neg[oó]cios)\b",
             r"\b(maiores|melhores)\s+\d*\s*(oportunidades|neg[oó]cios|deals)\b",
             r"\bbiggest\s+(deals|opportunities)\b",
             r"\btop\s+deals\b",
