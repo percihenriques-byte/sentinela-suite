@@ -18,7 +18,7 @@ from app.core.security import hash_password
 from app.services import demo_seed
 
 
-DEMO_EMAIL = "demo@visiquost.local"
+DEMO_EMAIL = "demo@visiquost.app"
 DEMO_PASSWORD = "demo1234"
 DEMO_FULLNAME = "Demo User"
 DEMO_WORKSPACE = "Demo Workspace"

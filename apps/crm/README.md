@@ -43,7 +43,7 @@ Duplo-clique em **`INSTALAR.bat`** na raiz do projeto.
 O script detecta o Python (instala via winget se faltar), cria o venv, instala as dependências, aplica as migrations, popula dados demo e abre <http://127.0.0.1:8000/> no navegador.
 
 Login demo:
-- **Email**: `demo@visiquost.local`
+- **Email**: `demo@visiquost.app`
 - **Senha**: `demo1234`
 
 Depois da primeira instalação, use **`INICIAR.bat`** para subir o servidor sem reinstalar.
