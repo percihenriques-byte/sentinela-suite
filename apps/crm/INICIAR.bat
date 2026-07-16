@@ -1,29 +1,34 @@
 @echo off
-setlocal
 title VisiQuost
 cd /d "%~dp0"
 
-set "VPY=backend\.venv\Scripts\pythonw.exe"
-set "VPY_CONSOLE=backend\.venv\Scripts\python.exe"
+set "VPY=backend\.venv\Scripts\python.exe"
 
-if not exist "%VPY_CONSOLE%" (
+if not exist "%VPY%" (
     echo Ambiente nao instalado. Rodando INSTALAR.bat...
     call INSTALAR.bat
     exit /b
 )
 
-REM Garante que pywebview esta instalado (pra quem tem venv antigo)
-"%VPY_CONSOLE%" -c "import webview" 2>nul
-if errorlevel 1 (
-    echo Instalando pywebview...
-    "%VPY_CONSOLE%" -m pip install pywebview --quiet --disable-pip-version-check
+REM ---- Descobre IP da LAN pro celular ----
+set "LANIP="
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /r /c:"IPv4.*: 192\." /c:"IPv4.*: 10\." /c:"IPv4.*: 172\."') do (
+    for /f "tokens=* delims= " %%b in ("%%a") do if not defined LANIP set "LANIP=%%b"
 )
 
-REM Usa pythonw.exe (sem janela de console) se disponivel, senao python.exe
-if not exist "%VPY%" set "VPY=%VPY_CONSOLE%"
+echo.
+echo ================================================
+echo   VisiQuost - servidor local
+echo ================================================
+echo.
+echo   No PC:      http://127.0.0.1:8000/
+if defined LANIP echo   No celular: http://%LANIP%:8000/   (mesma Wi-Fi)
+echo.
+echo   Copie a URL acima e cole no seu navegador.
+echo   Para parar: feche esta janela (ou Ctrl+C aqui).
+echo ================================================
+echo.
 
-REM Abre o app desktop (janela WebView2). Server sobe internamente.
 pushd backend
-start "" "..\%VPY%" desktop.py
+"..\%VPY%" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 popd
-endlocal
