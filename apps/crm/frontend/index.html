@@ -19,50 +19,86 @@
     <section class="auth-view" data-view="auth">
       <div class="auth-hero">
         <div class="auth-logo">
-          <svg viewBox="0 0 100 100" width="52" height="52"><circle cx="50" cy="50" r="45" fill="url(#g)"/><path d="M35 40 Q50 25 65 40 M35 60 Q50 75 65 60" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs></svg>
-          <div>
-            <div class="brand-name">VisiQuost</div>
-            <div class="brand-tag">CRM com Jarvis local · funciona offline · zero cloud</div>
+          <svg viewBox="0 0 100 100" width="44" height="44"><circle cx="50" cy="50" r="45" fill="url(#g)"/><path d="M35 40 Q50 25 65 40 M35 60 Q50 75 65 60" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs></svg>
+          <div class="brand-name">VisiQuost</div>
+          <span class="auth-badge">100% LOCAL</span>
+        </div>
+
+        <div class="auth-headline">
+          <h1>Seu CRM.<br/>Sua máquina.<br/><span class="grad">Zero cloud.</span></h1>
+          <p class="auth-lead">Kanban, forecast, lead scoring e um assistente Jarvis que roda offline. Sem OAuth, sem mensalidade, sem enviar dados pra ninguém.</p>
+        </div>
+
+        <div class="auth-cards">
+          <div class="auth-fcard">
+            <div class="auth-fico">🤖</div>
+            <h3>Jarvis local</h3>
+            <p>80+ intents em PT/EN. Cria contato, agenda reunião, resume o pipeline — tudo no seu PC.</p>
+          </div>
+          <div class="auth-fcard">
+            <div class="auth-fico">📊</div>
+            <h3>Kanban + Forecast</h3>
+            <p>Arraste cards entre estágios, veja receita ponderada por probabilidade, WIP limits por estágio.</p>
+          </div>
+          <div class="auth-fcard">
+            <div class="auth-fico">🎯</div>
+            <h3>Lead Scoring</h3>
+            <p>Regras que somam pontos por domínio, source, engajamento. Auto-recompute ao criar/editar.</p>
+          </div>
+          <div class="auth-fcard">
+            <div class="auth-fico">🔒</div>
+            <h3>Criptografia em repouso</h3>
+            <p>Multi-workspace com isolamento total. Import/export JSON portátil. Backup automático.</p>
           </div>
         </div>
-        <ul class="auth-features">
-          <li><span class="check">✓</span> Jarvis — 80+ comandos naturais em PT/EN, 100% local</li>
-          <li><span class="check">✓</span> Kanban visual, forecast ponderado, lead scoring</li>
-          <li><span class="check">✓</span> Undo, explain-last, briefing diário — voz proativa</li>
-          <li><span class="check">✓</span> Multi-workspace + import/export + criptografia</li>
-        </ul>
+
+        <div class="auth-stats">
+          <div><strong>434</strong><span>testes passando</span></div>
+          <div><strong>0</strong><span>APIs externas</span></div>
+          <div><strong>&lt;5min</strong><span>setup completo</span></div>
+        </div>
       </div>
+
       <div class="auth-card">
-        <div class="auth-lang" style="text-align:right;margin-bottom:8px;">
-          <select id="auth-lang-select" class="pill" style="background:var(--bg-2);color:var(--fg);border:1px solid var(--border);padding:4px 8px;cursor:pointer;">
+        <div class="auth-topline">
+          <select id="auth-lang-select" class="lang-select">
             <option value="pt">🇧🇷 PT-BR</option>
             <option value="en">🇺🇸 EN</option>
           </select>
         </div>
-        <div class="tabs">
-          <button class="tab active" data-tab="login">Entrar</button>
-          <button class="tab" data-tab="register">Criar conta</button>
-        </div>
 
-        <form id="login-form" class="form">
-          <label>Email <input type="email" name="email" required autocomplete="username" placeholder="voce@empresa.com"/></label>
-          <label>Senha <input type="password" name="password" required minlength="8" autocomplete="current-password"/></label>
-          <button type="submit" class="btn-primary btn-lg">Entrar →</button>
-        </form>
+        <div class="auth-inner">
+          <h2 class="auth-title">Bem-vindo</h2>
+          <p class="auth-sub">Entre com sua conta ou crie um workspace novo em 30 segundos.</p>
 
-        <form id="register-form" class="form hidden">
-          <label>Nome completo <input type="text" name="full_name" placeholder="Ada Lovelace"/></label>
-          <label>Email <input type="email" name="email" required autocomplete="username"/></label>
-          <label>Senha <input type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="mínimo 8 caracteres"/></label>
-          <label>Nome do workspace <input type="text" name="workspace_name" required placeholder="Minha Empresa"/></label>
-          <button type="submit" class="btn-primary btn-lg">Criar workspace →</button>
-        </form>
+          <div class="tabs">
+            <button class="tab active" data-tab="login">Entrar</button>
+            <button class="tab" data-tab="register">Criar conta</button>
+          </div>
 
-        <p id="auth-error" class="error"></p>
+          <form id="login-form" class="form">
+            <label>Email <input type="email" name="email" required autocomplete="username" placeholder="voce@empresa.com"/></label>
+            <label>Senha <input type="password" name="password" required minlength="8" autocomplete="current-password" placeholder="••••••••"/></label>
+            <button type="submit" class="btn-primary btn-lg">Entrar →</button>
+          </form>
 
-        <div class="auth-demo">
-          <span class="subtle">Login demo:</span>
-          <code>demo@visiquost.local</code> / <code>demo1234</code>
+          <form id="register-form" class="form hidden">
+            <label>Nome completo <input type="text" name="full_name" placeholder="Ada Lovelace"/></label>
+            <label>Email <input type="email" name="email" required autocomplete="username" placeholder="voce@empresa.com"/></label>
+            <label>Senha <input type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="mínimo 8 caracteres"/></label>
+            <label>Nome do workspace <input type="text" name="workspace_name" required placeholder="Minha Empresa"/></label>
+            <button type="submit" class="btn-primary btn-lg">Criar workspace →</button>
+          </form>
+
+          <p id="auth-error" class="error"></p>
+
+          <button type="button" id="auth-demo-btn" class="auth-demo-btn" title="Entra na conta demo com 1 clique">
+            <span class="demo-ico">⚡</span>
+            <div>
+              <strong>Entrar como demo</strong>
+              <div class="demo-hint">Sem cadastro · dados de exemplo já carregados</div>
+            </div>
+          </button>
         </div>
       </div>
     </section>
