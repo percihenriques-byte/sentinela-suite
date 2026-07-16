@@ -451,6 +451,9 @@ function show(view) {
     if (el.dataset.view === view || el.id === "app") el.classList.remove("hidden");
     else el.classList.add("hidden");
   });
+  // Lock viewport para app (sidebars fixas, main scrolla).
+  // Auth/loading scrollam natural para caber em telas pequenas.
+  document.body.classList.toggle("app-active", view === "app");
 }
 
 // ==================== INBOX ====================
