@@ -2,7 +2,26 @@
 setlocal enabledelayedexpansion
 title VisiQuost - Instalador
 
-cd /d "%~dp0"
+REM ---- Todos os paths sao ABSOLUTOS baseados em %~dp0 (dir do proprio .bat) ----
+set "ROOT=%~dp0"
+if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
+set "BACKEND=%ROOT%\backend"
+set "REQ=%BACKEND%\requirements.txt"
+set "VENV=%BACKEND%\.venv"
+set "VPY=%VENV%\Scripts\python.exe"
+set "ENV_FILE=%BACKEND%\.env"
+set "ENV_EXAMPLE=%BACKEND%\.env.example"
+
+REM Sanidade: confirma que estamos no lugar certo
+if not exist "%REQ%" (
+    echo ERRO: nao achei "%REQ%"
+    echo Este .bat deve estar na raiz do projeto visiquost-crm.
+    echo Certifique que a pasta backend\ existe ao lado deste arquivo.
+    pause
+    exit /b 1
+)
+
+cd /d "%ROOT%"
 
 echo.
 echo ========================================
@@ -13,70 +32,55 @@ echo Este instalador cuida de tudo sozinho:
 echo   * Detecta ou instala Python 3.12
 echo   * Cria ambiente virtual e dependencias
 echo   * Prepara o banco de dados e dados demo
-echo   * Sobe o servidor e abre o navegador
+echo   * Sobe o servidor
 echo.
 
-REM ---- [1/6] Localiza Python ----
+REM ---- [1/6] Localiza Python (py launcher > python no PATH) ----
 set "PYEXE="
-where py >nul 2>&1 && (for /f "delims=" %%p in ('py -3 -c "import sys;print(sys.executable)" 2^>nul') do set "PYEXE=%%p")
+where py >nul 2>&1
+if not errorlevel 1 set "PYEXE=py -3"
 if not defined PYEXE (
-    where python >nul 2>&1 && (for /f "delims=" %%p in ('python -c "import sys;print(sys.executable)" 2^>nul') do set "PYEXE=%%p")
+    where python >nul 2>&1
+    if not errorlevel 1 set "PYEXE=python"
 )
 
 if not defined PYEXE (
     echo [1/6] Python nao encontrado. Tentando via winget...
     where winget >nul 2>&1
     if errorlevel 1 (
-        echo.
-        echo ERRO: winget nao esta disponivel no sistema.
-        echo Baixe Python manualmente em https://python.org/downloads/
-        echo Reexecute este INSTALAR.bat depois de instalar.
-        echo.
-        pause
-        exit /b 1
+        echo ERRO: winget nao disponivel. Baixe Python em https://python.org/downloads/
+        pause & exit /b 1
     )
     winget install -e --id Python.Python.3.12 --accept-package-agreements --accept-source-agreements --silent
     if errorlevel 1 (
-        echo.
-        echo Falha ao instalar Python via winget.
-        echo Baixe manualmente em https://python.org/downloads/
-        pause
-        exit /b 1
+        echo Falha ao instalar Python via winget. Baixe manualmente em https://python.org/downloads/
+        pause & exit /b 1
     )
-    echo Python instalado. Feche esta janela e rode INSTALAR.bat de novo
-    echo para que o PATH atualize.
-    pause
-    exit /b 0
+    echo Python instalado. Feche esta janela e rode INSTALAR.bat de novo.
+    pause & exit /b 0
 ) else (
     echo [1/6] Python detectado: %PYEXE%
 )
 
-REM ---- [2/6] Verifica versao minima do Python (3.10+) ----
-for /f "delims=" %%v in ('"%PYEXE%" -c "import sys;print('%%d.%%d' %% sys.version_info[:2])" 2^>nul') do set "PYVER=%%v"
-echo [2/6] Versao Python: %PYVER%
-"%PYEXE%" -c "import sys;sys.exit(0 if sys.version_info>=(3,10) else 1)" >nul 2>&1
+REM ---- [2/6] Versao minima 3.10+ ----
+echo [2/6] Verificando versao do Python...
+%PYEXE% -c "import sys;sys.exit(0 if sys.version_info>=(3,10) else 1)"
 if errorlevel 1 (
-    echo ERRO: Python 3.10 ou superior necessario. Instale uma versao mais nova.
-    pause
-    exit /b 1
+    echo ERRO: Python 3.10+ necessario.
+    pause & exit /b 1
 )
 
-REM ---- [3/6] Cria/recupera venv ----
-set "VENV=backend\.venv"
-set "VPY=%VENV%\Scripts\python.exe"
-
-REM Verifica se venv existe mas esta quebrado
+REM ---- [3/6] venv ----
 if exist "%VENV%" (
     "%VPY%" --version >nul 2>&1
     if errorlevel 1 (
-        echo [3/6] venv quebrado detectado. Removendo e recriando...
+        echo [3/6] venv quebrado, recriando...
         rmdir /s /q "%VENV%"
     )
 )
-
 if not exist "%VPY%" (
-    echo [3/6] Criando ambiente virtual...
-    "%PYEXE%" -m venv "%VENV%"
+    echo [3/6] Criando ambiente virtual em "%VENV%"...
+    %PYEXE% -m venv "%VENV%"
     if errorlevel 1 (
         echo ERRO ao criar venv.
         pause & exit /b 1
@@ -85,57 +89,55 @@ if not exist "%VPY%" (
     echo [3/6] Ambiente virtual OK.
 )
 
-REM ---- [4/6] Instala dependencias ----
+REM ---- [4/6] Dependencias ----
 echo [4/6] Instalando dependencias (1-2 min)...
 "%VPY%" -m pip install --upgrade pip --quiet --disable-pip-version-check
-"%VPY%" -m pip install -r backend\requirements.txt --quiet --disable-pip-version-check
+"%VPY%" -m pip install -r "%REQ%" --quiet --disable-pip-version-check
 if errorlevel 1 (
     echo.
-    echo ERRO ao instalar dependencias. Verifique sua conexao com a internet.
-    echo Tente rodar manualmente: %VPY% -m pip install -r backend\requirements.txt
+    echo ERRO ao instalar dependencias. Verifique sua conexao.
+    echo Manual: "%VPY%" -m pip install -r "%REQ%"
     pause & exit /b 1
 )
 
-REM ---- Cria .env se faltar ----
-if not exist "backend\.env" (
-    echo    - Criando backend\.env com chave secreta aleatoria
-    copy backend\.env.example backend\.env >nul
+REM ---- .env ----
+if not exist "%ENV_FILE%" (
+    echo    - Criando "%ENV_FILE%" com chave secreta aleatoria
+    copy "%ENV_EXAMPLE%" "%ENV_FILE%" >nul
     for /f "delims=" %%k in ('"%VPY%" -c "import secrets;print(secrets.token_urlsafe(48))"') do set "SECRET=%%k"
-    powershell -NoProfile -Command "(Get-Content backend\.env) -replace 'APP_SECRET_KEY=.*', 'APP_SECRET_KEY=!SECRET!' | Set-Content backend\.env"
+    powershell -NoProfile -Command "(Get-Content '%ENV_FILE%') -replace 'APP_SECRET_KEY=.*', 'APP_SECRET_KEY=!SECRET!' | Set-Content '%ENV_FILE%'"
 )
 
 REM ---- [5/6] Migrations + seed ----
 echo [5/6] Aplicando migrations + populando dados demo...
-pushd backend
+pushd "%BACKEND%"
 "%VPY%" -m alembic upgrade head
 if errorlevel 1 (
-    echo ERRO em alembic upgrade. O banco pode estar corrompido.
-    echo Solucao: apague backend\db.sqlite e rode INSTALAR.bat de novo.
+    echo ERRO em alembic upgrade. Apague "%BACKEND%\jarvis_crm.db" e reinstale.
     popd & pause & exit /b 1
 )
 "%VPY%" scripts\bootstrap.py
 if errorlevel 1 (
-    echo AVISO: bootstrap falhou (nao critico) — voce ainda pode usar o app.
+    echo AVISO: bootstrap falhou -- nao critico, voce ainda pode usar o app
 )
 popd
 
-REM ---- Cria pasta de trabalho ----
+REM ---- Pasta de trabalho ----
 if not exist "%USERPROFILE%\Documents\VisiQuost" (
-    echo    - Criando pasta de trabalho: %USERPROFILE%\Documents\VisiQuost
+    echo    - Criando "%USERPROFILE%\Documents\VisiQuost"
     mkdir "%USERPROFILE%\Documents\VisiQuost" 2>nul
 )
 
-REM ---- [6/6] Health check antes de subir servidor ----
+REM ---- [6/6] Health check import ----
 echo [6/6] Verificando saude do sistema...
-pushd backend
-"%VPY%" -c "from app.main import app; print('   OK: app importa sem erro')" 2>nul
+pushd "%BACKEND%"
+"%VPY%" -c "from app.main import app; print('   OK: app importa sem erro')"
 if errorlevel 1 (
-    echo ERRO: modulo app nao carrega. Reinstale as dependencias.
+    echo ERRO: modulo app nao carrega.
     popd & pause & exit /b 1
 )
 popd
 
-REM ---- Instalacao completa, entrega pro INICIAR.bat ----
 echo.
 echo ========================================
 echo   Instalacao concluida!
@@ -144,6 +146,7 @@ echo.
 echo Pasta de trabalho: %USERPROFILE%\Documents\VisiQuost
 echo Iniciando servidor...
 echo.
+
 endlocal
-call INICIAR.bat
+call "%~dp0INICIAR.bat"
 exit /b 0
