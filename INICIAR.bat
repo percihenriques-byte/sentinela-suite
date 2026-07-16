@@ -1,12 +1,16 @@
 @echo off
+setlocal
 title VisiQuost
 cd /d "%~dp0"
 
-set "VPY=backend\.venv\Scripts\python.exe"
+set "ROOT=%~dp0"
+if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
+set "BACKEND=%ROOT%\backend"
+set "VPY=%BACKEND%\.venv\Scripts\python.exe"
 
 if not exist "%VPY%" (
     echo Ambiente nao instalado. Rodando INSTALAR.bat...
-    call INSTALAR.bat
+    call "%ROOT%\INSTALAR.bat"
     exit /b
 )
 
@@ -29,6 +33,7 @@ echo   Para parar: feche esta janela (ou Ctrl+C aqui).
 echo ================================================
 echo.
 
-pushd backend
-"..\%VPY%" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+pushd "%BACKEND%"
+"%VPY%" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 popd
+endlocal
