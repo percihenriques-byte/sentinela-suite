@@ -415,7 +415,7 @@ function bindAuth() {
     const errEl = document.getElementById("auth-error");
     errEl.textContent = "";
     try {
-      const tok = await api("/auth/login", { method: "POST", body: { email: "demo@visiquost.local", password: "demo1234" } });
+      const tok = await api("/auth/login", { method: "POST", body: { email: "demo@visiquost.app", password: "demo1234" } });
       saveToken(tok.access_token);
       state.user = await api("/auth/me");
       try { const wss = await api("/workspaces"); state.workspace = wss?.[0] || null; } catch {}
