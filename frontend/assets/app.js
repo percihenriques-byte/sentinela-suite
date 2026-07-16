@@ -2244,8 +2244,9 @@ function renderPipelineChart(byStageResp) {
     `;
   }).join("");
   const stageLabels = items.map(it => {
-    const short = it.stage.length > 14 ? it.stage.slice(0, 13) + "…" : it.stage;
-    return `<div class="pipe-chart-label" title="${it.stage}">${short}</div>`;
+    const local = localizeStage(it.stage);
+    const short = local.length > 14 ? local.slice(0, 13) + "…" : local;
+    return `<div class="pipe-chart-label" title="${escapeHtml(local)}">${escapeHtml(short)}</div>`;
   }).join("");
   wrap.innerHTML = `
     <div class="card-header"><h3>💼 ${state.lang === "pt" ? "Valor aberto por estágio" : "Open value by stage"}</h3></div>
@@ -2539,7 +2540,7 @@ async function loadOpportunities() {
   showTableSkeleton("#opportunities-table tbody", 5, [60, 40, 40, 40]);
   const [page, pipelines] = await Promise.all([api(`/opportunities?limit=${limit}&offset=${offset}`), api("/pipelines")]);
   const stageById = {};
-  for (const p of pipelines) for (const s of p.stages) stageById[s.id] = s.name;
+  for (const p of pipelines) for (const s of p.stages) stageById[s.id] = localizeStage(s.name);
   const tbody = document.querySelector("#opportunities-table tbody");
   tbody.innerHTML = "";
   const head = document.querySelector("#opportunities-table thead tr");
@@ -2881,7 +2882,7 @@ async function loadKanban() {
     const overLimit = wipLimit != null && cards.length > wipLimit;
     col.innerHTML = `
       <h4>
-        <span>${escapeHtml(stage.name)}</span>
+        <span>${escapeHtml(localizeStage(stage.name))}</span>
         <span class="subtle ${overLimit ? "wip-limit-hit" : ""}">${cards.length}${wipLimit != null ? "/" + wipLimit : ""}</span>
       </h4>
       <div class="kanban-total">${totalAmt.toLocaleString()} ${t("total")} ${wipLimit != null ? "· " + t("wip") + " " + wipLimit : ""}</div>
@@ -3415,6 +3416,11 @@ function openModal(title, fields, onSave) {
     wrap.innerHTML = `${f.label}<input name="${f.name}" ${f.type ? `type="${f.type}"` : ""} ${f.required ? "required" : ""} value="${f.value || ""}" />`;
     form.appendChild(wrap);
   }
+  // Hidden submit button — sem ele, Enter num input nao dispara form.onsubmit
+  // (o botao Salvar visivel esta fora do <form>).
+  const hidden = document.createElement("button");
+  hidden.type = "submit"; hidden.style.display = "none"; hidden.setAttribute("aria-hidden", "true");
+  form.appendChild(hidden);
   // Remember focus to restore on close (a11y)
   const returnFocus = document.activeElement;
   const close = () => {
@@ -3445,7 +3451,9 @@ const DRAWER_ENDPOINT = {
   opportunity: id => `/opportunities/${id}`,
   lead: id => `/leads/${id}`,
 };
-const DRAWER_LABELS = { contact: "Contact", company: "Company", opportunity: "Opportunity", lead: "Lead" };
+const DRAWER_LABELS_PT = { contact: "Contato", company: "Empresa", opportunity: "Oportunidade", lead: "Lead" };
+const DRAWER_LABELS_EN = { contact: "Contact", company: "Company", opportunity: "Opportunity", lead: "Lead" };
+const DRAWER_LABELS = new Proxy({}, { get: (_, k) => ((state.lang || "pt") === "pt" ? DRAWER_LABELS_PT : DRAWER_LABELS_EN)[k] });
 const DRAWER_NOTE_KEY = { contact: "related_contact_id", company: "related_company_id", opportunity: "related_opportunity_id", lead: "related_lead_id" };
 let drawerCurrent = null;
 
@@ -4265,6 +4273,23 @@ function avatarChip(name, opts = {}) {
 function debounce(fn, ms) {
   let tt;
   return (...args) => { clearTimeout(tt); tt = setTimeout(() => fn(...args), ms); };
+}
+
+// Traduz nomes de estágios padrão em inglês quando locale é PT.
+// Só troca strings conhecidas — nomes custom do usuário ficam intactos.
+const _STAGE_PT = {
+  "Prospecting": "Prospecção",
+  "Qualification": "Qualificação",
+  "Proposal": "Proposta",
+  "Negotiation": "Negociação",
+  "Won": "Ganho",
+  "Lost": "Perdido",
+  "Closed Won": "Ganho",
+  "Closed Lost": "Perdido",
+};
+function localizeStage(name) {
+  if ((state.lang || "pt") !== "pt") return name;
+  return _STAGE_PT[name] || name;
 }
 
 // Return "NEW" badge HTML if entity was created within the last 24h.
