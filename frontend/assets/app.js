@@ -410,6 +410,23 @@ function bindAuth() {
     } catch (err) { document.getElementById("auth-error").textContent = err.message; }
   });
 
+  // "Entrar como demo" — 1-click login with demo credentials
+  document.getElementById("auth-demo-btn")?.addEventListener("click", async () => {
+    const errEl = document.getElementById("auth-error");
+    errEl.textContent = "";
+    try {
+      const tok = await api("/auth/login", { method: "POST", body: { email: "demo@visiquost.local", password: "demo1234" } });
+      saveToken(tok.access_token);
+      state.user = await api("/auth/me");
+      try { const wss = await api("/workspaces"); state.workspace = wss?.[0] || null; } catch {}
+      await enterApp();
+    } catch (err) {
+      errEl.textContent = (state.lang === "pt")
+        ? `Demo indisponivel: ${err.message}. Rode "python scripts/bootstrap.py" no backend para criar a conta demo.`
+        : `Demo unavailable: ${err.message}. Run "python scripts/bootstrap.py" in backend to create the demo account.`;
+    }
+  });
+
   document.getElementById("register-form").addEventListener("submit", async e => {
     e.preventDefault();
     const fd = new FormData(e.target);
