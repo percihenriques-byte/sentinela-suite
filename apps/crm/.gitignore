@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Local database + backups
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+backend/backups/
+backend/screenshots/
+
+# Environment (contém secrets — use .env.example)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Server logs
+*.err
+*.out
+*.log
+
+# Release artifacts
+*.zip
+visiquost-*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Node (frontend build tooling, se houver)
+node_modules/
+dist/
+build/
+
+# Playwright/Chromium
+.playwright/
+playwright-report/
+test-results/
+
+# Local workspace files (usuário)
+workdir/
+uploads/
+.github/workflows/
