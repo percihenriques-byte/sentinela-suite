@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VisiQuost — CRM com Jarvis local</title>
+  <meta name="description" content="CRM com Jarvis — assistente IA que roda 100% na sua máquina. Zero APIs externas. Kanban, forecast, lead scoring, tudo local.">
+  <meta name="theme-color" content="#a855f7">
+  <!-- No external CDN fonts (zero-external-APIs rule).
+       System font stack picks the best available: SF Pro on macOS/iOS,
+       Segoe UI on Windows, Inter/Roboto if installed, otherwise the OS default. -->
+  <link rel="stylesheet" href="./assets/app.css" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23a855f7'/%3E%3Cpath d='M35 40 Q50 25 65 40 M35 60 Q50 75 65 60' stroke='white' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+</head>
+<body>
+  <div id="app" data-view="loading">
+
+    <!-- LOGIN / REGISTER -->
+    <section class="auth-view" data-view="auth">
+      <div class="auth-hero">
+        <div class="auth-logo">
+          <svg viewBox="0 0 100 100" width="52" height="52"><circle cx="50" cy="50" r="45" fill="url(#g)"/><path d="M35 40 Q50 25 65 40 M35 60 Q50 75 65 60" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs></svg>
+          <div>
+            <div class="brand-name">VisiQuost</div>
+            <div class="brand-tag">CRM com Jarvis local · funciona offline · zero cloud</div>
+          </div>
+        </div>
+        <ul class="auth-features">
+          <li><span class="check">✓</span> Jarvis — 80+ comandos naturais em PT/EN, 100% local</li>
+          <li><span class="check">✓</span> Kanban visual, forecast ponderado, lead scoring</li>
+          <li><span class="check">✓</span> Undo, explain-last, briefing diário — voz proativa</li>
+          <li><span class="check">✓</span> Multi-workspace + import/export + criptografia</li>
+        </ul>
+      </div>
+      <div class="auth-card">
+        <div class="auth-lang" style="text-align:right;margin-bottom:8px;">
+          <select id="auth-lang-select" class="pill" style="background:var(--bg-2);color:var(--fg);border:1px solid var(--border);padding:4px 8px;cursor:pointer;">
+            <option value="pt">🇧🇷 PT-BR</option>
+            <option value="en">🇺🇸 EN</option>
+          </select>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="login">Entrar</button>
+          <button class="tab" data-tab="register">Criar conta</button>
+        </div>
+
+        <form id="login-form" class="form">
+          <label>Email <input type="email" name="email" required autocomplete="username" placeholder="voce@empresa.com"/></label>
+          <label>Senha <input type="password" name="password" required minlength="8" autocomplete="current-password"/></label>
+          <button type="submit" class="btn-primary btn-lg">Entrar →</button>
+        </form>
+
+        <form id="register-form" class="form hidden">
+          <label>Nome completo <input type="text" name="full_name" placeholder="Ada Lovelace"/></label>
+          <label>Email <input type="email" name="email" required autocomplete="username"/></label>
+          <label>Senha <input type="password" name="password" required minlength="8" autocomplete="new-password" placeholder="mínimo 8 caracteres"/></label>
+          <label>Nome do workspace <input type="text" name="workspace_name" required placeholder="Minha Empresa"/></label>
+          <button type="submit" class="btn-primary btn-lg">Criar workspace →</button>
+        </form>
+
+        <p id="auth-error" class="error"></p>
+
+        <div class="auth-demo">
+          <span class="subtle">Login demo:</span>
+          <code>demo@visiquost.local</code> / <code>demo1234</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN APP -->
+    <section class="app-view hidden" data-view="app">
+      <button id="hamburger" class="hamburger" title="Menu (Esc para fechar)" aria-label="Abrir menu de navegação">☰</button>
+      <div id="sidebar-scrim" class="sidebar-scrim"></div>
+      <aside class="sidebar">
+        <div class="brand-row">
+          <svg viewBox="0 0 100 100" width="28" height="28" class="brand-mark"><circle cx="50" cy="50" r="45" fill="url(#gm)"/><path d="M35 40 Q50 25 65 40 M35 60 Q50 75 65 60" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/><defs><linearGradient id="gm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs></svg>
+          <div class="brand">VisiQuost</div>
+        </div>
+
+        <button class="cmdk-hint" id="open-cmdk" title="⌘K / Ctrl+K">
+          <span>🔍 Buscar em tudo…</span>
+          <kbd>⌘K</kbd>
+        </button>
+        <button class="cmdk-hint" id="open-inbox" title="Caixa de entrada">
+          <span>🔔 <span id="inbox-label">Caixa</span></span>
+          <span id="inbox-badge" class="nav-badge hidden">0</span>
+        </button>
+
+        <nav class="nav" aria-label="Navegação principal">
+          <button class="nav-item active" data-page="dashboard"><span class="ico">▤</span>Painel</button>
+          <button class="nav-item" data-page="jarvis"><span class="ico">✨</span>Jarvis</button>
+          <button class="nav-item" data-page="contacts"><span class="ico">👥</span>Contatos</button>
+          <button class="nav-item" data-page="companies"><span class="ico">🏢</span>Empresas</button>
+          <button class="nav-item" data-page="opportunities"><span class="ico">💰</span>Oportunidades</button>
+          <button class="nav-item" data-page="leads"><span class="ico">🎯</span>Leads</button>
+          <button class="nav-item" data-page="kanban"><span class="ico">📋</span>Pipeline</button>
+          <button class="nav-item" data-page="tasks"><span class="ico">✓</span>Tarefas</button>
+          <button class="nav-item" data-page="meetings"><span class="ico">📅</span>Reuniões</button>
+          <button class="nav-item nav-more-toggle" id="nav-more-toggle"><span class="ico">⋯</span>Mais</button>
+          <button class="nav-item" data-page="device"><span class="ico">🖥️</span>Meu dispositivo</button>
+          <div class="nav-more hidden" id="nav-more">
+            <button class="nav-item" data-page="automations"><span class="ico">⚡</span>Automações</button>
+            <button class="nav-item" data-page="integrations"><span class="ico">🔌</span>Integrações</button>
+          </div>
+        </nav>
+
+        <div class="sidebar-footer">
+          <!-- On-device footprint — the physical weight of your data,
+               displayed as a signature reminder that this CRM is local. -->
+          <div id="local-footprint" class="local-footprint" title="Seus dados vivem só na sua máquina.">
+            <div class="lf-badge">🌱 <span>local</span></div>
+            <div class="lf-stats" id="lf-stats">
+              <div><span class="lf-num" id="lf-size">—</span> <span class="lf-unit">no seu disco</span></div>
+              <div><span class="lf-num" id="lf-rows">—</span> <span class="lf-unit">registros</span></div>
+            </div>
+          </div>
+          <div class="user-chip">
+            <div class="avatar" id="user-avatar">?</div>
+            <div class="user-info">
+              <div id="user-email" class="user-email"></div>
+              <div id="workspace-name" class="workspace-name subtle"></div>
+            </div>
+          </div>
+          <div class="io-buttons">
+            <button id="seed-demo-btn" class="menu-btn">🌱 Popular demo</button>
+            <button id="export-btn" class="menu-btn">📤 Exportar JSON</button>
+            <button id="export-md-btn" class="menu-btn">📝 Sumário .md</button>
+            <label class="menu-btn">📥 Importar
+              <input type="file" id="import-file" accept="application/json" hidden />
+            </label>
+            <button id="theme-toggle" class="menu-btn">🌓 Tema</button>
+            <button id="logout-btn" class="menu-btn danger">↩ Sair</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main" aria-label="Conteúdo principal">
+        <div id="page-dashboard" class="page">
+          <div class="page-header">
+            <div>
+              <h2>Painel</h2>
+              <p class="subtle" id="dashboard-greeting"></p>
+            </div>
+            <div class="flex-row">
+              <div class="filter-row" id="dashboard-window">
+                <button class="chip" data-window="7">7d</button>
+                <button class="chip active" data-window="30">30d</button>
+                <button class="chip" data-window="90">90d</button>
+              </div>
+              <button id="dashboard-refresh" class="icon-btn" title="Recarregar" style="font-size:1.1em;">⟳</button>
+            </div>
+          </div>
+          <div id="onboarding-card" class="onboarding-card hidden">
+            <div class="onboarding-icon">✨</div>
+            <div class="onboarding-body">
+              <h3 id="onb-title">Bem-vindo(a) ao VisiQuost!</h3>
+              <p id="onb-sub" class="subtle">Comece em 3 passos. Você pode pular e voltar depois.</p>
+              <ol class="onb-steps" id="onb-steps">
+                <li id="onb-1"><span class="onb-check">1</span> <span>Popular dados de demonstração para explorar</span> <button class="btn-primary btn-sm" id="onb-1-btn">Popular</button></li>
+                <li id="onb-2"><span class="onb-check">2</span> <span>Falar com o Jarvis (canto direito) — peça "resumo da semana"</span> <button class="btn-ghost btn-sm" id="onb-2-btn">Focar chat</button></li>
+                <li id="onb-3"><span class="onb-check">3</span> <span>Colocar seus arquivos (.ics/.csv/.vcf) na pasta do dispositivo para importar</span> <button class="btn-ghost btn-sm" id="onb-3-btn">Abrir Dispositivo</button></li>
+              </ol>
+              <button id="onb-dismiss" class="linkish" style="margin-top:8px;">Pular tour</button>
+            </div>
+          </div>
+          <div class="kpi-row" id="kpis"></div>
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <h3>⏰ Tarefas atrasadas</h3>
+                <span class="subtle" id="overdue-count"></span>
+              </div>
+              <ul id="overdue-tasks" class="list"></ul>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>📅 Próximas reuniões (48h)</h3>
+              </div>
+              <ul id="upcoming-meetings" class="list"></ul>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>📊 Esta semana</h3>
+            </div>
+            <div id="week-summary"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>📜 Atividade recente</h3>
+              <div class="flex-row">
+                <span class="subtle" id="activity-count"></span>
+                <button id="activity-export-csv" class="linkish" style="font-size:0.82em;" title="Exportar CSV">⬇ CSV</button>
+              </div>
+            </div>
+            <ul id="activity-feed" class="list"></ul>
+          </div>
+        </div>
+
+        <div id="page-contacts" class="page hidden">
+          <div class="page-header">
+            <h2>Contatos</h2>
+            <div class="flex-row">
+              <button id="add-contact-btn" class="btn-primary">+ Novo contato</button>
+              <button id="export-contacts-csv" class="btn-ghost">⬇ CSV</button>
+              <label class="btn-ghost">📄 Importar CSV
+                <input type="file" id="import-contacts-csv" accept=".csv,text/csv" hidden />
+              </label>
+            </div>
+          </div>
+          <p id="csv-status" class="subtle" style="min-height: 1em;"></p>
+          <div class="flex-row" style="margin-bottom: 8px;">
+            <span id="contact-saved-views" class="flex-row" style="gap:4px;flex-wrap:wrap;"></span>
+            <button id="contact-save-view" class="linkish" style="font-size: 0.8em;" title="Salvar busca atual">💾 Salvar visão</button>
+          </div>
+          <input id="contact-search" placeholder="🔍 Buscar contatos…" class="search" />
+          <div id="contacts-bulk-toolbar" class="bulk-toolbar hidden" role="toolbar" aria-label="Ações em lote">
+            <span class="bulk-count-wrap"><span id="contacts-bulk-count">0</span> <span class="bulk-count-label">selecionados</span></span>
+            <button id="contacts-bulk-export" class="btn-ghost btn-sm" title="Exportar seleção como CSV">⬇ CSV</button>
+            <button id="contacts-bulk-delete" class="btn-ghost btn-sm bulk-danger">🗑 Apagar</button>
+            <button id="contacts-bulk-clear" class="linkish" aria-label="Limpar seleção">✕ Limpar</button>
+          </div>
+          <table class="table" id="contacts-table">
+            <thead><tr><th style="width:30px;"><input type="checkbox" id="contacts-select-all"/></th><th>Nome</th><th>Email</th><th>Telefone</th><th>Cargo</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="pagination" id="contacts-pagination"></div>
+        </div>
+
+        <div id="page-companies" class="page hidden">
+          <div class="page-header">
+            <h2>Empresas</h2>
+            <div class="flex-row">
+              <button id="add-company-btn" class="btn-primary">+ Nova empresa</button>
+              <button id="export-companies-csv" class="btn-ghost">⬇ CSV</button>
+            </div>
+          </div>
+          <input id="company-search" placeholder="🔍 Buscar empresas…" class="search" />
+          <div id="companies-bulk-toolbar" class="bulk-toolbar hidden" role="toolbar" aria-label="Ações em lote">
+            <span class="bulk-count-wrap"><span id="companies-bulk-count">0</span> <span class="bulk-count-label">selecionadas</span></span>
+            <button id="companies-bulk-export" class="btn-ghost btn-sm" title="Exportar seleção como CSV">⬇ CSV</button>
+            <button id="companies-bulk-delete" class="btn-ghost btn-sm bulk-danger">🗑 Apagar</button>
+            <button id="companies-bulk-clear" class="linkish" aria-label="Limpar seleção">✕ Limpar</button>
+          </div>
+          <table class="table" id="companies-table">
+            <thead><tr><th style="width:30px;"><input type="checkbox" id="companies-select-all"/></th><th>Nome</th><th>Domínio</th><th>Indústria</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="pagination" id="companies-pagination"></div>
+        </div>
+
+        <div id="page-opportunities" class="page hidden">
+          <div class="page-header">
+            <h2>Oportunidades</h2>
+            <div class="flex-row">
+              <button id="add-opportunity-btn" class="btn-primary">+ Nova oportunidade</button>
+              <button id="export-opps-csv" class="btn-ghost">⬇ CSV</button>
+            </div>
+          </div>
+          <table class="table" id="opportunities-table">
+            <thead><tr><th>Nome</th><th>Estágio</th><th>Valor</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="pagination" id="opps-pagination"></div>
+        </div>
+
+        <div id="page-leads" class="page hidden">
+          <div class="page-header">
+            <h2>Leads</h2>
+            <div class="flex-row">
+              <button id="add-lead-btn" class="btn-primary">+ Novo lead</button>
+              <button id="toggle-rules-btn" class="btn-ghost">⚙️ Regras de pontuação</button>
+            </div>
+          </div>
+          <table class="table" id="leads-table">
+            <thead><tr><th>Nome</th><th>Empresa</th><th>Fonte</th><th>Status</th><th>Score</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="pagination" id="leads-pagination"></div>
+          <div id="lead-rules-section" class="hidden">
+            <div class="page-header">
+              <h3>Regras de pontuação</h3>
+              <div class="flex-row">
+                <button id="add-rule-btn" class="btn-primary">+ Regra</button>
+                <button id="recalc-btn" class="btn-ghost">🔄 Recalcular todos</button>
+              </div>
+            </div>
+            <table class="table" id="rules-table">
+              <thead><tr><th>Nome</th><th>Campo</th><th>Op</th><th>Valor</th><th>Δ</th><th>Ativa</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="page-kanban" class="page hidden">
+          <div class="page-header">
+            <h2>Pipeline</h2>
+            <div class="flex-row">
+              <select id="pipeline-template-select" class="btn-ghost btn-sm">
+                <option value="">📋 Instalar template…</option>
+              </select>
+              <span class="subtle">Arraste um card para mudar o estágio</span>
+            </div>
+          </div>
+          <div class="kanban-scroll-wrap">
+            <div id="kanban-board" class="kanban-board"></div>
+            <button id="kanban-scroll-right" class="kanban-scroll-btn kanban-scroll-btn-right" aria-label="Rolar para direita" title="Ver mais estágios →">›</button>
+            <button id="kanban-scroll-left" class="kanban-scroll-btn kanban-scroll-btn-left" aria-label="Rolar para esquerda" title="← Voltar">‹</button>
+          </div>
+        </div>
+
+        <div id="page-automations" class="page hidden">
+          <div class="page-header">
+            <h2>Automações</h2>
+            <div class="flex-row">
+              <select id="workflow-template-select" class="btn-ghost btn-sm">
+                <option value="">⚡ Instalar template…</option>
+              </select>
+              <button id="add-workflow-btn" class="btn-primary">+ Fluxo</button>
+            </div>
+          </div>
+          <p class="subtle">Fluxos disparam automaticamente quando uma Atividade bate com o trigger. Passos executam em ordem síncrona. Loop-guard previne recursão.</p>
+          <div id="workflows-list"></div>
+        </div>
+
+        <div id="page-integrations" class="page hidden">
+          <div class="page-header">
+            <h2>Integrações</h2>
+          </div>
+          <p class="subtle">⚠️ VisiQuost opera <strong>100% local</strong> — Jarvis não faz chamadas externas.
+          Esta seção é apenas armazenamento cifrado (Fernet) de tokens que você já obteve manualmente,
+          para uso futuro ou fora do runtime. Para importar dados, use <strong>Meu dispositivo</strong>
+          (arquivos .csv/.vcf/.ics na pasta local).</p>
+          <div class="card">
+            <h3>Conectar um token</h3>
+            <form id="connect-form" class="form" style="max-width: 480px;">
+              <label>Provedor
+                <select name="provider">
+                  <option value="google">Google</option>
+                  <option value="microsoft">Microsoft</option>
+                  <option value="slack">Slack</option>
+                  <option value="manual">Manual / outro</option>
+                </select>
+              </label>
+              <label>Etiqueta da conta (email / handle)<input name="account_label" /></label>
+              <label>Access token<input name="access_token" required autocomplete="off" /></label>
+              <label>Refresh token (opcional)<input name="refresh_token" autocomplete="off" /></label>
+              <button type="submit" class="btn-primary">Conectar</button>
+            </form>
+          </div>
+          <div id="integrations-list" style="margin-top:16px"></div>
+        </div>
+
+        <div id="page-tasks" class="page hidden">
+          <div class="page-header">
+            <h2>Tarefas</h2>
+            <button id="add-task-btn" class="btn-primary">+ Nova tarefa</button>
+          </div>
+          <div class="filter-row">
+            <button class="chip active" data-task-filter="all">Todas</button>
+            <button class="chip" data-task-filter="open">Abertas</button>
+            <button class="chip" data-task-filter="overdue">Atrasadas</button>
+            <button class="chip" data-task-filter="done">Concluídas</button>
+          </div>
+          <ul class="list task-list" id="task-list"></ul>
+        </div>
+
+        <div id="page-jarvis" class="page hidden">
+          <div class="jarvis-hero-layout">
+            <aside class="jarvis-convos">
+              <div class="jarvis-convos-header">
+                <span>Conversas</span>
+                <button id="jarvis-new-convo" class="btn-primary btn-sm" title="Nova conversa">+</button>
+              </div>
+              <input id="jarvis-convo-search" class="search" placeholder="🔍 Buscar mensagens…" style="margin: 0 0 8px; padding: 6px 10px; font-size: 0.85em;" />
+              <ul id="jarvis-convos-list" class="list"></ul>
+            </aside>
+          <div class="jarvis-hero">
+            <div class="jarvis-hero-log" id="jarvis-hero-log">
+              <div class="jarvis-hero-welcome">
+                <div class="hero-mark">✨</div>
+                <h2>Fale com o Jarvis</h2>
+                <p class="subtle">Peça planos, resumos, criações, buscas. Digite ou clique num exemplo.</p>
+                <div class="hero-examples">
+                  <button class="qbtn" data-quick="planeje minha semana">📆 Planeje minha semana</button>
+                  <button class="qbtn" data-quick="top 5 oportunidades">💼 Top 5 oportunidades</button>
+                  <button class="qbtn" data-quick="resumo do pipeline e depois tarefas atrasadas">🎯 Pipeline + atrasadas</button>
+                  <button class="qbtn" data-quick="importe contatos">📥 Importe contatos</button>
+                  <button class="qbtn" data-quick="agende reunião com Ada para amanhã 15h">📅 Agendar reunião</button>
+                  <button class="qbtn" data-quick="escreva um post para linkedin sobre vendas B2B">✍️ Post LinkedIn</button>
+                </div>
+              </div>
+            </div>
+            <div id="jarvis-context-chip" class="jarvis-context-chip hidden">
+              <span>💡 <span id="context-chip-label"></span></span>
+              <button id="context-chip-clear" class="linkish" style="font-size:0.85em;">Remover</button>
+            </div>
+            <div id="jarvis-suggestions" class="jarvis-suggestions"></div>
+            <form id="jarvis-hero-form" class="jarvis-hero-form">
+              <textarea id="jarvis-hero-input" placeholder="Pergunte ao Jarvis… (Enter para enviar, Shift+Enter nova linha)" rows="2"></textarea>
+              <button type="button" id="jarvis-mic" class="jarvis-mic hidden" title="Ditar (mic)">🎤</button>
+              <button type="submit" title="Enviar">➤</button>
+            </form>
+          </div>
+          </div>
+        </div>
+
+        <div id="page-device" class="page hidden">
+          <div class="page-header">
+            <h2>🖥️ Meu dispositivo</h2>
+            <button id="device-refresh" class="icon-btn" title="Recarregar" style="font-size:1.1em;">⟳</button>
+          </div>
+          <p class="subtle" id="device-hint">Arquivos que o Jarvis pode ler desta pasta. Deixe .csv/.vcf (contatos) ou .ics (calendário) aqui — Jarvis importa por comando. Peça: <em>"importe contatos"</em>, <em>"minha agenda"</em>, <em>"leia arquivo notas.md"</em>.</p>
+          <div id="device-tools-list" class="grid-2" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));"></div>
+        </div>
+
+        <div id="page-meetings" class="page hidden">
+          <div class="page-header">
+            <h2>Reuniões</h2>
+            <button id="add-meeting-btn" class="btn-primary">+ Nova reunião</button>
+          </div>
+          <ul class="list" id="meetings-list"></ul>
+        </div>
+      </main>
+
+      <button id="jarvis-fab" class="jarvis-fab" title="Fale com o Jarvis" aria-label="Abrir chat do Jarvis">✨</button>
+      <!-- Reopen tab when panel collapsed -->
+      <button id="jarvis-reopen" class="jarvis-reopen" title="Abrir Jarvis" aria-label="Abrir Jarvis">✨</button>
+      <!-- Jarvis chat panel — always visible on the right -->
+      <aside class="jarvis-panel">
+        <div class="jarvis-header">
+          <div class="jarvis-title">
+            <span class="jarvis-pulse"></span>
+            <span>Jarvis</span>
+          </div>
+          <div class="flex-row">
+            <span class="pill" id="jarvis-mode">local</span>
+            <button id="jarvis-collapse" class="icon-btn" title="Recolher painel">→</button>
+            <button id="jarvis-close-mobile" class="icon-btn" style="display:none;" title="Fechar">✕</button>
+          </div>
+        </div>
+        <div id="jarvis-nudges" class="jarvis-nudges"></div>
+        <div id="jarvis-log" class="jarvis-log">
+          <div class="jarvis-welcome">
+            <div class="welcome-icon">✨</div>
+            <div class="welcome-text">
+              <strong>Jarvis online, ao seu dispor.</strong>
+              <p>Diga <code>briefing</code> para o resumo do dia, <code>sugestões</code> para prioridades, ou <code>help</code> para ver tudo que sei fazer.</p>
+            </div>
+          </div>
+        </div>
+        <div class="jarvis-quickies">
+          <button class="qbtn" data-quick="resumo da semana">📊 Semana</button>
+          <button class="qbtn" data-quick="pipeline">💰 Pipeline</button>
+          <button class="qbtn" data-quick="tarefas atrasadas">⏰ Atrasos</button>
+          <button class="qbtn" data-quick="forecast">🔮 Forecast</button>
+          <button class="qbtn" data-quick="help">❓ Ajuda</button>
+        </div>
+        <form id="jarvis-form" class="jarvis-form">
+          <input id="jarvis-input" placeholder="Pergunte ao Jarvis… (Ctrl+/)" autocomplete="off" />
+          <button type="submit" title="Enviar (Enter)">➤</button>
+        </form>
+      </aside>
+    </section>
+
+    <!-- Command palette (⌘K) -->
+    <div id="cmdk" class="cmdk hidden" role="dialog" aria-modal="true" aria-label="Buscar e comandos">
+      <div class="cmdk-inner">
+        <input id="cmdk-input" placeholder="Buscar contatos, empresas, oportunidades, tarefas… ou digite um comando" autocomplete="off"/>
+        <div id="cmdk-results" class="cmdk-results"></div>
+        <div class="cmdk-footer subtle">
+          <span><kbd>↑↓</kbd> navegar</span>
+          <span><kbd>↵</kbd> abrir</span>
+          <span><kbd>Esc</kbd> fechar</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inbox drawer -->
+    <aside id="inbox" class="drawer hidden">
+      <div class="drawer-header">
+        <h3>🔔 Caixa de entrada</h3>
+        <div class="flex-row">
+          <button id="inbox-mark-read" class="btn-ghost btn-sm">Marcar lidas</button>
+          <button id="inbox-close" class="icon-btn" title="Fechar">✕</button>
+        </div>
+      </div>
+      <ul id="inbox-list" class="list"></ul>
+    </aside>
+
+    <!-- Detail drawer -->
+    <aside id="drawer" class="drawer hidden" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <div class="drawer-header">
+        <h3 id="drawer-title"></h3>
+        <div class="flex-row">
+          <button id="drawer-ask-jarvis" class="btn-ghost btn-sm" title="Pedir contexto ao Jarvis">✨ Jarvis</button>
+          <button id="drawer-close" class="icon-btn" title="Fechar (Esc)">✕</button>
+        </div>
+      </div>
+      <div id="drawer-body" class="drawer-body"></div>
+      <div class="drawer-section">
+        <h4>Notas</h4>
+        <form id="drawer-note-form" class="drawer-inline-form">
+          <input id="drawer-note-input" placeholder="Adicionar uma nota…" />
+          <button type="submit" class="btn-primary btn-sm">+</button>
+        </form>
+        <ul id="drawer-notes" class="list"></ul>
+      </div>
+      <div class="drawer-section">
+        <h4>Linha do tempo</h4>
+        <div class="filter-row" id="drawer-activity-filter" style="margin-bottom:6px;flex-wrap:wrap;">
+          <button class="chip active" data-kind-filter="all">Todas</button>
+          <button class="chip" data-kind-filter="created">Criado</button>
+          <button class="chip" data-kind-filter="updated">Atualizado</button>
+          <button class="chip" data-kind-filter="call">📞</button>
+          <button class="chip" data-kind-filter="email">✉️</button>
+          <button class="chip" data-kind-filter="whatsapp">💬</button>
+        </div>
+        <ul id="drawer-activity" class="list"></ul>
+      </div>
+    </aside>
+
+    <!-- Modal for create forms -->
+    <div id="modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-inner">
+        <div class="modal-header">
+          <h3 id="modal-title"></h3>
+          <button id="modal-x" class="icon-btn" title="Fechar">✕</button>
+        </div>
+        <form id="modal-form"></form>
+        <div class="modal-actions">
+          <button id="modal-cancel" class="btn-ghost">Cancelar</button>
+          <button id="modal-save" class="btn-primary">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard help modal -->
+    <div id="help-modal" class="modal hidden" role="dialog" aria-modal="true" aria-label="Atalhos de teclado">
+      <div class="modal-inner" style="max-width: 560px;">
+        <div class="modal-header">
+          <h3>⌨️ Atalhos de teclado</h3>
+          <button class="icon-btn" id="help-close">✕</button>
+        </div>
+        <div class="help-grid">
+          <div class="help-group">
+            <h4>Navegação</h4>
+            <div class="help-row"><kbd>g</kbd> <kbd>d</kbd><span>Painel</span></div>
+            <div class="help-row"><kbd>g</kbd> <kbd>c</kbd><span>Contatos</span></div>
+            <div class="help-row"><kbd>g</kbd> <kbd>e</kbd><span>Empresas</span></div>
+            <div class="help-row"><kbd>g</kbd> <kbd>o</kbd><span>Oportunidades</span></div>
+            <div class="help-row"><kbd>g</kbd> <kbd>l</kbd><span>Leads</span></div>
+            <div class="help-row"><kbd>g</kbd> <kbd>k</kbd><span>Pipeline (kanban)</span></div>
+            <div class="help-row"><kbd>g</kbd> <kbd>t</kbd><span>Tarefas</span></div>
+            <div class="help-row"><kbd>g</kbd> <kbd>m</kbd><span>Reuniões</span></div>
+            <div class="help-row"><kbd>g</kbd> <kbd>v</kbd><span>Meu dispositivo</span></div>
+          </div>
+          <div class="help-group">
+            <h4>Ações</h4>
+            <div class="help-row"><kbd>Ctrl</kbd>+<kbd>K</kbd><span>Buscar tudo</span></div>
+            <div class="help-row"><kbd>Ctrl</kbd>+<kbd>/</kbd><span>Focar no Jarvis</span></div>
+            <div class="help-row"><kbd>c</kbd><span>Novo contato</span></div>
+            <div class="help-row"><kbd>j</kbd><span>Abrir Jarvis</span></div>
+            <div class="help-row"><kbd>f</kbd><span>Modo foco (esconde sidebar)</span></div>
+            <div class="help-row"><kbd>.</kbd><span>Pular pro chat Jarvis</span></div>
+            <div class="help-row"><kbd>n</kbd><span>Nova nota (no drawer)</span></div>
+            <div class="help-row"><kbd>/</kbd><span>Focar busca da página</span></div>
+            <div class="help-row"><kbd>?</kbd><span>Esta janela</span></div>
+            <div class="help-row"><kbd>Esc</kbd><span>Fechar drawer/modal</span></div>
+            <div class="help-row"><kbd>↑</kbd> <kbd>↓</kbd><span>Navegar linhas da tabela</span></div>
+            <div class="help-row"><kbd>Enter</kbd><span>Abrir linha em foco</span></div>
+          </div>
+          <div class="help-group">
+            <h4>Fale com o Jarvis</h4>
+            <div class="help-row"><em>"resumo da semana"</em></div>
+            <div class="help-row"><em>"top 5 oportunidades"</em></div>
+            <div class="help-row"><em>"agende reunião com Ada para amanhã 15h"</em></div>
+            <div class="help-row"><em>"crie tarefa: ligar para João amanhã alta"</em></div>
+            <div class="help-row"><em>"enriqueça empresa Acme"</em></div>
+            <div class="help-row"><em>"escreva um post para linkedin sobre vendas B2B"</em></div>
+            <div class="help-row"><em>"minha agenda"</em></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast host -->
+    <div id="toast-host" class="toast-host"></div>
+  </div>
+
+  <script src="./assets/app.js" defer></script>
+</body>
+</html>
