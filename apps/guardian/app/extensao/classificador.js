@@ -1,0 +1,143 @@
+/*
+  classificador.js — IA local do Sentinela (mesma lógica do módulo
+  Sentinela-Classificador.ps1). Roda no navegador, sem internet.
+  Expõe window.SentinelaIA.classify(texto, config).
+*/
+(function (global) {
+  function normalizar(s) {
+    s = (s || '').toLowerCase();
+    // homoglifos cirilicos -> latinos (evasao "p\u043ern\u043e")
+    var homo = {'\u0430':'a','\u043e':'o','\u0435':'e','\u0440':'p','\u0441':'c','\u0445':'x','\u0443':'y','\u0456':'i','\u0455':'s','\u0458':'j'};
+    s = s.replace(/[\u0430\u043e\u0435\u0440\u0441\u0445\u0443\u0456\u0455\u0458]/g, function (c) { return homo[c] || c; });
+    // NFKD resolve full-width (\uff53\uff45\uff58\uff4f) e ligaduras; depois remove acentos
+    s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    var raw = s.replace(/(.)\1{2,}/g, '$1');
+    var mapa = { '0':'o','1':'i','3':'e','4':'a','5':'s','7':'t','8':'b','9':'g','@':'a','$':'s','+':'t' };
+    var leet = s.replace(/[01345789@$+]/g, function (c) { return mapa[c] || c; }).replace(/(.)\1{2,}/g, '$1');
+    // "colado": junta APENAS sequencias de chars isolados (evasao "p o r n o"),
+    // sem juntar palavras (evita 'gore' casar em "frango receita").
+    function colapsa(str) { return str.replace(/\b[a-z0-9]\b(?:[\s._\-]+\b[a-z0-9]\b)+/g, function (m) { return m.replace(/[^a-z0-9]/g, ''); }); }
+    return { texto: leet, colado: colapsa(leet), textoRaw: raw, coladoRaw: colapsa(raw) };
+  }
+
+  // Padrao: true = bloqueia por padrao; false = tema opcional (responsavel ativa)
+  var CATS = [
+    { nome:'Conteúdo adulto', padrao:true, semReducao:false, termos:{'porno':1,'pornografia':1,'pornografico':1,'xvideos':1,'xnxx':1,'nudes':1,'hentai':1,'putaria':1,'conteudo adulto':1,'sexo explicito':1,'onlyfans':1,'camgirl':1,'sexo':1,'transar':1,'nudez':1,'nudez infantil':1,'pornografia infantil':1,'zoofilia':1,'masturbacao':1,'punheta':1,'siririca':1,'video de sexo':1,'fazer sexo':1,'sexo gratis':1,'sexo ao vivo':1,'sexo caseiro':1,'sexo amador':1,'sexo anal':1,'sexo oral':1,'sexo virtual':1,'mulher pelada':1,'mulheres peladas':1,'homem pelado':1,'peladinha':1,'novinha pelada':1,'mulher nua':1,'homem nu':1,'pornhub':1,'redtube':1,'xhamster':1,'xvideo':1,'mulheres nuas':1,'transando':1,'pelada':.5,'pelado':.5,'+18':.5,'porn':1,'nude pic':1,'nude pics':1,'nude photos':1,'nude video':1,'naked girls':1,'naked woman':1,'naked women':1,'sex video':1,'sex videos':1,'free sex':1,'sex tape':1,'sex scene':1,'having sex':1,'group sex':1,'blowjob':1,'blow job':1,'deepthroat':1,'handjob':1,'boobs':1,'tits':1,'milf':1,'nsfw':1,'dick pic':1,'brazzers':1,'spankbang':1,'chaturbate':1,'stripchat':1,'bongacams':1,'erome':1,'motherless':1,'rule34':1,'rule 34':1,'youporn':1,'nhentai':1,'youjizz':1,'fapello':1,'coomer party':1,'simpcity':1,'eporner':1,'hqporner':1,'pedofilia':1,'pedofilo':1,'conteudo sexual infantil':1,'menor de idade nua':1,'sexo com menor':1,'mandar foto pelada':1,'tirar foto intima':1,'mandar foto intima':1,'pack de novinha':1,'pack de novinhas':1,'fotos intimas vazadas':1,'foto intima vazada':1,'x-videos':1,'x-video':1,'only-fans':1,'red-tube':1,'x-hamster':1,'porn-hub':1,'desnudo':1,'desnudos':1,'desnudas':1,'mujer desnuda':1,'chica desnuda':1,'fotos desnuda':1,'tetas':1,'femme nue':1,'femmes nues':1,'fille nue':1,'photos nues':1,'sexe gratuit':1,'sexe en direct':1}},
+    { nome:'Violência', padrao:true, semReducao:false, termos:{'decapitacao':1,'tortura':1,'gore':1,'estupro':1,'espancamento':.5,'violencia extrema':1,'videos de violencia':1,'briga de rua':1,'violencia':.5,'sangue':.35,'briga':.35,'assassinato':.5,'massacre':.5,'dar um tiro em alguem':1,'atirar em alguem':1,'como matar alguem':1,'como matar uma pessoa':1,'how to kill someone':1,'how to kill a person':1,'kill someone':1}},
+    { nome:'Autolesão e suicídio', padrao:true, semReducao:true, termos:{'suicidio':1,'como se matar':1,'me matar':1,'quero morrer':1,'vontade de morrer':1,'automutilacao':1,'me cortar':1,'cortar os pulsos':1,'tirar a propria vida':1,'tirar minha vida':1,'anorexia dicas':1,'pro ana':1,'me enforcar':1,'como se enforcar':1,'self harm':1,'suicide methods':1,'commit suicide':1,'how to commit suicide':1,'kill myself':1,'want to die':1,'end my life':1,'ways to die':1,'suicidarme':1,'suicidarse':1,'se suicider':1,'suicider':1}},
+    { nome:'Armas', padrao:true, semReducao:true, termos:{'como fazer bomba':1,'fazer uma bomba':1,'bomba caseira':1,'fabricar bomba':1,'fazer explosivo':1,'explosivo caseiro':1,'fabricar arma':1,'arma caseira':1,'explosivo':.5,'arma de fogo':.5,'comprar arma de fogo':1,'comprar fuzil':1,'arma no mercado negro':1,'comprar arma ilegal':1,'vender arma ilegal':1,'arma ilegal':.5,'how to make a bomb':1,'make a bomb':1,'build a bomb':1,'pipe bomb':1,'buy a gun illegally':1,'como hacer una bomba':1,'hacer una bomba casera':1,'pistola':.35,'rifle':.35,'fuzil':.35,'municao':.35}},
+    { nome:'Drogas', padrao:true, semReducao:false, termos:{'como usar drogas':1,'comprar maconha':1,'usar cocaina':1,'cheirar cocaina':1,'comprar cocaina':1,'comprar droga':1,'cheirar cola':1,'cocaina':.5,'crack':.5,'maconha':.5,'lsd':.5,'ecstasy':.5,'droga':.35,'entorpecente':.5,'lanca perfume':1,'cheirar lolo':1,'cheirinho da lolo':1,'fumar baseado':1,'baseado de maconha':1,'comprar skunk':1,'skunk droga':1,'buy weed':1,'smoke weed':1,'weed dealer':1,'buy cocaine':1,'buy drugs':1,'how to get high':.5,'cocaine':.5,'acheter de la drogue':1}},
+    { nome:'Apostas', padrao:true, semReducao:true, termos:{'cassino online':1,'aposta esportiva':1,'jogo do bicho':1,'aposta':.5,'cassino':.5,'tigrinho':1,'jogo do tigrinho':1,'bet365':1,'betano':1,'sportingbet':1,'blaze aposta':1,'roleta':.5,'roleta cassino':1,'apostar dinheiro':1,'apostas online':1,'site de apostas':1,'blaze':.5,'aviator':.5,'jogo aviator':1,'fortune tiger':1,'caca-niquel':1,'caca niquel':1,'jogo de azar':1,'poker valendo':1,'poker a dinheiro':1,'jogar no bicho':1,'raspadinha valendo':1,'raspadinha online':1,'raspadinha premiada':1,'online casino':1,'sports betting':1,'online gambling':1,'slot machine':1,'gambling':.5,'stake bet':1,'stake casino':1,'1xbet':1,'pixbet':1,'esportes da sorte':1,'superbet':1,'betfair':1,'kto bet':1,'kto apostas':1,'sportsbet':1,'blaze apostas':1,'estrelabet':1,'vaidebet':1,'realsbet':1,'betnacional':1,'bet nacional':1,'multibet':1,'br4bet':1,'brabet':1,'f12bet':1,'f12 bet':1,'pagbet':1,'7games bet':1}},
+    { nome:'Burlar proteção', padrao:true, semReducao:true, termos:{'burlar filtro':1,'burlar o filtro':1,'driblar o filtro':1,'desativar safesearch':1,'desbloquear sites':1,'filtro da escola':1,'vpn para escola':1,'como burlar':.5,'proxy anonimo':.5}},
+    { nome:'Linguagem imprópria', padrao:true, semReducao:true, termos:{'caralho':.5,'porra':.5,'buceta':1,'piroca':1}},
+    // Odio/extremismo: so frases apologeticas bloqueiam; historia/educacao liberada.
+    { nome:'Ódio e extremismo', padrao:true, semReducao:false, termos:{'apologia ao nazismo':1,'apologia ao racismo':1,'grupo neonazista':1,'ser neonazista':1,'como ser racista':1,'piada racista':1,'piadas racistas':1,'raca superior':1,'superioridade da raca':1,'saudacao nazista':1,'simbolo nazista':1,'grupo de odio':1,'supremacia branca':.5,'limpeza etnica':.5}},
+    { nome:'Namoro e relacionamento', padrao:false, semReducao:true, termos:{'app de namoro':1,'tinder':1,'como beijar':.5,'namorada online':.5,'pegar meninas':.5}},
+    { nome:'Redes sociais', padrao:false, semReducao:true, termos:{'tiktok':.5,'instagram':.5,'kwai':.5,'snapchat':.5}}
+  ];
+  var CTX_SEGURO = ['dever de casa','trabalho escolar','feira de ciencias','aula de ciencias','biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de','sexo masculino','sexo feminino','sexo do bebe','sexo biologico','sexo do feto','qual o sexo','sexo fragil','sexo forte','sexo oposto','sexo dos anjos','ambos os sexos','sexo dos personagens','estatua','escultura','renascentista','museu','historia da arte','obra de arte','pintura','arte grega'];
+
+  function nrmNome(s) { return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+
+  function classify(texto, config) {
+    config = config || {};
+    // nomes de tema comparados sem acento/caixa (BUG-11)
+    var desativados = (config.temasDesativados || []).map(nrmNome);
+    var ativados = (config.temasAtivados || []).map(nrmNome);
+    var termosExtra = config.termosPersonalizados || [];
+    var limiar = config.modoRigido ? 0.5 : 1.0;
+
+    var n = normalizar(texto);
+    var reducao = 0;
+    for (var i = 0; i < CTX_SEGURO.length; i++) { if (n.texto.indexOf(CTX_SEGURO[i]) !== -1) { reducao = 0.5; break; } }
+
+    var cats = [];
+    for (var c = 0; c < CATS.length; c++) {
+      var cat = CATS[c];
+      var cn = nrmNome(cat.nome);
+      if (desativados.indexOf(cn) !== -1) continue;
+      if (!cat.padrao && ativados.indexOf(cn) === -1) continue;
+      cats.push(cat);
+    }
+    if (termosExtra.length) {
+      var extra = {};
+      for (var e = 0; e < termosExtra.length; e++) {
+        var t = (termosExtra[e] || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (t) extra[t] = 1;
+      }
+      cats.push({ nome:'Bloqueio do responsável', padrao:true, semReducao:true, termos:extra });
+    }
+
+    var melhor = null;
+    for (var k = 0; k < cats.length; k++) {
+      var ct = cats[k], score = 0, sinais = [];
+      for (var termo in ct.termos) {
+        var colado = termo.replace(/[^a-z0-9]/g, '');
+        var achou = n.texto.indexOf(termo) !== -1 || n.textoRaw.indexOf(termo) !== -1;
+        if (!achou && colado.length >= 3) { achou = n.colado.indexOf(colado) !== -1 || n.coladoRaw.indexOf(colado) !== -1; }
+        if (achou) {
+          score += ct.termos[termo]; sinais.push(termo);
+        }
+      }
+      if (score > 0) {
+        var red = ct.semReducao ? 0 : reducao;
+        var sf = Math.max(0, score - red);
+        if (!melhor || sf > melhor.score) melhor = { category: ct.nome, score: sf, signals: sinais };
+      }
+    }
+    if (!melhor) return { block: false, category: null, confidence: 0, signals: [] };
+    return {
+      block: melhor.score >= limiar,
+      category: melhor.category,
+      confidence: Math.min(1, melhor.score / (limiar * 1.5)),
+      signals: melhor.signals
+    };
+  }
+
+  function contarOcorrencias(hay, needle) {
+    if (!needle) return 0;
+    var n = 0, i = 0;
+    while ((i = hay.indexOf(needle, i)) >= 0) { n++; i += needle.length; }
+    return n;
+  }
+
+  // Analisa o CONTEUDO de uma pagina inteira (o que a crianca VE), contando
+  // ocorrencias, com limiar mais alto p/ nao bloquear mencao incidental.
+  function classifyPagina(texto, config, limiar) {
+    config = config || {}; limiar = limiar || 3.0;
+    if (!texto || !texto.trim()) return { block: false, category: null, score: 0, signals: [] };
+    var n = normalizar(texto);
+    var desativados = (config.temasDesativados || []).map(nrmNome);
+    var ativados = (config.temasAtivados || []).map(nrmNome);
+    var termosExtra = config.termosPersonalizados || [];
+    var cats = [];
+    for (var c = 0; c < CATS.length; c++) {
+      var cat = CATS[c], cn = nrmNome(cat.nome);
+      if (desativados.indexOf(cn) !== -1) continue;
+      if (!cat.padrao && ativados.indexOf(cn) === -1) continue;
+      cats.push(cat);
+    }
+    if (termosExtra.length) {
+      var extra = {};
+      for (var e = 0; e < termosExtra.length; e++) {
+        var t = (termosExtra[e] || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (t) extra[t] = 1;
+      }
+      cats.push({ nome: 'Bloqueio do responsável', padrao: true, semReducao: true, termos: extra });
+    }
+    var melhor = null;
+    for (var k = 0; k < cats.length; k++) {
+      var ct = cats[k], score = 0, sinais = [];
+      for (var termo in ct.termos) {
+        var occ = contarOcorrencias(n.texto, termo);
+        if (occ === 0) occ = contarOcorrencias(n.textoRaw, termo);
+        if (occ > 0) { score += ct.termos[termo] * Math.min(occ, 3); sinais.push(occ + 'x' + termo); }
+      }
+      if (score > 0 && (!melhor || score > melhor.score)) melhor = { category: ct.nome, score: score, signals: sinais };
+    }
+    if (!melhor) return { block: false, category: null, score: 0, signals: [] };
+    return { block: melhor.score >= limiar, category: melhor.category, score: Math.round(melhor.score * 10) / 10, signals: melhor.signals };
+  }
+
+  global.SentinelaIA = { classify: classify, classifyPagina: classifyPagina, temas: CATS.map(function (c) { return { tema: c.nome, padraoLigado: c.padrao }; }) };
+})(this);

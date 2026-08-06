@@ -1,0 +1,357 @@
+<#
+    Sentinela-Classificador.ps1
+    ------------------------------------------------------------------
+    IA LOCAL de classificacao de conteudo. Roda 100% na maquina, SEM
+    nenhuma API externa e sem internet. As buscas do filho NUNCA saem
+    do computador (privacidade por design).
+
+    O classificador:
+      1. NORMALIZA o texto para derrotar tentativas de evasao:
+         - tira acentos, desfaz leetspeak (p0rn0 -> porno),
+         - junta letras espacadas (p o r n -> porn),
+         - encolhe repeticoes (poooorno -> porno).
+      2. PONTUA por tema, com pesos, e da um NIVEL DE CONFIANCA (0 a 1).
+      3. E CONFIGURAVEL pelo responsavel (config.json, secao "classificador"):
+         - temasDesativados : lista de temas para NAO bloquear
+         - termosPersonalizados : palavras extras que o responsavel quer barrar
+         - modoRigido : baixa o limiar e bloqueia de forma mais ampla
+      4. Reduz falso-positivo em contexto educativo/saude (exceto temas que
+         nunca sao "educativos", como burlar protecao).
+
+    Uso:
+      . .\Sentinela-Classificador.ps1
+      Get-ClassificacaoConteudo -Texto 's3x0 +18'
+    ------------------------------------------------------------------
+#>
+
+# ---- normalizacao ---------------------------------------------------
+function ConvertTo-SemAcento {
+    param([string]$Texto)
+    if (-not $Texto) { return '' }
+    # FormKD (compatibilidade) resolve caracteres "full-width" (ｓｅｘｏ) e ligaduras,
+    # alem de decompor acentos para remocao logo abaixo.
+    $d = $Texto.Normalize([System.Text.NormalizationForm]::FormKD)
+    $sb = New-Object System.Text.StringBuilder
+    foreach ($c in $d.ToCharArray()) {
+        $cat = [System.Globalization.CharUnicodeInfo]::GetUnicodeCategory($c)
+        if ($cat -ne [System.Globalization.UnicodeCategory]::NonSpacingMark) { [void]$sb.Append($c) }
+    }
+    return $sb.ToString()
+}
+
+function Get-TextoNormalizado {
+    param([string]$Texto)
+    $t = (ConvertTo-SemAcento $Texto).ToLowerInvariant()
+    # homoglifos cirilicos que imitam letras latinas (evasao "pоrnо")
+    $homo = @{ ([char]0x0430)='a'; ([char]0x043E)='o'; ([char]0x0435)='e'; ([char]0x0440)='p';
+               ([char]0x0441)='c'; ([char]0x0445)='x'; ([char]0x0443)='y'; ([char]0x0456)='i';
+               ([char]0x0455)='s'; ([char]0x0458)='j' }
+    foreach ($k in $homo.Keys) { $t = $t.Replace([string]$k, $homo[$k]) }
+    # variante SEM leet: preserva digitos legitimos (ex.: bet365)
+    $raw = [regex]::Replace($t, '(.)\1{2,}', '$1')
+    # variante COM leet: derruba evasao (s3x0 -> sexo)
+    $mapa = @{ '0'='o'; '1'='i'; '3'='e'; '4'='a'; '5'='s'; '7'='t'; '8'='b'; '9'='g'; '@'='a'; '$'='s'; '+'='t' }
+    $leet = $t
+    foreach ($k in $mapa.Keys) { $leet = $leet.Replace($k, $mapa[$k]) }
+    $leet = [regex]::Replace($leet, '(.)\1{2,}', '$1')
+    # "colado": junta APENAS sequencias de caracteres isolados (evasao "p o r n o"),
+    # sem juntar palavras inteiras (evita 'gore' casar em "frango receita").
+    $colapsaIsolados = { param($m) ($m.Value -replace '[^a-z0-9]', '') }
+    $padraoIsolados = '\b[a-z0-9]\b(?:[\s._\-]+\b[a-z0-9]\b)+'
+    return [pscustomobject]@{
+        Texto     = $leet
+        Colado    = [regex]::Replace($leet, $padraoIsolados, $colapsaIsolados)
+        TextoRaw  = $raw
+        ColadoRaw = [regex]::Replace($raw, $padraoIsolados, $colapsaIsolados)
+    }
+}
+
+# ---- base de conhecimento (pesos) ----------------------------------
+# peso 1.0 = termo forte (sozinho ja bloqueia)  | 0.5 = medio  | 0.35 = fraco
+# Padrao = $true  -> tema bloqueado por padrao
+# Padrao = $false -> tema so bloqueia se o responsavel ativar
+$script:CATEGORIAS = @(
+    @{ Nome='Conteudo adulto'; Padrao=$true; SemReducao=$false; Termos=@{
+        'porno'=1.0;'pornografia'=1.0;'pornografico'=1.0;'xvideos'=1.0;'xnxx'=1.0;'nudes'=1.0;'hentai'=1.0;
+        'putaria'=1.0;'conteudo adulto'=1.0;'sexo explicito'=1.0;'onlyfans'=1.0;'camgirl'=1.0;
+        'sexo'=1.0;'transar'=1.0;'nudez'=1.0;'nudez infantil'=1.0;'pornografia infantil'=1.0;'zoofilia'=1.0;
+        'masturbacao'=1.0;'punheta'=1.0;'siririca'=1.0;'video de sexo'=1.0;'fazer sexo'=1.0;
+        'sexo gratis'=1.0;'sexo ao vivo'=1.0;'sexo caseiro'=1.0;'sexo amador'=1.0;'sexo anal'=1.0;
+        'sexo oral'=1.0;'sexo virtual'=1.0;'mulher pelada'=1.0;'mulheres peladas'=1.0;'homem pelado'=1.0;
+        'peladinha'=1.0;'novinha pelada'=1.0;'mulher nua'=1.0;'homem nu'=1.0;'pornhub'=1.0;'redtube'=1.0;
+        'xhamster'=1.0;'xvideo'=1.0;'mulheres nuas'=1.0;'transando'=1.0;'pelada'=0.5;'pelado'=0.5;'+18'=0.5;
+        # ingles (frases seguras contra substring: nada de 'sex'/'naked' puros)
+        # 'xxx' fica de fora: o colapso de repeticoes (xxx->x) o anula e a sigla e ambigua (filme/rapper/beijos)
+        # 'nude' puro fica de fora: e substring de 'nudez' (PT) e causaria FP em arte/biologia
+        'porn'=1.0;'nude pic'=1.0;'nude pics'=1.0;'nude photos'=1.0;'nude video'=1.0;'naked girls'=1.0;'naked woman'=1.0;'naked women'=1.0;
+        'sex video'=1.0;'sex videos'=1.0;'free sex'=1.0;'sex tape'=1.0;'sex scene'=1.0;'having sex'=1.0;'group sex'=1.0;
+        'blowjob'=1.0;'blow job'=1.0;'deepthroat'=1.0;'handjob'=1.0;'boobs'=1.0;'tits'=1.0;'milf'=1.0;'nsfw'=1.0;'dick pic'=1.0;
+        # marcas de site adulto (nomes proprios, sem risco de substring comum)
+        'brazzers'=1.0;'spankbang'=1.0;'chaturbate'=1.0;'stripchat'=1.0;'bongacams'=1.0;'erome'=1.0;'motherless'=1.0;'rule34'=1.0;'rule 34'=1.0;'youporn'=1.0;'nhentai'=1.0;
+        'youjizz'=1.0;'fapello'=1.0;'coomer party'=1.0;'simpcity'=1.0;'eporner'=1.0;'hqporner'=1.0;
+        # CSAM / aliciamento (bloqueio critico)
+        'pedofilia'=1.0;'pedofilo'=1.0;'conteudo sexual infantil'=1.0;'menor de idade nua'=1.0;'sexo com menor'=1.0;
+        'mandar foto pelada'=1.0;'tirar foto intima'=1.0;'mandar foto intima'=1.0;
+        # troca de nudes entre adolescentes / revenge porn (frases seguras vs 'novinha em folha'/'foto intima significado')
+        'pack de novinha'=1.0;'pack de novinhas'=1.0;'fotos intimas vazadas'=1.0;'foto intima vazada'=1.0;
+        # evasao por hifen de marcas de token unico (baixo risco de FP; NAO uso variante com espaco, ambigua)
+        'x-videos'=1.0;'x-video'=1.0;'only-fans'=1.0;'red-tube'=1.0;'x-hamster'=1.0;'porn-hub'=1.0;
+        # espanhol (cuidado substring: 'desnuda' puro pega 'desnudar'; uso frases p/ o feminino)
+        'desnudo'=1.0;'desnudos'=1.0;'desnudas'=1.0;'mujer desnuda'=1.0;'chica desnuda'=1.0;'fotos desnuda'=1.0;'tetas'=1.0;
+        # frances por FRASE (nunca 'nu'/'nue'/'sexe' puros: pegariam menu/avenue/continue)
+        'femme nue'=1.0;'femmes nues'=1.0;'fille nue'=1.0;'photos nues'=1.0;'sexe gratuit'=1.0;'sexe en direct'=1.0 } },
+    @{ Nome='Violencia'; Padrao=$true; SemReducao=$false; Termos=@{
+        'decapitacao'=1.0;'tortura'=1.0;'gore'=1.0;'estupro'=1.0;'espancamento'=0.5;
+        'violencia extrema'=1.0;'videos de violencia'=1.0;'briga de rua'=1.0;
+        'violencia'=0.5;'sangue'=0.35;'briga'=0.35;'assassinato'=0.5;'massacre'=0.5;
+        'dar um tiro em alguem'=1.0;'atirar em alguem'=1.0;'como matar alguem'=1.0;'como matar uma pessoa'=1.0;
+        'how to kill someone'=1.0;'how to kill a person'=1.0;'kill someone'=1.0 } },
+    @{ Nome='Autolesao e suicidio'; Padrao=$true; SemReducao=$true; Termos=@{
+        'suicidio'=1.0;'como se matar'=1.0;'me matar'=1.0;'quero morrer'=1.0;'vontade de morrer'=1.0;
+        'automutilacao'=1.0;'me cortar'=1.0;'cortar os pulsos'=1.0;'tirar a propria vida'=1.0;'tirar minha vida'=1.0;
+        'anorexia dicas'=1.0;'pro ana'=1.0;'me enforcar'=1.0;'como se enforcar'=1.0;
+        'self harm'=1.0;'suicide methods'=1.0;'commit suicide'=1.0;'how to commit suicide'=1.0;'kill myself'=1.0;
+        'want to die'=1.0;'end my life'=1.0;'ways to die'=1.0;
+        'suicidarme'=1.0;'suicidarse'=1.0;'se suicider'=1.0;'suicider'=1.0 } },
+    @{ Nome='Armas'; Padrao=$true; SemReducao=$true; Termos=@{
+        'como fazer bomba'=1.0;'fazer uma bomba'=1.0;'bomba caseira'=1.0;'fabricar bomba'=1.0;
+        'fazer explosivo'=1.0;'explosivo caseiro'=1.0;'fabricar arma'=1.0;'arma caseira'=1.0;'explosivo'=0.5;
+        'arma de fogo'=0.5;'comprar arma de fogo'=1.0;'comprar fuzil'=1.0;'arma no mercado negro'=1.0;
+        'comprar arma ilegal'=1.0;'vender arma ilegal'=1.0;'arma ilegal'=0.5;
+        'how to make a bomb'=1.0;'make a bomb'=1.0;'build a bomb'=1.0;'pipe bomb'=1.0;'buy a gun illegally'=1.0;
+        'como hacer una bomba'=1.0;'hacer una bomba casera'=1.0;
+        'pistola'=0.35;'rifle'=0.35;'fuzil'=0.35;'municao'=0.35 } },
+    @{ Nome='Drogas'; Padrao=$true; SemReducao=$false; Termos=@{
+        'como usar drogas'=1.0;'comprar maconha'=1.0;'usar cocaina'=1.0;'cheirar cocaina'=1.0;
+        'comprar cocaina'=1.0;'comprar droga'=1.0;'cheirar cola'=1.0;'cocaina'=0.5;'crack'=0.5;'maconha'=0.5;
+        'lsd'=0.5;'ecstasy'=0.5;'droga'=0.35;'entorpecente'=0.5;
+        'lanca perfume'=1.0;'cheirar lolo'=1.0;'cheirinho da lolo'=1.0;'fumar baseado'=1.0;'baseado de maconha'=1.0;
+        'comprar skunk'=1.0;'skunk droga'=1.0;
+        'buy weed'=1.0;'smoke weed'=1.0;'weed dealer'=1.0;'buy cocaine'=1.0;'buy drugs'=1.0;'how to get high'=0.5;'cocaine'=0.5;
+        'acheter de la drogue'=1.0 } },
+    @{ Nome='Apostas'; Padrao=$true; SemReducao=$true; Termos=@{
+        'cassino online'=1.0;'aposta esportiva'=1.0;'jogo do bicho'=1.0;'aposta'=0.5;'cassino'=0.5;
+        'tigrinho'=1.0;'jogo do tigrinho'=1.0;'bet365'=1.0;'betano'=1.0;'sportingbet'=1.0;'blaze aposta'=1.0;
+        'online casino'=1.0;'sports betting'=1.0;'online gambling'=1.0;'slot machine'=1.0;'gambling'=0.5;
+        'roleta'=0.5;'roleta cassino'=1.0;'apostar dinheiro'=1.0;'apostas online'=1.0;'site de apostas'=1.0;
+        'blaze'=0.5;'aviator'=0.5;'jogo aviator'=1.0;'fortune tiger'=1.0;
+        'caca-niquel'=1.0;'caca niquel'=1.0;'jogo de azar'=1.0;'poker valendo'=1.0;'poker a dinheiro'=1.0;
+        'jogar no bicho'=1.0;'raspadinha valendo'=1.0;'raspadinha online'=1.0;'raspadinha premiada'=1.0;
+        # marcas de aposta (frases/nomes seguros contra substring: nada de 'stake'/'kto' puros)
+        'stake bet'=1.0;'stake casino'=1.0;'1xbet'=1.0;'pixbet'=1.0;'esportes da sorte'=1.0;'superbet'=1.0;
+        'betfair'=1.0;'kto bet'=1.0;'kto apostas'=1.0;'sportsbet'=1.0;'blaze apostas'=1.0;
+        # casas de aposta BR atuais (nomes proprios; cuidado substring conferido)
+        'estrelabet'=1.0;'vaidebet'=1.0;'realsbet'=1.0;'betnacional'=1.0;'bet nacional'=1.0;'multibet'=1.0;
+        'br4bet'=1.0;'brabet'=1.0;'f12bet'=1.0;'f12 bet'=1.0;'pagbet'=1.0;'7games bet'=1.0 } },
+    @{ Nome='Burlar protecao'; Padrao=$true; SemReducao=$true; Termos=@{
+        'burlar filtro'=1.0;'burlar o filtro'=1.0;'driblar o filtro'=1.0;'desativar safesearch'=1.0;
+        'desbloquear sites'=1.0;'filtro da escola'=1.0;'vpn para escola'=1.0;'como burlar'=0.5;'proxy anonimo'=0.5 } },
+    @{ Nome='Linguagem impropria'; Padrao=$true; SemReducao=$true; Termos=@{
+        'caralho'=0.5;'porra'=0.5;'buceta'=1.0;'piroca'=1.0;'xingamentos pesados'=0.5 } },
+    # Odio/extremismo: so frases APOLOGETICAS bloqueiam; historia/educacao (nazismo,
+    # holocausto, racismo estrutural) sao liberadas (termos especificos + reducao por contexto).
+    @{ Nome='Odio e extremismo'; Padrao=$true; SemReducao=$false; Termos=@{
+        'apologia ao nazismo'=1.0;'apologia ao racismo'=1.0;'grupo neonazista'=1.0;'ser neonazista'=1.0;
+        'como ser racista'=1.0;'piada racista'=1.0;'piadas racistas'=1.0;'raca superior'=1.0;
+        'superioridade da raca'=1.0;'saudacao nazista'=1.0;'simbolo nazista'=1.0;
+        'grupo de odio'=1.0;'supremacia branca'=0.5;'limpeza etnica'=0.5 } },
+    # temas OPCIONAIS (o responsavel decide se ativa):
+    @{ Nome='Namoro e relacionamento'; Padrao=$false; SemReducao=$true; Termos=@{
+        'app de namoro'=1.0;'tinder'=1.0;'como beijar'=0.5;'namorada online'=0.5;'pegar meninas'=0.5 } },
+    @{ Nome='Redes sociais'; Padrao=$false; SemReducao=$true; Termos=@{
+        'tiktok'=0.5;'instagram'=0.5;'kwai'=0.5;'snapchat'=0.5;'como criar conta no'=0.35 } }
+)
+
+$script:CONTEXTO_SEGURO = @('dever de casa','trabalho escolar','feira de ciencias','aula de ciencias',
+    'biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de',
+    'sexo masculino','sexo feminino','sexo do bebe','sexo biologico','sexo do feto','qual o sexo',
+    'sexo fragil','sexo forte','sexo oposto','sexo dos anjos','ambos os sexos','sexo dos personagens',
+    'estatua','escultura','renascentista','museu','historia da arte','obra de arte','pintura','arte grega')
+
+$script:LIMIAR_PADRAO = 1.0
+
+# ---- configuracao do responsavel -----------------------------------
+# checagem de propriedade segura sob StrictMode (indexador nao enumera).
+function Test-Prop {
+    param($Obj, [string]$Nome)
+    return ($null -ne $Obj -and $null -ne $Obj.PSObject.Properties[$Nome])
+}
+
+# Le a secao "classificador" do config.json, se o app estiver instalado.
+function Get-ClassificadorConfig {
+    if (Get-Command Get-SentinelaConfig -ErrorAction SilentlyContinue) {
+        $cfg = Get-SentinelaConfig
+        if (Test-Prop $cfg 'classificador') { return $cfg.classificador }
+    }
+    return $null
+}
+
+# ---- classificacao --------------------------------------------------
+function Get-ClassificacaoConteudo {
+    param([Parameter(Mandatory)][string]$Texto)
+    $norm = Get-TextoNormalizado -Texto $Texto
+
+    # configuracao do responsavel
+    $conf = Get-ClassificadorConfig
+    $desativados = @()
+    $modoRigido  = $false
+    $termosExtra = @()
+    if ($conf) {
+        if ((Test-Prop $conf 'temasDesativados') -and $conf.temasDesativados) { $desativados = @($conf.temasDesativados) }
+        if (Test-Prop $conf 'modoRigido') { $modoRigido = [bool]$conf.modoRigido }
+        if ((Test-Prop $conf 'termosPersonalizados') -and $conf.termosPersonalizados) { $termosExtra = @($conf.termosPersonalizados) }
+    }
+    $limiar = if ($modoRigido) { 0.5 } else { $script:LIMIAR_PADRAO }
+
+    # reducao por contexto educativo/saude
+    $reducao = 0.0
+    foreach ($ctx in $script:CONTEXTO_SEGURO) {
+        if ($norm.Texto.Contains((ConvertTo-SemAcento $ctx))) { $reducao = 0.5; break }
+    }
+
+    # nomes de tema comparados de forma normalizada (sem acento/caixa),
+    # para o config nao errar por causa de acento (BUG-11).
+    $normNome = { param($s) (ConvertTo-SemAcento ([string]$s)).ToLowerInvariant().Trim() }
+    $desativadosN = @($desativados | ForEach-Object { & $normNome $_ })
+    $ativadosN = if (Test-Prop $conf 'temasAtivados') { @($conf.temasAtivados | ForEach-Object { & $normNome $_ }) } else { @() }
+
+    # monta a lista de temas ativos (+ tema personalizado do responsavel)
+    $categorias = @()
+    foreach ($cat in $script:CATEGORIAS) {
+        $nomeN = & $normNome $cat.Nome
+        if ($desativadosN -contains $nomeN) { continue }
+        # temas opcionais so entram se o responsavel ativou explicitamente
+        if (-not $cat.Padrao -and ($ativadosN -notcontains $nomeN)) { continue }
+        $categorias += $cat
+    }
+    if ($termosExtra.Count -gt 0) {
+        $mapaExtra = @{}
+        foreach ($t in $termosExtra) { $mapaExtra[(ConvertTo-SemAcento ([string]$t)).ToLowerInvariant()] = 1.0 }
+        $categorias += @{ Nome='Bloqueio do responsavel'; Padrao=$true; SemReducao=$true; Termos=$mapaExtra }
+    }
+
+    $melhor = $null
+    foreach ($cat in $categorias) {
+        $score = 0.0
+        $sinais = @()
+        foreach ($termo in $cat.Termos.Keys) {
+            $peso = $cat.Termos[$termo]
+            $termoColado = [regex]::Replace($termo, '[^a-z0-9]', '')
+            $achou = $norm.Texto.Contains($termo) -or $norm.TextoRaw.Contains($termo)
+            if (-not $achou -and $termoColado.Length -ge 3) {
+                $achou = $norm.Colado.Contains($termoColado) -or $norm.ColadoRaw.Contains($termoColado)
+            }
+            if ($achou) {
+                $score += $peso
+                $sinais += $termo
+            }
+        }
+        if ($score -gt 0) {
+            $reducaoCat = if ($cat.SemReducao) { 0.0 } else { $reducao }
+            $scoreFinal = [math]::Max(0.0, $score - $reducaoCat)
+            if ($null -eq $melhor -or $scoreFinal -gt $melhor.Score) {
+                $melhor = [pscustomobject]@{ Categoria=$cat.Nome; Score=$scoreFinal; Sinais=$sinais }
+            }
+        }
+    }
+
+    if ($null -eq $melhor) {
+        return [pscustomobject]@{ Bloquear=$false; Categoria=$null; Confianca=0.0; Sinais=@(); Motivo='Nenhum sinal de risco.' }
+    }
+
+    $bloquear = ($melhor.Score -ge $limiar)
+    $confianca = [math]::Round([math]::Min(1.0, $melhor.Score / ($limiar * 1.5)), 2)
+    $motivo = if ($bloquear) {
+        ('Tema "{0}" detectado (sinais: {1}).' -f $melhor.Categoria, ($melhor.Sinais -join ', '))
+    } else {
+        ('Sinais fracos de "{0}", abaixo do limiar - liberado.' -f $melhor.Categoria)
+    }
+
+    return [pscustomobject]@{
+        Bloquear=$bloquear; Categoria=$melhor.Categoria; Confianca=$confianca; Sinais=$melhor.Sinais; Motivo=$motivo
+    }
+}
+
+function Test-ConteudoImproprio {
+    param([Parameter(Mandatory)][string]$Texto)
+    return (Get-ClassificacaoConteudo -Texto $Texto).Bloquear
+}
+
+# conta ocorrencias (nao sobrepostas) de um trecho
+function Measure-Ocorrencias {
+    param([string]$Texto, [string]$Termo)
+    if (-not $Termo) { return 0 }
+    $n = 0; $i = 0
+    while (($i = $Texto.IndexOf($Termo, $i)) -ge 0) { $n++; $i += $Termo.Length }
+    return $n
+}
+
+<#
+  Analisa o CONTEUDO de uma pagina inteira (o texto que a crianca esta VENDO),
+  nao apenas a busca. Conta OCORRENCIAS dos termos e exige um limiar mais alto
+  (a pagina tem muito texto), para nao bloquear uma mencao incidental num
+  artigo/noticia. Cada termo contribui no maximo 3x o seu peso.
+#>
+function Get-ClassificacaoPagina {
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Texto, [double]$LimiarPagina = 3.0)
+    if ([string]::IsNullOrWhiteSpace($Texto)) {
+        return [pscustomobject]@{ Bloquear=$false; Categoria=$null; Score=0.0; Sinais=@() }
+    }
+    $norm = Get-TextoNormalizado -Texto $Texto
+    $conf = Get-ClassificadorConfig
+
+    $desativados = @(); $termosExtra = @()
+    if ($conf) {
+        if ((Test-Prop $conf 'temasDesativados') -and $conf.temasDesativados) { $desativados = @($conf.temasDesativados) }
+        if ((Test-Prop $conf 'termosPersonalizados') -and $conf.termosPersonalizados) { $termosExtra = @($conf.termosPersonalizados) }
+    }
+    $normNome = { param($s) (ConvertTo-SemAcento ([string]$s)).ToLowerInvariant().Trim() }
+    $desativadosN = @($desativados | ForEach-Object { & $normNome $_ })
+    $ativadosN = if (Test-Prop $conf 'temasAtivados') { @($conf.temasAtivados | ForEach-Object { & $normNome $_ }) } else { @() }
+
+    # categorias ativas (+ termos personalizados do responsavel)
+    $cats = @()
+    foreach ($cat in $script:CATEGORIAS) {
+        $nomeN = & $normNome $cat.Nome
+        if ($desativadosN -contains $nomeN) { continue }
+        if (-not $cat.Padrao -and ($ativadosN -notcontains $nomeN)) { continue }
+        $cats += $cat
+    }
+    if ($termosExtra.Count -gt 0) {
+        $mapaExtra = @{}
+        foreach ($t in $termosExtra) { $mapaExtra[(ConvertTo-SemAcento ([string]$t)).ToLowerInvariant()] = 1.0 }
+        $cats += @{ Nome='Bloqueio do responsavel'; Padrao=$true; SemReducao=$true; Termos=$mapaExtra }
+    }
+
+    $melhor = $null
+    foreach ($cat in $cats) {
+        $score = 0.0; $sinais = @()
+        foreach ($termo in $cat.Termos.Keys) {
+            $occ = Measure-Ocorrencias $norm.Texto $termo
+            if ($occ -eq 0) { $occ = Measure-Ocorrencias $norm.TextoRaw $termo }
+            if ($occ -gt 0) {
+                $score += $cat.Termos[$termo] * [math]::Min($occ, 3)
+                $sinais += ('{0}x{1}' -f $occ, $termo)
+            }
+        }
+        if ($score -gt 0 -and ($null -eq $melhor -or $score -gt $melhor.Score)) {
+            $melhor = [pscustomobject]@{ Categoria=$cat.Nome; Score=$score; Sinais=$sinais }
+        }
+    }
+    if ($null -eq $melhor) {
+        return [pscustomobject]@{ Bloquear=$false; Categoria=$null; Score=0.0; Sinais=@() }
+    }
+    return [pscustomobject]@{
+        Bloquear  = ($melhor.Score -ge $LimiarPagina)
+        Categoria = $melhor.Categoria
+        Score     = [math]::Round($melhor.Score, 1)
+        Sinais    = $melhor.Sinais
+    }
+}
+
+# lista os temas disponiveis (para o painel do responsavel montar as opcoes)
+function Get-TemasDisponiveis {
+    return $script:CATEGORIAS | ForEach-Object {
+        [pscustomobject]@{ Tema=$_.Nome; PadraoLigado=$_.Padrao }
+    }
+}
