@@ -104,6 +104,17 @@ packages/
 - [`apps/crm/README.md`](apps/crm/README.md) — o CRM em detalhe
 - [`apps/crm/docs/ARCHITECTURE.md`](apps/crm/docs/ARCHITECTURE.md) — arquitetura do backend
 
+## Histórico
+
+Os dois repositórios foram unidos preservando o histórico completo, com os
+caminhos já reescritos para o layout do monorepo. Ou seja: `git log` e
+`git blame` num arquivo mostram a vida inteira dele, inclusive antes da união.
+
+```bash
+git log --oneline -- apps/guardian/app/Sentinela-Classificador.ps1
+git log --oneline -- apps/crm/backend/app/main.py
+```
+
 ## Privacidade
 
 - Buscas e páginas são classificadas **no dispositivo**; nada é enviado para fora.
