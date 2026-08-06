@@ -1,0 +1,131 @@
+/* =========================================================
+   Sentinela Design System — tokens canonicos
+   ---------------------------------------------------------
+   FONTE UNICA DE VERDADE da identidade visual da suite.
+   Todo app (CRM, painel do responsavel, extensao) consome
+   estas variaveis. Nao redefina paleta em outro arquivo.
+
+   Origem da paleta: apps/guardian/demo/index.html (a UX
+   oficial do Sentinela). Nomes de token mantidos compativeis
+   com o CRM para que o re-skin nao mude uma linha de layout.
+
+   Sem @import externo e sem CDN de fontes: a suite roda
+   100% offline (regra: zero APIs externas).
+   ========================================================= */
+
+:root {
+  /* --- Marca Sentinela --- */
+  --sn-ink: #0b1220;        /* fundo mais profundo   */
+  --sn-ink-2: #0a141d;      /* superficie "browser"  */
+  --sn-panel: #0d1a26;      /* cartao / painel       */
+  --sn-well: #08131c;       /* campo / poco          */
+  --sn-line: #1e3a44;       /* borda padrao          */
+  --sn-teal: #2dd4bf;       /* acao primaria         */
+  --sn-teal-d: #0ea5a0;     /* primaria pressionada  */
+  --sn-teal-glow: rgba(45, 212, 191, 0.33);
+  --sn-mint: #7ff5e6;       /* hover / realce        */
+  --sn-coral: #ff6b6b;      /* perigo / bloqueio     */
+  --sn-amber: #f6b73c;      /* alerta / incognito    */
+  --sn-txt: #e6f6f2;
+  --sn-muted: #90aeb4;
+  --sn-muted-2: #5e7a82;
+
+  /* --- Superficies (aliases consumidos pelo CRM) --- */
+  --bg: var(--sn-ink);
+  --bg-1: #0c1826;
+  --bg-2: var(--sn-panel);
+  --bg-3: #13242f;
+  --bg-hover: #17303c;
+  --fg: var(--sn-txt);
+  --fg-2: #c2ddd9;
+  --fg-3: var(--sn-muted);
+  --fg-4: var(--sn-muted-2);
+  --border: var(--sn-line);
+  --border-strong: #2b5462;
+
+  /* --- Acao --- */
+  --primary: var(--sn-teal);
+  --primary-2: var(--sn-teal-d);
+  --primary-fg: var(--sn-ink);
+  --primary-soft: rgba(45, 212, 191, 0.14);
+
+  --accent: var(--sn-mint);
+  --accent-2: var(--sn-teal);
+  --accent-soft: rgba(127, 245, 230, 0.14);
+
+  /* --- Estado --- */
+  --ok: var(--sn-teal);
+  --ok-soft: rgba(45, 212, 191, 0.14);
+  --warn: var(--sn-amber);
+  --warn-soft: rgba(246, 183, 60, 0.14);
+  --danger: var(--sn-coral);
+  --danger-soft: rgba(255, 107, 107, 0.14);
+
+  /* --- Espacamento --- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+
+  /* --- Raios --- */
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  /* --- Sombras --- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 0 3px var(--primary-soft);
+
+  /* --- Tipografia ---
+     "Sora" e "DM Sans" sao as fontes oficiais do Sentinela. Como a suite
+     roda offline, elas so entram se ja estiverem instaladas no sistema;
+     caso contrario a pilha cai na fonte nativa do SO (Segoe UI no Windows). */
+  --font-display: "Sora", "Segoe UI Variable Display", "Segoe UI", -apple-system,
+    BlinkMacSystemFont, Roboto, sans-serif;
+  --font: "DM Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, monospace;
+
+  /* --- Movimento --- */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-med: 200ms;
+}
+
+/* Tema claro — mesma marca, superficie invertida. */
+[data-theme="light"] {
+  --bg: #f2f8f7;
+  --bg-1: #ffffff;
+  --bg-2: #ffffff;
+  --bg-3: #e6f2f0;
+  --bg-hover: #d5eae6;
+  --fg: #07231f;
+  --fg-2: #1d4a45;
+  --fg-3: #4a7a74;
+  --fg-4: #7ba39d;
+  --border: #cfe6e2;
+  --border-strong: #a9cec8;
+  --primary: var(--sn-teal-d);
+  --primary-2: #0b8a86;
+  --primary-fg: #ffffff;
+  --accent: var(--sn-teal-d);
+  --accent-2: #0b8a86;
+  --ok: var(--sn-teal-d);
+  --warn: #b47c12;
+  --danger: #d64545;
+  --shadow-sm: 0 1px 2px rgba(7, 35, 31, 0.06);
+  --shadow-md: 0 4px 12px rgba(7, 35, 31, 0.08);
+  --shadow-lg: 0 12px 40px rgba(7, 35, 31, 0.12);
+}
+
+/* Titulos usam a display do Sentinela com o mesmo tracking da UX oficial. */
+h1, h2, h3, h4, .sn-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}

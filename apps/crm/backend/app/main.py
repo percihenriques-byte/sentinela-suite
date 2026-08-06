@@ -98,6 +98,14 @@ def create_app() -> FastAPI:
     app.include_router(email_templates_router, prefix="/api/v1")
     app.include_router(files_router, prefix="/api/v1")
 
+    # Design system compartilhado da suite (packages/ui) — servido em /ui.
+    # Precisa ser montado ANTES do catch-all "/", senao o mount da raiz engole
+    # a rota. Silenciosamente ignorado se a pasta nao existir (o app continua
+    # funcional, so perde os tokens da marca).
+    ui_dir = Path(__file__).resolve().parents[4] / "packages" / "ui"
+    if ui_dir.exists():
+        app.mount("/ui", StaticFiles(directory=str(ui_dir)), name="sentinela-ui")
+
     # Mount the static frontend at "/". Path is relative to the repo root
     # (backend/ is the CWD when running uvicorn). Skipped silently if missing —
     # keeps tests happy in ephemeral environments.

@@ -3,14 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>VisiQuost — CRM com Jarvis local</title>
+  <title>VisiQuost — CRM da Sentinela Suite</title>
   <meta name="description" content="CRM com Jarvis — assistente IA que roda 100% na sua máquina. Zero APIs externas. Kanban, forecast, lead scoring, tudo local.">
-  <meta name="theme-color" content="#a855f7">
+  <meta name="theme-color" content="#2dd4bf">
   <!-- No external CDN fonts (zero-external-APIs rule).
        System font stack picks the best available: SF Pro on macOS/iOS,
        Segoe UI on Windows, Inter/Roboto if installed, otherwise the OS default. -->
+  <!-- Tokens da UX oficial do Sentinela (packages/ui) — carregados ANTES do
+       app.css, que apenas consome as variaveis. -->
+  <link rel="stylesheet" href="/ui/sentinela-tokens.css" />
   <link rel="stylesheet" href="./assets/app.css" />
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%23a855f7'/%3E%3Cpath d='M35 40 Q50 25 65 40 M35 60 Q50 75 65 60' stroke='white' stroke-width='6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 280 280'%3E%3Cpath d='M140 8 L246 44 C246 44 246 150 232 188 C216 232 178 256 140 268 C102 256 64 232 48 188 C34 150 34 44 34 44 Z' fill='%232DD4BF'/%3E%3Cpath d='M140 30 L224 58 C224 58 224 142 213 174 C200 210 170 230 140 240 C110 230 80 210 67 174 C56 142 56 58 56 58 Z' fill='%230B1220'/%3E%3Ccircle cx='130' cy='124' r='40' fill='none' stroke='%232DD4BF' stroke-width='14'/%3E%3Cpath d='M112 124 L126 139 L150 110' fill='none' stroke='%237FF5E6' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 </head>
 <body>
   <div id="app" data-view="loading">
@@ -19,7 +22,7 @@
     <section class="auth-view" data-view="auth">
       <div class="auth-hero">
         <div class="auth-logo">
-          <svg viewBox="0 0 100 100" width="44" height="44"><circle cx="50" cy="50" r="45" fill="url(#g)"/><path d="M35 40 Q50 25 65 40 M35 60 Q50 75 65 60" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs></svg>
+          <svg viewBox="0 0 280 280" width="44" height="44" role="img" aria-label="Sentinela"><defs><linearGradient id="g" x1="40" y1="30" x2="240" y2="250" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2DD4BF"/><stop offset="1" stop-color="#0EA5A0"/></linearGradient><linearGradient id="gi" x1="95" y1="90" x2="185" y2="180" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0B1220"/><stop offset="1" stop-color="#0F2330"/></linearGradient></defs><path d="M140 8 L246 44 C246 44 246 150 232 188 C216 232 178 256 140 268 C102 256 64 232 48 188 C34 150 34 44 34 44 Z" fill="url(#g)"/><path d="M140 30 L224 58 C224 58 224 142 213 174 C200 210 170 230 140 240 C110 230 80 210 67 174 C56 142 56 58 56 58 Z" fill="url(#gi)"/><circle cx="130" cy="124" r="40" fill="none" stroke="#2DD4BF" stroke-width="14"/><path d="M112 124 L126 139 L150 110" fill="none" stroke="#7FF5E6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><rect x="156" y="150" width="44" height="16" rx="8" transform="rotate(45 156 150)" fill="#2DD4BF"/></svg>
           <div class="brand-name">VisiQuost</div>
           <span class="auth-badge" data-i18n="auth_badge_local">100% LOCAL</span>
         </div>
@@ -109,7 +112,7 @@
       <div id="sidebar-scrim" class="sidebar-scrim"></div>
       <aside class="sidebar">
         <div class="brand-row">
-          <svg viewBox="0 0 100 100" width="28" height="28" class="brand-mark"><circle cx="50" cy="50" r="45" fill="url(#gm)"/><path d="M35 40 Q50 25 65 40 M35 60 Q50 75 65 60" stroke="white" stroke-width="6" fill="none" stroke-linecap="round"/><defs><linearGradient id="gm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs></svg>
+          <svg viewBox="0 0 280 280" width="28" height="28" class="brand-mark" role="img" aria-label="Sentinela"><defs><linearGradient id="gm" x1="40" y1="30" x2="240" y2="250" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2DD4BF"/><stop offset="1" stop-color="#0EA5A0"/></linearGradient><linearGradient id="gmi" x1="95" y1="90" x2="185" y2="180" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#0B1220"/><stop offset="1" stop-color="#0F2330"/></linearGradient></defs><path d="M140 8 L246 44 C246 44 246 150 232 188 C216 232 178 256 140 268 C102 256 64 232 48 188 C34 150 34 44 34 44 Z" fill="url(#gm)"/><path d="M140 30 L224 58 C224 58 224 142 213 174 C200 210 170 230 140 240 C110 230 80 210 67 174 C56 142 56 58 56 58 Z" fill="url(#gmi)"/><circle cx="130" cy="124" r="40" fill="none" stroke="#2DD4BF" stroke-width="14"/><path d="M112 124 L126 139 L150 110" fill="none" stroke="#7FF5E6" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/><rect x="156" y="150" width="44" height="16" rx="8" transform="rotate(45 156 150)" fill="#2DD4BF"/></svg>
           <div class="brand">VisiQuost</div>
         </div>
 

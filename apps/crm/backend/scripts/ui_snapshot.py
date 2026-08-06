@@ -18,7 +18,7 @@ OUT_DIR = ROOT / "screenshots"
 OUT_DIR.mkdir(exist_ok=True)
 
 BASE = "http://127.0.0.1:8000"
-EMAIL = "demo@example.com"
+EMAIL = "demo@visiquost.app"
 PASSWORD = "demo1234"
 
 # (name, click-selector-or-nav-key, wait-selector)
