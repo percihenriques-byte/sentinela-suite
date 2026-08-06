@@ -22,11 +22,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: apps/crm/backend/requirements.txt
+          cache-dependency-path: apps/crm/backend/requirements-dev.txt
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
       - name: pytest
         env:
           # Mesmas variaveis do conftest: o app recusa subir sem chave de cifra
@@ -86,7 +86,7 @@ jobs:
       - name: Instalar Playwright + Chromium
         run: |
           python -m pip install --upgrade pip
-          pip install playwright
+          pip install -r apps/crm/backend/requirements-dev.txt
           python -m playwright install --with-deps chromium
       # O corpus mede o classificador PowerShell, mas quem protege a tela da
       # crianca e o JS da extensao. Rodar o mesmo corpus contra o motor JS e a
@@ -111,7 +111,7 @@ jobs:
           python-version: "3.12"
       - run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
           python -m playwright install chromium
       - name: E2E extensao + ponte PowerShell
         working-directory: .

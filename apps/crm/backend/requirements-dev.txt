@@ -1,0 +1,22 @@
+# Dependencias de DESENVOLVIMENTO E TESTE.
+#
+# Ficam separadas de requirements.txt de proposito: quem instala o produto pelo
+# INSTALAR.bat nao precisa baixar navegador nem framework de teste.
+#
+# Este arquivo nasceu de uma falha real: o CI subiu, rodou `pip install -r
+# requirements.txt` e quebrou com "No module named pytest" — as ferramentas de
+# teste existiam so na venv da minha maquina, instaladas a mao. Ou seja, o
+# ambiente de teste nao era reproduzivel em lugar nenhum alem daqui.
+#
+# Instalar (a partir de apps/crm/backend):
+#   .venv\Scripts\python.exe -m pip install -r requirements.txt -r requirements-dev.txt
+#   .venv\Scripts\python.exe -m playwright install chromium
+
+-r requirements.txt
+
+pytest>=9.1
+pytest-cov>=7.1
+
+# E2E: sobe o app num Chromium de verdade, carrega a extensao real e roda o
+# corpus rotulado contra o motor JS que protege a tela da crianca.
+playwright>=1.61
