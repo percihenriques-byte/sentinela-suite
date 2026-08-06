@@ -1,7 +1,7 @@
 # Relatório — unificação Sentinela + VisiQuost
 
 **Repositório:** `percihenriques-byte/sentinela-suite` (privado)
-**Data:** 06/08/2026 · **Branch:** `main` · **101 commits**
+**Data:** 06/08/2026 · **Branch:** `main` · **103 commits**
 
 Documento para quem vai continuar o projeto sem ter estado na sessão. Descreve
 o que existia, o que foi feito, por que cada decisão foi tomada, o que foi
@@ -434,3 +434,41 @@ apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Painel
 
 Os repositórios de origem (`sentinela` e `visiquost-crm`) continuam intactos no
 GitHub — nada foi apagado neles.
+
+---
+
+## 11. Auditoria independente e correcoes
+
+Uma auditoria externa leu o codigo (nao este relatorio) e listou 12 achados,
+tres deles bloqueando release. Confirmei cada um contra o codigo antes de mexer
+— inclusive reproduzindo o A1 — e todos foram corrigidos, com teste que trava a
+regressao (`apps/crm/backend/tests/test_auditoria.py`, 20 testes).
+
+| # | Achado | O que estava errado | Correcao |
+|---|---|---|---|
+| A1 | Chave de cifra ausente | O instalador gerava `APP_SECRET_KEY` e esquecia `FIELD_ENCRYPTION_KEY`. Em instalacao limpa a chave ficava vazia, `encrypt()` levantava `RuntimeError` e a **primeira busca da crianca virava 500** — o painel nunca recebia evento. O E2E nao pegava porque o ambiente de teste define a chave. | Instalador gera a chave (e preenche instalacao antiga que esteja sem ela). O app **recusa subir** sem ela, com mensagem dizendo como gerar. |
+| A2 | Bind em `0.0.0.0` | Os quatro pontos de inicializacao abriam o servidor para a rede "para o celular acessar". O painel — com o historico decifrado — ficava alcancavel por qualquer aparelho da Wi-Fi, protegido so por login. | `127.0.0.1` por padrao. LAN so com `SENTINELA_BIND_LAN=1`. |
+| A3 | Conta demo fixa | `demo@visiquost.app` / `demo1234` criada em toda instalacao. Com A2, credencial publica para o historico de uma crianca. | Bootstrap so com `APP_ENV=dev`; `.env.example` instala como `prod`; a SPA detecta instalacao nova, abre em "Criar conta" e some com o botao de demo. O painel pede o PIN na primeira visita. |
+| A4/A5 | Config contradizendo o produto | `.env.example` anunciava `ANTHROPIC_*`; default de CORS apontava para `localhost:3000`, origem que nao existe. | Ambos para loopback:8000; teste garante que o default nunca inclui origem nao-loopback. |
+| A6 | PIN sem lockout | 10.000 combinacoes caindo em segundos. Registrar a tentativa foi confundido com defesa contra a tentativa. | Lockout progressivo persistido (5 → 1 min, 10 → 15 min, 15 → 1 h), valendo tambem na troca de PIN, mais balde de taxa na rota. |
+| A7 | Sem CI | As cinco suites so rodavam a mao. | `.github/workflows/ci.yml`: pytest, ciclo de migrations e classificador+corpus em todo push; E2E sob `workflow_dispatch`. |
+| A8 | `/resumo` com teto de 5000 | A serie diaria contava em Python ate 5000 eventos enquanto os cartoes usavam `COUNT`: passando do teto, grafico e cartoes discordavam **em silencio**. | Agregacao em SQL (`func.date`) com fallback; teste com 5.200 eventos confirma que serie e totais batem. |
+| A9 | Cores fora dos tokens | `#fb923c` e `#f472b6` cravados. | Viraram tokens; `app.css` agora so tem `#000` e `#fff`, com teste que trava isso. |
+| A10 | Painel sem escopo | Decisao correta, mas sem nada impedindo a evolucao perigosa. | Invariante registrado no proprio modulo, dizendo o que fazer quando multiusuario entrar. |
+| A11 | Retencao so na ingestao | Instalacao ociosa nunca purgava — dado sensivel ficava indefinidamente. | Laco proprio no lifespan, que roda sempre (o de backup e opcional e retornava cedo). |
+| A12 | Duas validacoes para os mesmos dados | Import legado e ingestao ao vivo divergiam. | `normalizar_evento()` unica, consumida pelas duas portas. |
+
+Um achado do auditor precisa de ressalva: ele descreveu A1 como "chave vazia →
+`RuntimeError`", e esta certo — mas vale registrar que o outro `.env.example`
+(`apps/crm/.env.example`, nao usado pelo instalador) trazia um **placeholder
+fixo**. Se o instalador copiasse aquele, nao haveria erro nenhum: toda
+instalacao compartilharia a mesma chave conhecida, e a "cifra em repouso" seria
+teatro. Os dois arquivos foram corrigidos.
+
+O que a auditoria confirmou como correto (verificado no codigo, nao assumido):
+fonte unica de classificacao respeitada, token de ingestao com comparacao em
+tempo constante, cifra em repouso real, troca de PIN exigindo o atual,
+migrations aditivas e ordem correta do middleware.
+
+**Estado apos as correcoes:** 478 pytest · 32/32 E2E painel · 25/25 E2E extensao
+· 139/139 classificador · corpus 373/373 · migrations up/down/up.
