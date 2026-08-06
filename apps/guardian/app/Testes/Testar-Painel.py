@@ -128,7 +128,11 @@ def main() -> int:
         erros: list[str] = []
         with sync_playwright() as pw:
             nav = pw.chromium.launch(headless=True)
-            ctx = nav.new_context(viewport={"width": 1440, "height": 950})
+            # locale fixo: o app detecta o idioma do navegador, e o runner do CI
+            # esta em ingles. Sem isto o teste passava aqui e falhava la, culpando
+            # o produto por acertar. A traducao para EN e conferida adiante, de
+            # proposito, trocando no seletor de idioma.
+            ctx = nav.new_context(viewport={"width": 1440, "height": 950}, locale="pt-BR")
             pag = ctx.new_page()
             pag.on("pageerror", lambda e: erros.append(f"pageerror: {e}"))
             pag.on("console", lambda m: erros.append(f"console.error: {m.text}") if m.type == "error" else None)
@@ -143,6 +147,8 @@ def main() -> int:
             manchete = pag.locator(".auth-headline h1").inner_text()
             checar("manchete fala de proteção antes de trabalho",
                    "protegida" in manchete.lower(), f"-> {manchete!r}")
+            checar("entrada abre em português com locale pt-BR",
+                   "protected" not in manchete.lower(), f"-> {manchete!r}")
 
             pag.fill('input[type="email"]', email)
             pag.fill('input[type="password"]', senha)
