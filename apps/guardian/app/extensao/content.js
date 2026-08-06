@@ -55,6 +55,13 @@
         chrome.storage.local.set({ sentinela_log: log });
       });
     } catch (e) { /* silencioso */ }
+    // Espelha no painel local da suite. Quem fala com 127.0.0.1 e o service
+    // worker; aqui so avisamos. Falha nao pode atrapalhar o bloqueio.
+    try {
+      chrome.runtime.sendMessage({ tipo: 'registrarEvento', entrada: entry }, function () {
+        void chrome.runtime.lastError; // painel desligado: a fila espera
+      });
+    } catch (e) { /* silencioso */ }
   }
 
   function telaBloqueio(cat, sub) {
