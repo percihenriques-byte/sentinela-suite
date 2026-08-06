@@ -120,5 +120,5 @@ Não usar emojis em respostas ao usuário no chat.
 
 ## 12. 📝 Não criar docs .md a menos que pedido
 
-Este `objetivos crm/` é a exceção: **ele pediu explicitamente**. Fora disso, não criar
+Este `docs/objetivos/` é a exceção: **ele pediu explicitamente**. Fora disso, não criar
 `README extras`, `CONTRIBUTING.md`, `CHANGELOG.md`, etc.

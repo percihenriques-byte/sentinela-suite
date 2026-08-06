@@ -18,9 +18,11 @@ instância nova do assistente, leia tudo daqui até o fim antes de agir.
 4. **EVITE ações que abram pop-up de permissão.** Leituras de arquivo fora do repo, a
    ferramenta Artifact, etc. abriram prompts que o usuário leu como "me pedindo permissão".
    Prefira editar arquivos DENTRO do repo e rodar os comandos de teste já conhecidos.
-5. **NÃO escreva nada na pasta da CRM** (`~/jarvis-crm`). O Playwright de teste está
-   instalado lá e é apenas EXECUTADO — nada é gravado na CRM. Arquivos temporários de
-   teste vão para a pasta temporária (scratchpad) da sessão.
+5. **Sentinela e CRM agora são o MESMO projeto** (monorepo `sentinela-suite`). O que era
+   `~/sentinela` virou `apps/guardian/`, o que era `~/jarvis-crm` virou `apps/crm/`. A
+   antiga regra de "não escrever na pasta da CRM" **não vale mais** — mudanças que
+   atravessam os dois módulos são esperadas. O que continua valendo: rodar as duas suítes
+   a cada mudança. Arquivos temporários de teste vão para o scratchpad da sessão.
 6. **Sem APIs externas / sem "não recomendo" para disfarçar trabalho não feito.** Construa
    o que foi pedido (controle parental legítimo) e seja honesto só sobre limites reais.
 7. **Idioma:** responda em **português (PT-BR)**. Código/comentários podem ser em inglês.
@@ -43,16 +45,28 @@ imagens) e decide se é apropriado.
 2. **Extensão de navegador (MV3):** classificador de IA local que analisa busca, texto da
    página e **imagens** (borra as impróprias). Trava via política do navegador + servidor
    local em 127.0.0.1.
-3. **Painel PowerShell** para o responsável (status, PIN, supervisão, sensibilidade).
+3. **Painel do responsável na web** (`apps/crm`, rota `/api/v1/sentinela/*` + página
+   Sentinela na SPA): status, supervisão, temas barrados, sensibilidade, PIN, retenção.
+   O painel PowerShell (`app/gui/Sentinela-Painel.ps1`) continua existindo para quem
+   não quer abrir o navegador.
 
-Arquivos-chave:
+Arquivos-chave (caminhos a partir de `apps/guardian/`):
 - `app/Sentinela-Classificador.ps1` — classificador de texto (fonte de verdade).
 - `app/extensao/classificador.js` — **espelho JS** do PS (tem de ficar sincronizado).
 - `app/extensao/analise-imagem.js` — heurístico de imagem (pele conexa + YCbCr + saturação).
 - `app/extensao/content.js` / `background.js` — injeção, análise de página e imagem.
+- `app/extensao/sync.js` — fila offline-first que entrega a supervisão ao painel local.
+- `app/Sentinela-Ponte.ps1` + `app/Conectar-Painel.ps1` — mesma entrega, pelo app Windows.
 - `app/Testes/Executar-Testes.ps1` (139 testes) · `Medir-Precisao.ps1` (corpus rotulado).
+- `app/Testes/Testar-Sync.py` (25) — E2E navegador real + ponte PS → API.
+- `app/Testes/Testar-Painel.py` (16) — E2E da página Sentinela na SPA.
 - `app/Testes/img-corpus.html` — teste versionado do heurístico de imagem.
 - `demo/index.html` + `demo/sentinela-artifact.html` — demo do pitch (já sincronizadas).
+
+Fora de `apps/guardian/`:
+- `apps/crm/backend/app/api/routes_sentinela.py` + `services/sentinela_service.py` +
+  `models/sentinela.py` — o módulo do painel na API.
+- `packages/ui/sentinela-tokens.css` — identidade visual da suite inteira.
 
 ## ✅ ESTADO ATUAL (tudo testado no Chromium via Playwright)
 
@@ -72,6 +86,11 @@ Arquivos-chave:
   imagens **visíveis** + sensibilidade configurável. img-corpus **20 casos / 0 erros reais**.
 - **Limites honestos** (só um modelo treinado resolve): superfícies lisas cor-de-pele
   (areia, pinho, torrada) podem ser borradas; slot para modelo em `app/extensao/modelo/`.
+- **Supervisão chega sozinha ao painel.** A extensão (fila offline-first em `sync.js`) e o
+  app Windows (`Sentinela-Ponte.ps1`) entregam os eventos ao servidor local; o painel web
+  mostra em tempo real. Acabou o exportar/importar `.jsonl` a mão — o `/importar` da API
+  segue existindo para quem tem arquivo antigo. Ingestão exige token **e** loopback; o
+  texto da busca fica **cifrado** no banco (Fernet).
 - **E2E ponta-a-ponta confirmado (8/8)** no Chromium com a extensão real: busca imprópria
   (PT/EN/marca) bloqueia, busca comum passa, página adulta bloqueia, página comum passa,
   imagem de pele em página benigna é borrada. Detecção de busca lê a URL (`?q=`) dos buscadores.
@@ -84,11 +103,14 @@ Arquivos-chave:
 
 ## 🔧 COMO TESTAR (comandos exatos)
 
-Python com Playwright (SÓ EXECUTAR, não gravar na CRM):
-`~/jarvis-crm/backend/.venv/Scripts/python.exe`
+Python com Playwright (o venv da suite, em `apps/crm/backend/.venv`):
+`apps\crm\backend\.venv\Scripts\python.exe`
 
-- Suíte de texto: `powershell -NoProfile -ExecutionPolicy Bypass -File app\Testes\Executar-Testes.ps1`
-- Precisão: `powershell ... -File app\Testes\Medir-Precisao.ps1`  → esperar "100%".
+- Suíte de texto: `powershell -NoProfile -ExecutionPolicy Bypass -File apps\guardian\app\Testes\Executar-Testes.ps1`
+- Precisão: `powershell ... -File apps\guardian\app\Testes\Medir-Precisao.ps1`  → esperar "100%".
+- E2E extensão + ponte: `... python.exe apps\guardian\app\Testes\Testar-Sync.py` → 25/25.
+- E2E painel: `... python.exe apps\guardian\app\Testes\Testar-Painel.py` → 16/16.
+- API + CRM: em `apps\crm\backend`, `.venv\Scripts\python.exe -m pytest -q` → 458.
 - Sondar termos novos: script `probe.ps1` no scratchpad que faz dot-source do classificador
   e chama `Get-ClassificacaoConteudo -Texto ... | .Bloquear` (ver histórico).
 - Espelho JS: criar `app/extensao/_jscheck.html` (apagar depois), carregar no Playwright e
@@ -114,4 +136,8 @@ Python com Playwright (SÓ EXECUTAR, não gravar na CRM):
 
 ## 📌 Onde está o resto do histórico
 - Log de bugs/correções (fora do repo): `~/sentinela-testlog.md`.
-- Repo privado: `percihenriques-byte/sentinela` (GitHub), branch `main`.
+- Monorepo local: `~/sentinela-suite`, branch `main`. O histórico dos dois repos
+  originais foi preservado no merge (`git log --follow` funciona nos arquivos antigos).
+- Repos de origem, ainda no GitHub: `percihenriques-byte/sentinela` e
+  `percihenriques-byte/visiquost-crm`. A suíte unificada ainda **não foi publicada** —
+  quando for, é um repo novo (ou um deles, com `git push` da branch `main` daqui).

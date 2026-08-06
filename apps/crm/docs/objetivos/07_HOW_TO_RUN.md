@@ -95,7 +95,7 @@ visiquost-crm/
 ├── INICIAR.bat, INSTALAR.bat, RODAR.bat  — launchers Windows
 ├── README.md                              — visão geral
 ├── docs/                                  — ARCHITECTURE.md, ROADMAP.md
-├── objetivos crm/                         — esta pasta (log pro Fable)
+├── docs/objetivos/                         — esta pasta (log pro Fable)
 ├── backend/
 │   ├── app/                               — código FastAPI
 │   ├── tests/                             — 434 pytest
