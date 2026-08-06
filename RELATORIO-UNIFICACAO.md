@@ -503,3 +503,40 @@ token OAuth sem o escopo `workflow`, entao o commit ficou local. A linha do
 **Estado apos esta rodada:** 492 pytest · 369/369 corpus no motor JS · 373/373
 corpus no motor PS · 139/139 classificador · 32/32 E2E painel · 25/25 E2E
 extensao.
+
+
+---
+
+## 13. O CI no ar — e o que ele pegou na primeira rodada
+
+O workflow so pode ser publicado por token com escopo `workflow`, que e
+autorizacao interativa. Iniciei o fluxo de dispositivo do `gh`, abri a pagina no
+navegador e o responsavel autorizou; o CI subiu em seguida.
+
+**Publicar o CI valeu na primeira execucao.** Ele reprovou dois jobs por um
+problema que nenhuma suite local podia pegar:
+
+| Falha no CI | Causa real |
+|---|---|
+| `API + CRM (pytest)`: **No module named pytest** | `pytest` e `playwright` nunca estiveram em `requirements.txt`. Existiam so na venv desta maquina, instalados a mao — o ambiente de teste **nao era reproduzivel em lugar nenhum**. Criado `requirements-dev.txt`. |
+| `E2E`: **servidor nao subiu** | Os scripts jogavam a saida do uvicorn em `DEVNULL`, entao a falha nao dizia a causa. Agora despejam as ultimas 25 linhas e o codigo de saida; a espera subiu de 30s para 90s (runner frio bate no limite). |
+| `E2E`: manchete em ingles | O app detecta o idioma do navegador e o runner esta em ingles: **o produto acertou, o teste e que dependia do idioma da maquina**. O contexto do Playwright agora nasce com `locale="pt-BR"`. |
+
+Depois das correcoes, **os cinco jobs passam**: pytest (492), migrations
+(up/down/up), classificador + corpus (PowerShell), corpus contra o motor JS e
+os dois E2E.
+
+**Uma limitacao aberta:** os runs so disparam por `workflow_dispatch`. Os pushes
+chegam ao GitHub (confirmado por API) e o workflow esta `active`, mas nenhum run
+por evento `push` foi criado — quatro runs, todos manuais. Nao descobri a causa
+e nao invento uma: por ora, rodar o CI e um clique em **Actions → CI → Run
+workflow**, ou `gh workflow run ci.yml`. O portao local
+(`Verificar-Tudo.ps1` + hook de pre-push) cobre o intervalo.
+
+**Sobre a visibilidade:** criei o repositorio como **privado**, e ele esta
+**publico** agora. Nao fui eu quem mudou — provavelmente foi alterado na
+interface do GitHub durante a autorizacao. Nao ha segredo versionado (conferi
+antes de publicar: nenhum `.env`, banco ou chave; so `.env.example` com
+placeholders), entao nao houve vazamento. Mas e uma decisao que merece ser
+consciente. Para voltar:
+`gh repo edit percihenriques-byte/sentinela-suite --visibility private`
