@@ -55,9 +55,12 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(
-        title="VisiQuost",
+        title="Sentinela",
         version=__version__,
-        description="AI-powered Universal CRM with the Jarvis assistant.",
+        description=(
+            "Suite local: controle parental (Sentinela) + CRM com assistente Jarvis "
+            "(VisiQuost). Um servidor so, em 127.0.0.1, sem APIs externas."
+        ),
         lifespan=lifespan,
     )
     # Middleware runs in REVERSE registration order for requests. We want:

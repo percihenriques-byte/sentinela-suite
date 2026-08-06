@@ -1,4 +1,5 @@
-// VisiQuost — vanilla-JS frontend.
+// Sentinela — frontend em JS puro. Uma casca so: o modulo de protecao
+// (Sentinela) e o CRM (VisiQuost) vivem na mesma SPA e no mesmo servidor.
 // Talks to the FastAPI at /api/v1/*. Persists auth in localStorage.
 // Zero framework, zero build step — matches the "works offline" ethos.
 
@@ -25,14 +26,15 @@ const DICT = {
     hero_3: "Kanban, automations, lead scoring, forecast",
     hero_4: "Full workspace import/export",
     // new hero (redesign)
-    hero_h1_line1: "Your CRM.",
-    hero_h1_line2: "Your machine.",
+    hero_h1_line1: "Your family protected.",
+    hero_h1_line2: "Your work organized.",
     hero_h1_line3: "Zero cloud.",
-    hero_lead: "Kanban, forecast, lead scoring and a Jarvis assistant that runs offline. No OAuth, no subscription, no data leaves your machine.",
+    hero_lead: "Sentinela filters what your child sees with local AI, and the CRM keeps your clients in order. One app, on your machine — no OAuth, no subscription, no data leaves it.",
+    hero_fc_filtro_t: "A filter that can't be switched off", hero_fc_filtro_d: "DNS + hosts + browser policy. Incognito has nothing to turn off, and a Guardian reapplies it if tampered with.",
+    hero_fc_painel_t: "Parent dashboard", hero_fc_painel_d: "What was searched, what the AI blocked and why. PIN lock, encrypted log, retention you choose.",
     hero_fc_jarvis_t: "Local Jarvis", hero_fc_jarvis_d: "80+ intents in PT/EN. Creates contacts, schedules meetings, summarizes pipeline — all on your PC.",
-    hero_fc_kanban_t: "Kanban + Forecast", hero_fc_kanban_d: "Drag cards between stages, weighted revenue by probability, WIP limits per stage.",
-    hero_fc_lead_t: "Lead Scoring", hero_fc_lead_d: "Rules that add points by domain, source, engagement. Auto-recompute on create/edit.",
-    hero_fc_crypto_t: "Encryption at rest", hero_fc_crypto_d: "Multi-workspace with full isolation. Portable JSON import/export. Automatic backup.",
+    hero_fc_crm_t: "Full CRM", hero_fc_crm_d: "Kanban, forecast, lead scoring, encryption at rest, portable import/export and automatic backup.",
+    nav_section_crm: "CRM",
     hero_stats_tests: "tests passing", hero_stats_apis: "external APIs", hero_stats_setup: "full setup",
     auth_welcome: "Welcome", auth_welcome_sub: "Sign in or create a new workspace in 30 seconds.",
     auth_demo_btn_t: "Sign in as demo", auth_demo_btn_d: "No signup · sample data ready",
@@ -107,7 +109,7 @@ const DICT = {
     field_ph_email: "you@company.com",
     field_ph_password: "at least 8 characters",
     field_ph_ws: "My Company",
-    session_hero_name: "VisiQuost",
+    session_hero_name: "Sentinela",
   },
   pt: {
     auth_signin: "Entrar", auth_create: "Criar workspace",
@@ -117,14 +119,15 @@ const DICT = {
     auth_demo: "Login demo:",
     hero_tag: "CRM com IA — funciona offline",
     hero_1: "Multi-workspace, criptografia em repouso",
-    hero_h1_line1: "Seu CRM.",
-    hero_h1_line2: "Sua máquina.",
-    hero_h1_line3: "Zero cloud.",
-    hero_lead: "Kanban, forecast, lead scoring e um assistente Jarvis que roda offline. Sem OAuth, sem mensalidade, sem enviar dados pra ninguém.",
+    hero_h1_line1: "Sua família protegida.",
+    hero_h1_line2: "Seu trabalho organizado.",
+    hero_h1_line3: "Zero nuvem.",
+    hero_lead: "O Sentinela filtra o que a criança vê com IA local, e o CRM cuida dos seus clientes. Um app só, no seu computador — sem OAuth, sem mensalidade, sem enviar dados pra ninguém.",
+    hero_fc_filtro_t: "Filtro que não desliga", hero_fc_filtro_d: "DNS + hosts + política do navegador. A aba anônima não tem o que desligar, e um Guardião reaplica se adulterarem.",
+    hero_fc_painel_t: "Painel do responsável", hero_fc_painel_d: "O que foi buscado, o que a IA barrou e por quê. Trava por PIN, registro cifrado, retenção que você define.",
     hero_fc_jarvis_t: "Jarvis local", hero_fc_jarvis_d: "80+ intents em PT/EN. Cria contato, agenda reunião, resume o pipeline — tudo no seu PC.",
-    hero_fc_kanban_t: "Kanban + Forecast", hero_fc_kanban_d: "Arraste cards entre estágios, veja receita ponderada por probabilidade, WIP limits por estágio.",
-    hero_fc_lead_t: "Lead Scoring", hero_fc_lead_d: "Regras que somam pontos por domínio, source, engajamento. Auto-recompute ao criar/editar.",
-    hero_fc_crypto_t: "Criptografia em repouso", hero_fc_crypto_d: "Multi-workspace com isolamento total. Import/export JSON portátil. Backup automático.",
+    hero_fc_crm_t: "CRM completo", hero_fc_crm_d: "Kanban, forecast, lead scoring, criptografia em repouso, import/export portátil e backup automático.",
+    nav_section_crm: "CRM",
     hero_stats_tests: "testes passando", hero_stats_apis: "APIs externas", hero_stats_setup: "setup completo",
     auth_welcome: "Bem-vindo", auth_welcome_sub: "Entre com sua conta ou crie um workspace novo em 30 segundos.",
     auth_demo_btn_t: "Entrar como demo", auth_demo_btn_d: "Sem cadastro · dados de exemplo já carregados",
@@ -194,7 +197,7 @@ const DICT = {
     field_ph_email: "voce@empresa.com",
     field_ph_password: "mínimo 8 caracteres",
     field_ph_ws: "Minha Empresa",
-    session_hero_name: "VisiQuost",
+    session_hero_name: "Sentinela",
   }
 };
 
@@ -205,12 +208,16 @@ function detectLang() {
   return nav.startsWith("pt") ? "pt" : "en";
 }
 
+// Ultima secao aberta. Primeira execucao cai no Sentinela: e o que da a cara
+// do app. Depois disso, quem usa o CRM todo dia continua caindo no CRM.
+const PAGE_KEY = "sentinela.page";
+
 const state = {
   token: localStorage.getItem(TOKEN_KEY) || null,
   user: null,
   workspace: null,
   conversation_id: localStorage.getItem(CONV_KEY) || null,
-  page: "dashboard",
+  page: localStorage.getItem(PAGE_KEY) || "sentinela",
   lang: detectLang(),
   theme: localStorage.getItem(THEME_KEY) || "dark",
   taskFilter: "all",
@@ -279,8 +286,8 @@ async function api(path, { method = "GET", body, headers = {} } = {}) {
     _apiEnd();
     // Network failure — usually server down
     const err = new Error(state.lang === "pt"
-      ? "Servidor offline. Verifique se o VisiQuost está rodando."
-      : "Server offline. Check if VisiQuost is running.");
+      ? "Servidor offline. Verifique se o Sentinela está rodando."
+      : "Server offline. Check if Sentinela is running.");
     err.status = 0;
     throw err;
   }
@@ -771,7 +778,10 @@ async function enterApp() {
   bindLanguageToggle();
   bindTaskFilters();
   applyStaticI18n();
+  // loadDashboard tambem popula badges do menu, pegada em disco e preferencias
+  // do workspace — roda sempre, independente da secao aberta.
   await loadDashboard();
+  if (state.page !== "dashboard") gotoPage(state.page);
 }
 
 function applyStaticI18n() {
@@ -960,6 +970,7 @@ function bindNav() {
       document.querySelectorAll(".nav-item").forEach(x => x.classList.remove("active"));
       btn.classList.add("active");
       state.page = btn.dataset.page;
+      try { localStorage.setItem(PAGE_KEY, state.page); } catch { /* modo privado */ }
       document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
       document.getElementById(`page-${state.page}`).classList.remove("hidden");
       routes[state.page]?.();

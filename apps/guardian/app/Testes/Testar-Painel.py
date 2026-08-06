@@ -115,10 +115,31 @@ def main() -> int:
             pag.on("console", lambda m: erros.append(f"console.error: {m.text}") if m.type == "error" else None)
 
             pag.goto(base, wait_until="networkidle")
+
+            # --- identidade: o app se apresenta como Sentinela, nao como o CRM ---
+            checar("titulo da pagina e do Sentinela", "Sentinela" in pag.title(), f"-> {pag.title()!r}")
+            checar("marca da tela de entrada e Sentinela",
+                   pag.locator(".auth-logo .brand-name").inner_text().strip() == "Sentinela",
+                   f"-> {pag.locator('.auth-logo .brand-name').inner_text()!r}")
+            manchete = pag.locator(".auth-headline h1").inner_text()
+            checar("manchete fala de proteção antes de trabalho",
+                   "protegida" in manchete.lower(), f"-> {manchete!r}")
+
             pag.fill('input[type="email"]', email)
             pag.fill('input[type="password"]', senha)
             pag.click('button[type="submit"]')
             pag.wait_for_selector(".app-view:not(.hidden)", timeout=15000)
+            pag.wait_for_timeout(1200)
+
+            checar("marca do menu lateral e Sentinela",
+                   pag.locator(".brand-row .brand").inner_text().strip() == "Sentinela")
+            checar("Sentinela e o primeiro item do menu",
+                   pag.locator(".nav-item").first.get_attribute("data-page") == "sentinela",
+                   f"-> {pag.locator('.nav-item').first.get_attribute('data-page')!r}")
+            checar("menu separa o modulo de CRM",
+                   pag.locator(".nav-section").inner_text().strip().upper() == "CRM")
+            checar("primeiro acesso abre no Sentinela",
+                   not pag.locator("#page-sentinela").evaluate("e => e.classList.contains('hidden')"))
 
             alvo = '.nav-item[data-page="sentinela"]'
             checar("item Sentinela existe no menu", pag.locator(alvo).count() == 1)
@@ -193,6 +214,31 @@ def main() -> int:
                    pag.evaluate("getComputedStyle(document.querySelector('.sn-cols')).gridTemplateColumns")
                    .count(" ") == 0, "-> continuou em 2 colunas")
             pag.screenshot(path=str(SAIDA / "12_sentinela_mobile.png"), full_page=True)
+            pag.set_viewport_size({"width": 1440, "height": 950})
+
+            # --- o app lembra a secao: quem usa o CRM nao cai no Sentinela sempre ---
+            pag.click('.nav-item[data-page="dashboard"]')
+            pag.wait_for_timeout(600)
+            pag.reload(wait_until="networkidle")
+            pag.wait_for_selector(".app-view:not(.hidden)", timeout=15000)
+            pag.wait_for_timeout(1500)
+            checar("app volta na ultima secao usada",
+                   not pag.locator("#page-dashboard").evaluate("e => e.classList.contains('hidden')"),
+                   "-> nao lembrou a secao")
+
+            # --- tela de entrada em ingles ---
+            pag.goto(base + "?lang=en", wait_until="networkidle")
+            pag.evaluate("localStorage.clear()")
+            pag.reload(wait_until="networkidle")
+            pag.select_option("#auth-lang-select", "en")
+            pag.wait_for_timeout(500)
+            manchete_en = pag.locator(".auth-headline h1").inner_text()
+            checar("manchete traduz para ingles",
+                   "protected" in manchete_en.lower(), f"-> {manchete_en!r}")
+            checar("cartoes do Sentinela traduzem",
+                   "switched off" in pag.locator(".auth-cards").inner_text().lower(),
+                   f"-> {pag.locator('.auth-cards').inner_text()[:80]!r}")
+            pag.screenshot(path=str(SAIDA / "13_entrada.png"))
 
             print(f"  screenshots: {SAIDA}")
             ctx.close()

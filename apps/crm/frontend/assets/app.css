@@ -1530,7 +1530,14 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 /* ==================== MODULO SENTINELA ====================
    Painel do responsavel. Usa os mesmos primitivos do CRM (.card, .kpi,
    .btn-ghost) para que as duas metades da suite pareçam o mesmo produto. */
-.nav-item.nav-sentinela .ico { filter: drop-shadow(0 0 6px var(--sn-teal-glow)); }
+/* O item do Sentinela abre o menu e ganha um brilho discreto: e a cara do app,
+   nao mais uma pagina qualquer. O rotulo "CRM" separa o modulo de negocio. */
+.nav-item[data-page="sentinela"] .ico { filter: drop-shadow(0 0 6px var(--sn-teal-glow)); }
+.nav-section {
+  font-size: 0.68em; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--fg-4); padding: 14px 12px 4px; margin-top: 4px;
+  border-top: 1px solid var(--border);
+}
 
 /* Sao 4 indicadores curtos: cabem lado a lado num tile menor que o do painel
    do CRM, evitando a quebra 3+1. */

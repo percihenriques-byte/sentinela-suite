@@ -67,4 +67,5 @@ def test_frontend_index_is_served(client):
     # if the frontend exists we should get an HTML page.
     if resp.status_code == 200:
         assert "text/html" in resp.headers.get("content-type", "")
-        assert "VisiQuost" in resp.text
+        # A casca da SPA se apresenta como Sentinela (o CRM e um modulo dela).
+        assert "Sentinela" in resp.text

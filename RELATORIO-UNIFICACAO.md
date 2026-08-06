@@ -1,7 +1,7 @@
 # Relatório — unificação Sentinela + VisiQuost
 
 **Repositório:** `percihenriques-byte/sentinela-suite` (privado)
-**Data:** 06/08/2026 · **Branch:** `main` · **99 commits**
+**Data:** 06/08/2026 · **Branch:** `main` · **101 commits**
 
 Documento para quem vai continuar o projeto sem ter estado na sessão. Descreve
 o que existia, o que foi feito, por que cada decisão foi tomada, o que foi
@@ -30,7 +30,8 @@ telas ou modelos) destruiria os dois. O que eles têm em comum é o que importav
 ambos rodam **100% na máquina do usuário, sem nuvem**. Então a união foi feita
 onde ela gera valor real:
 
-- **uma casca só** (um servidor local, uma SPA, um instalador, um repositório);
+- **uma casca só** (um servidor local, uma SPA, um login, um instalador, um
+  repositório) — e essa casca é o **Sentinela**, com o CRM como seção interna;
 - **uma identidade visual só** (a do Sentinela);
 - **o CRM emprestando ao Sentinela a infraestrutura que ele não tinha**: banco,
   autenticação, criptografia em repouso, backup e uma interface web decente.
@@ -226,7 +227,36 @@ suite parecem o mesmo produto:
 - **Conectar dispositivo**: mostra o token só sob clique (é credencial) e permite
   gerar outro, avisando que os dispositivos antigos param até serem reconectados.
 
-### 3.6 Limpeza e consolidação
+### 3.6 A casca virou o Sentinela (não mais o CRM com uma página a mais)
+
+Até aqui o app já era **um só** — um servidor, uma SPA, um login, um design
+system. Mas ele ainda **se apresentava** como VisiQuost: título, logo do menu e,
+principalmente, a tela de entrada, que vendia só o CRM. O Sentinela tinha virado
+uma página dentro do app do CRM, quando o certo é o inverso.
+
+O que mudou:
+
+- **Identidade** — título da página, marca do menu lateral, marca da tela de
+  entrada e título da API passaram a ser **Sentinela**. `VisiQuost` continua
+  sendo o nome do **módulo de CRM** (e da pasta de trabalho em disco, que é um
+  caminho real e não podia mudar sem quebrar quem já usa).
+- **Tela de entrada** — a manchete deixou de ser "Seu CRM. Sua máquina. Zero
+  cloud." e virou "**Sua família protegida. Seu trabalho organizado. Zero
+  nuvem.**" Os quatro cartões passaram a ser dois do Sentinela (filtro que não
+  desliga, painel do responsável) e dois do CRM (Jarvis local, CRM completo) —
+  nenhuma promessa do texto antigo foi perdida, só reorganizada. Tudo traduzido
+  PT/EN.
+- **Menu** — Sentinela é o **primeiro item**, e os itens do CRM ficam abaixo de
+  um rótulo de seção **CRM**. A leitura vira "este app é o Sentinela, e o CRM é
+  uma parte dele".
+- **Onde o app abre** — na primeira execução, no Sentinela (é a cara do
+  produto). Depois disso ele **lembra a última seção usada**, guardada em
+  `localStorage`. Forçar sempre uma das duas metades irritaria a outra: quem usa
+  o CRM todo dia continua caindo no CRM.
+- Contador de testes da tela de entrada corrigido de 434 para **642**
+  (139 + 458 + 25 + 20, conferidos).
+
+### 3.7 Limpeza e consolidação
 
 - `INICIAR.bat` / `INSTALAR.bat` na raiz — um ponto de entrada. O instalador
   **delega** ao do CRM em vez de duplicar a detecção de Python.
@@ -256,7 +286,7 @@ Tudo abaixo foi executado de verdade, na última rodada, com o código final.
 | Corpus de precisão | **373 / 373 · 100%** | 0 falso-positivo, 0 falso-negativo |
 | API + CRM (pytest) | **458 passed** | rotas, serviços, Jarvis, módulo Sentinela (24 novos) |
 | E2E extensão + ponte PS | **25 / 25** | navegador real → API; ponte PowerShell |
-| E2E painel na SPA | **20 / 20** | página Sentinela, tema claro, celular |
+| E2E painel na SPA | **30 / 30** | identidade da casca, página Sentinela, tema claro, celular, i18n |
 | Migrations | up / down / up | em banco limpo |
 | Demo do pitch | 4 / 4 | sem erro de JS |
 
@@ -273,8 +303,11 @@ página servida por esse servidor e verifica que:
    desligada.
 
 `Testar-Painel.py` semeia eventos pela API, entra no app pelo navegador e confere
-os números, o filtro, a persistência da configuração, o modal do token, o tema
-claro, a ausência de rolagem horizontal no celular e **zero erro de console**.
+a identidade da casca (título, marca, manchete, Sentinela como primeiro item do
+menu, rótulo da seção CRM, onde o app abre e se ele lembra a última seção), os
+números do painel, o filtro, a persistência da configuração, o modal do token, o
+tema claro, a tradução PT/EN da entrada, a ausência de rolagem horizontal no
+celular e **zero erro de console**.
 
 ---
 
@@ -311,7 +344,7 @@ claro, a ausência de rolagem horizontal no celular e **zero erro de console**.
 - **99 commits** — 89 preservados dos dois repos + 10 da unificação
 - **45 arquivos alterados** sobre a base: **+2.888 / −44.501 linhas**
 - **15 arquivos novos**, 3 removidos, 10 renomeados
-- **69 verificações automatizadas novas** (24 pytest + 25 E2E + 20 E2E)
+- **79 verificações automatizadas novas** (24 pytest + 25 E2E + 30 E2E)
 
 **Arquivos novos:**
 

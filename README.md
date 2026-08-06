@@ -1,12 +1,15 @@
 # 🛡️ Sentinela Suite
 
-Duas coisas que rodam **inteiras no seu computador**, na mesma casca e com a
-mesma cara:
+**Um app só**, com a UX do Sentinela: um servidor, uma janela, um login, um
+instalador. Dentro dele, dois módulos:
 
 | Módulo | O que faz |
 |---|---|
-| **Sentinela** (`apps/guardian`) | Controle parental à prova de incógnito: filtro de rede (DNS + hosts + política do navegador), IA local que analisa busca, texto e imagem, trava por PIN e registro de supervisão. |
-| **VisiQuost** (`apps/crm`) | CRM local com o assistente **Jarvis**: contatos, empresas, oportunidades, pipeline kanban, tarefas, reuniões, lead scoring e automações. |
+| **Sentinela** (`apps/guardian`) | Controle parental à prova de incógnito: filtro de rede (DNS + hosts + política do navegador), IA local que analisa busca, texto e imagem, trava por PIN e registro de supervisão. É a cara do app: a marca, a paleta e a primeira seção do menu. |
+| **VisiQuost** (`apps/crm`) | O CRM, uma seção dentro do mesmo app: contatos, empresas, oportunidades, pipeline kanban, tarefas, reuniões, lead scoring, automações e o assistente **Jarvis**. |
+
+Na primeira vez o app abre no Sentinela. Depois disso ele lembra a última seção
+usada — quem passa o dia no CRM continua caindo no CRM.
 
 **Zero APIs externas.** Nada é enviado para a internet — nem busca, nem dado de
 cliente, nem telemetria. Os dois módulos falam entre si só por `127.0.0.1`.
@@ -94,7 +97,7 @@ packages/
 | Precisão (corpus 373) | `powershell -File apps\guardian\app\Testes\Medir-Precisao.ps1` | acurácia, falsos positivos/negativos |
 | API + CRM (458) | `apps\crm\backend\.venv\Scripts\python.exe -m pytest -q` (em `apps/crm/backend`) | rotas, serviços, Jarvis, módulo Sentinela |
 | E2E extensão + ponte (25) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Sync.py` | navegador real → API, ponte PowerShell |
-| E2E painel (16) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Painel.py` | página Sentinela na SPA |
+| E2E painel (30) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Painel.py` | identidade da casca, página Sentinela, tema claro, celular |
 
 ## Documentação
 
