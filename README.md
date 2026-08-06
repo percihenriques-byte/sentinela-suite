@@ -98,6 +98,23 @@ packages/
 | API + CRM (492) | `apps\crm\backend\.venv\Scripts\python.exe -m pytest -q` (em `apps/crm/backend`) | rotas, serviços, Jarvis, módulo Sentinela |
 | E2E extensão + ponte (25) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Sync.py` | navegador real → API, ponte PowerShell |
 | E2E painel (32) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Painel.py` | identidade da casca, página Sentinela, tema claro, celular |
+| Paridade JS (369) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Paridade.py` | o corpus rodado contra o motor que roda no navegador da criança |
+
+### Um comando só
+
+```powershell
+.\Verificar-Tudo.ps1            # tudo, na ordem (~2 min)
+.\Verificar-Tudo.ps1 -Rapido    # paridade + auditoria (~7s)
+.\Verificar-Tudo.ps1 -SemE2E    # pula o que abre navegador
+```
+
+É a mesma lista que o CI executa (`.github/workflows/ci.yml`). Para que nada
+quebrado saia da sua máquina, instale o hook de pre-push — ele roda o portão
+rápido antes de cada `git push`:
+
+```powershell
+.\scripts\Instalar-Hook.ps1
+```
 
 ## Documentação
 
