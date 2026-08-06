@@ -139,8 +139,8 @@ def default_rate_limits() -> list[tuple[str, TokenBucketConfig]]:
     """Baseline limits — deliberately generous; tighten per deployment.
 
     Auth endpoints get a stricter bucket to slow brute-force attempts.
-    Jarvis endpoints get a moderate cap because the local engine is cheap but
-    the cloud LLM path can be expensive.
+    Jarvis endpoints get a moderate cap to keep one runaway client from
+    monopolising the local engine.
     """
     return [
         ("/api/v1/auth/login", TokenBucketConfig(capacity=10, refill_per_sec=10 / 60)),
@@ -148,4 +148,9 @@ def default_rate_limits() -> list[tuple[str, TokenBucketConfig]]:
         ("/api/v1/jarvis", TokenBucketConfig(capacity=30, refill_per_sec=30 / 60)),
         # Restore endpoint — allow bursts (undo-click after delete) but cap sustained abuse
         ("/api/v1/restore", TokenBucketConfig(capacity=20, refill_per_sec=20 / 60)),
+        # Sentinela ingestion — the only route reachable without a login (it
+        # authenticates with the ingest token and only from loopback). A burst
+        # of 60 covers "send the whole backlog" (200 events per request) while
+        # capping a flood from a local process guessing tokens.
+        ("/api/v1/sentinela/eventos", TokenBucketConfig(capacity=60, refill_per_sec=60 / 60)),
     ]

@@ -171,7 +171,30 @@ def main() -> int:
 
             SAIDA.mkdir(exist_ok=True)
             pag.screenshot(path=str(SAIDA / "10_sentinela.png"))
-            print(f"  screenshot: {SAIDA / '10_sentinela.png'}")
+
+            # --- tema claro: a marca tem de continuar legivel ---
+            pag.evaluate("document.documentElement.setAttribute('data-theme','light')")
+            pag.wait_for_timeout(400)
+            fundo = pag.evaluate("getComputedStyle(document.body).backgroundColor")
+            checar("tema claro troca o fundo", fundo not in ("rgb(11, 18, 32)", "rgba(0, 0, 0, 0)"), f"-> {fundo}")
+            primaria = pag.evaluate(
+                "getComputedStyle(document.documentElement).getPropertyValue('--primary').trim()")
+            checar("tema claro usa o teal escuro da marca", primaria == "#0ea5a0", f"-> {primaria!r}")
+            pag.screenshot(path=str(SAIDA / "11_sentinela_claro.png"))
+            pag.evaluate("document.documentElement.setAttribute('data-theme','dark')")
+
+            # --- mobile: nada pode vazar na horizontal ---
+            pag.set_viewport_size({"width": 390, "height": 844})
+            pag.wait_for_timeout(500)
+            vazamento = pag.evaluate(
+                "document.documentElement.scrollWidth - document.documentElement.clientWidth")
+            checar("sem rolagem horizontal no celular", vazamento <= 1, f"-> vazou {vazamento}px")
+            checar("colunas empilham no celular",
+                   pag.evaluate("getComputedStyle(document.querySelector('.sn-cols')).gridTemplateColumns")
+                   .count(" ") == 0, "-> continuou em 2 colunas")
+            pag.screenshot(path=str(SAIDA / "12_sentinela_mobile.png"), full_page=True)
+
+            print(f"  screenshots: {SAIDA}")
             ctx.close()
             nav.close()
 
