@@ -1,0 +1,59 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- Virtual envs ---
+.venv/
+venv/
+env/
+
+# --- Banco local + backups (dados do usuario, nunca versionados) ---
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+apps/crm/backend/backups/
+apps/crm/backend/screenshots/
+
+# --- Segredos ---
+.env
+.env.local
+.env.*.local
+!.env.example
+config.local.json
+
+# --- Logs e artefatos de execucao ---
+*.log
+*.err
+*.out
+
+# --- Artefatos de release ---
+*.zip
+dist/
+build/
+
+# --- Node / tooling ---
+node_modules/
+
+# --- Playwright ---
+.playwright/
+playwright-report/
+test-results/
+
+# --- Espaco de trabalho local do usuario ---
+workdir/
+uploads/
+
+# --- IDE / SO ---
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
