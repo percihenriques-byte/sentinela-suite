@@ -1,6 +1,13 @@
 <#
     Sentinela-Classificador.ps1
     ------------------------------------------------------------------
+    ESPELHO: extensao/classificador.js tem de ter os MESMOS termos, pesos,
+    categorias e contexto seguro. Editou aqui, edita la. O corpus de 373 casos
+    roda contra ESTE arquivo, mas quem protege a tela da crianca e o JS: um
+    termo que exista so aqui passa direto no navegador e o corpus marca 100%
+    sem perceber. A paridade e checada por
+    apps/crm/backend/tests/test_classificador_paridade.py.
+    ------------------------------------------------------------------
     IA LOCAL de classificacao de conteudo. Roda 100% na maquina, SEM
     nenhuma API externa e sem internet. As buscas do filho NUNCA saem
     do computador (privacidade por design).

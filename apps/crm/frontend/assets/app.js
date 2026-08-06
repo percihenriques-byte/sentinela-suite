@@ -4487,6 +4487,16 @@ async function snCarregarConfig() {
     document.getElementById("sn-ativo").checked = !!cfg.ativo;
     document.getElementById("sn-sens").value = cfg.sensibilidade || "media";
     document.getElementById("sn-ret").value = cfg.retencao_dias == null ? 90 : cfg.retencao_dias;
+    // "Guardar para sempre" tem de ser escolha visivel, nao efeito colateral de
+    // um zero: sao buscas cifradas de uma crianca acumulando sem prazo.
+    const avisoRet = document.getElementById("sn-ret-aviso");
+    if (avisoRet) {
+      const paraSempre = Number(cfg.retencao_dias) === 0;
+      avisoRet.textContent = paraSempre
+        ? "guardando para sempre — a purga automática está desligada"
+        : "dias (0 = para sempre)";
+      avisoRet.style.color = paraSempre ? "var(--warn)" : "";
+    }
     const estado = document.getElementById("sn-pin-estado");
     const btn = document.getElementById("sn-pin-btn");
     estado.textContent = cfg.pin_definido ? "definido — só ele desarma a proteção" : "sem PIN — qualquer um pode desarmar";
@@ -4565,7 +4575,7 @@ async function loadSentinela() {
     document.getElementById("sn-ret")?.addEventListener("change", e => {
       const n = parseInt(e.target.value, 10);
       if (Number.isNaN(n) || n < 0) { snCarregarConfig(); return; }
-      salvar({ retencao_dias: n });
+      salvar({ retencao_dias: n }).then(snCarregarConfig);
     });
   }
   const [, , cfg] = await Promise.all([snCarregarResumo(), snCarregarEventos(), snCarregarConfig()]);

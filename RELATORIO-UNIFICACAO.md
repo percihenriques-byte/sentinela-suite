@@ -1,7 +1,7 @@
 # Relatório — unificação Sentinela + VisiQuost
 
 **Repositório:** `percihenriques-byte/sentinela-suite` (privado)
-**Data:** 06/08/2026 · **Branch:** `main` · **103 commits**
+**Data:** 06/08/2026 · **Branch:** `main` · **105 commits**
 
 Documento para quem vai continuar o projeto sem ter estado na sessão. Descreve
 o que existia, o que foi feito, por que cada decisão foi tomada, o que foi
@@ -472,3 +472,34 @@ migrations aditivas e ordem correta do middleware.
 
 **Estado apos as correcoes:** 478 pytest · 32/32 E2E painel · 25/25 E2E extensao
 · 139/139 classificador · corpus 373/373 · migrations up/down/up.
+
+
+---
+
+## 12. Segunda auditoria independente (rodada do zero)
+
+O auditor refez a auditoria a partir do codigo limpo, sem partir da lista
+anterior — e o metodo se pagou: dois achados novos so apareceram porque ele
+contou termos e leu o middleware em vez de reconferir o que ja estava fechado.
+Veredito dele: **liberado para release**, com um P1 recomendado antes de
+distribuir. Confirmei os seis achados no codigo antes de mexer.
+
+| # | Achado | O que estava errado | Correcao |
+|---|---|---|---|
+| B2 | Classificadores divergentes | O relatorio afirmava "fonte unica espelhada em JS". Contando: **315 termos no PS, 313 no JS**. Faltavam `xingamentos pesados` e `como criar conta no` **no lado que protege o navegador da crianca** — e o corpus marcava 100% sem perceber, porque roda contra o PS. | Termos reconciliados (315 = 315). Seis testes de paridade comparam categoria a categoria, termo a termo, peso a peso, mais o contexto seguro. Novo `Testar-Paridade.py` roda o corpus **contra o motor JS** num Chromium real: **369/369, 100%**. Os dois arquivos agora avisam no cabecalho que sao espelho. |
+| B1 | Rate limit por `X-Forwarded-For` | O balde era chaveado por um header **escrito pelo cliente**. Num app loopback-only nao ha proxy: um script local mandava um IP diferente a cada request, ganhava balde novo e anulava o teto de ingestao e o limite da rota de PIN. | So confia no header com `TRUST_PROXY=1`; por padrao usa o peer real da conexao. Teste prova que 20 requests com XFF variavel nao multiplicam o balde. |
+| B3 | Segredo de assinatura sem fail-fast | A chave de cifra ganhou guarda de startup; o segredo que **assina o JWT** nao. Instalador que falhasse em silencio subiria assinando com um segredo publico, e qualquer um forjaria sessao. | Mesma guarda: em `APP_ENV != dev`, secret vazio ou default recusa subir, dizendo como gerar. `dev` segue sem atrito. |
+| B4 | CI ausente do repositorio | Correto: no commit auditado o CI nao existia. | Ja estava commitado localmente; o que faltava era publicar (ver abaixo). Removi tambem a linha `.github/workflows/` de `apps/crm/.gitignore` — resquicio de quando o CRM era repo proprio — e um teste agora falha se ela voltar. |
+| B5 | Retencao zero sem aviso | `retencao_dias = 0` guarda para sempre, em silencio. Sao buscas cifradas de uma crianca acumulando sem prazo. | A tela avisa em ambar: "guardando para sempre — a purga automatica esta desligada". |
+| B6 | Painel sem escopo de workspace | Seguro hoje (instalacao de familia), fragil se virar multiusuario. | Segue como divida consciente; o invariante ja esta escrito no proprio modulo, dizendo o que fazer no dia em que multiusuario entrar. |
+
+**Uma correcao ao diagnostico do B4:** o auditor atribuiu o CI ausente a linha
+61 de `apps/crm/.gitignore`. Nao era a causa — o arquivo esta na **raiz**, fora
+do alcance daquele ignore, e `git check-ignore` confirma que nao era ignorado.
+A causa real: o GitHub recusa arquivos em `.github/workflows/` vindos de um
+token OAuth sem o escopo `workflow`, entao o commit ficou local. A linha do
+`.gitignore` era mesmo lixo e foi removida, mas por outro motivo.
+
+**Estado apos esta rodada:** 492 pytest · 369/369 corpus no motor JS · 373/373
+corpus no motor PS · 139/139 classificador · 32/32 E2E painel · 25/25 E2E
+extensao.

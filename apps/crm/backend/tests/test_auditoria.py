@@ -322,3 +322,139 @@ def test_a9_css_do_app_nao_tem_cor_de_marca_cravada():
     hexes = {h.lower() for h in re.findall(r"#[0-9a-fA-F]{3,6}\b", css)}
     permitidos = {"#000", "#fff"}  # preto/branco puros em sombra e contraste
     assert hexes <= permitidos, f"cores fora dos tokens: {sorted(hexes - permitidos)}"
+
+
+# =========================================================================
+# Segunda rodada de auditoria (achados B*)
+# =========================================================================
+
+
+# ------------------------------------------------- B1: rate limit por peer real
+
+
+def _requisicao_falsa(headers: dict, peer: str = "127.0.0.1"):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(headers=headers, client=SimpleNamespace(host=peer))
+
+
+def test_b1_xff_ignorado_por_padrao(monkeypatch):
+    """B1 — o rate limit chaveava por X-Forwarded-For, header escrito pelo
+    CLIENTE. Num app loopback-only nao ha proxy: um script local mandava um IP
+    diferente a cada request, ganhava um balde novo e anulava o teto de
+    ingestao e o limite da rota de PIN."""
+    from app.core import config as config_mod
+    from app.core.middleware import _identidade_do_cliente
+
+    config_mod.get_settings.cache_clear()
+    monkeypatch.delenv("TRUST_PROXY", raising=False)
+    try:
+        identidades = {
+            _identidade_do_cliente(_requisicao_falsa({"x-forwarded-for": f"10.0.0.{i}"}))
+            for i in range(50)
+        }
+        assert identidades == {"127.0.0.1"}, f"XFF ainda troca a identidade: {identidades}"
+    finally:
+        config_mod.get_settings.cache_clear()
+
+
+def test_b1_xff_vale_quando_ha_proxy_declarado(monkeypatch):
+    from app.core import config as config_mod
+    from app.core.middleware import _identidade_do_cliente
+
+    config_mod.get_settings.cache_clear()
+    monkeypatch.setenv("TRUST_PROXY", "1")
+    try:
+        req = _requisicao_falsa({"x-forwarded-for": "203.0.113.7, 10.0.0.1"})
+        assert _identidade_do_cliente(req) == "203.0.113.7"
+        # sem header, cai no peer real mesmo com proxy declarado
+        assert _identidade_do_cliente(_requisicao_falsa({})) == "127.0.0.1"
+    finally:
+        config_mod.get_settings.cache_clear()
+
+
+def test_b1_balde_nao_se_multiplica_com_xff_variavel():
+    """Prova de ponta: o limite tem de estourar mesmo trocando o header."""
+    from app.core.middleware import RateLimitMiddleware, TokenBucketConfig
+
+    mw = RateLimitMiddleware(app=None, rules=[("/x", TokenBucketConfig(capacity=3, refill_per_sec=0.001))])
+    permitidos = 0
+    for i in range(20):
+        req = _requisicao_falsa({"x-forwarded-for": f"10.0.0.{i}"})
+        from app.core.middleware import _identidade_do_cliente
+
+        ok, _ = mw._consume((_identidade_do_cliente(req), "/x"), TokenBucketConfig(capacity=3, refill_per_sec=0.001))
+        permitidos += 1 if ok else 0
+    assert permitidos <= 4, f"XFF variavel liberou {permitidos} requests — balde se multiplicou"
+
+
+# ------------------------------------- B3: fail-fast do segredo de assinatura
+
+
+def test_b3_producao_recusa_subir_com_segredo_padrao(monkeypatch):
+    """B3 — a chave de cifra ganhou fail-fast; o segredo que ASSINA o JWT nao.
+    Instalador que falhasse em silencio subiria assinando com segredo publico."""
+    from app.core import config as config_mod
+    from app.main import SECRET_INSEGURO, _exigir_segredo_de_assinatura
+
+    config_mod.get_settings.cache_clear()
+    monkeypatch.setenv("APP_ENV", "prod")
+    monkeypatch.setenv("APP_SECRET_KEY", SECRET_INSEGURO)
+    try:
+        with pytest.raises(RuntimeError) as erro:
+            _exigir_segredo_de_assinatura()
+        assert "APP_SECRET_KEY" in str(erro.value)
+        assert "token_urlsafe" in str(erro.value), "erro deve dizer COMO gerar"
+    finally:
+        config_mod.get_settings.cache_clear()
+
+
+def test_b3_dev_continua_rodando_sem_atrito(monkeypatch):
+    from app.core import config as config_mod
+    from app.main import SECRET_INSEGURO, _exigir_segredo_de_assinatura
+
+    config_mod.get_settings.cache_clear()
+    monkeypatch.setenv("APP_ENV", "dev")
+    monkeypatch.setenv("APP_SECRET_KEY", SECRET_INSEGURO)
+    try:
+        _exigir_segredo_de_assinatura()  # nao levanta
+    finally:
+        config_mod.get_settings.cache_clear()
+
+
+def test_b3_producao_com_segredo_real_sobe(monkeypatch):
+    from app.core import config as config_mod
+    from app.main import _exigir_segredo_de_assinatura
+
+    config_mod.get_settings.cache_clear()
+    monkeypatch.setenv("APP_ENV", "prod")
+    monkeypatch.setenv("APP_SECRET_KEY", "s3gredo-de-verdade-gerado-no-install")
+    try:
+        _exigir_segredo_de_assinatura()
+    finally:
+        config_mod.get_settings.cache_clear()
+
+
+# ------------------------------------------------------------- B4: CI existe
+
+
+def test_b4_ci_esta_versionado():
+    """B4 — o CI foi declarado entregue mas nao estava no repositorio."""
+    ci = RAIZ / ".github" / "workflows" / "ci.yml"
+    assert ci.exists(), "workflow de CI nao existe"
+    conteudo = ci.read_text(encoding="utf-8")
+    assert "pytest" in conteudo
+    assert "alembic" in conteudo, "CI sem ciclo de migrations"
+    # e o ignore do subprojeto nao pode voltar a engolir workflows
+    ignore_crm = (CRM / ".gitignore").read_text(encoding="utf-8")
+    assert ".github" not in ignore_crm, "apps/crm/.gitignore voltou a ignorar workflows"
+
+
+# --------------------------------------- B5: retencao indefinida e visivel
+
+
+def test_b5_ui_avisa_quando_a_purga_esta_desligada():
+    js = (CRM / "frontend" / "assets" / "app.js").read_text(encoding="utf-8")
+    html = (CRM / "frontend" / "index.html").read_text(encoding="utf-8")
+    assert 'id="sn-ret-aviso"' in html
+    assert "purga autom" in js, "UI nao avisa que a purga esta desligada"

@@ -32,6 +32,11 @@ class Settings(BaseSettings):
     field_encryption_key: str = ""
 
     rate_limit_enabled: bool = True
+    # X-Forwarded-For so vale atras de um proxy que voce controla. Este produto
+    # serve a si mesmo em loopback: nao ha proxy, e confiar no header deixaria
+    # qualquer processo LOCAL trocar de identidade a cada request e zerar o
+    # rate limit — inclusive o que protege o PIN. Default: nao confiar.
+    trust_proxy: bool = False
     # Optional periodic backup of all workspaces to disk.
     # If set, writes JSON envelopes to the directory every backup_interval_minutes.
     jarvis_backup_dir: str = ""

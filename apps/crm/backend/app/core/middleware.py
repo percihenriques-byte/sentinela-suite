@@ -15,6 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
+from app.core.config import get_settings
 from app.core.logging import request_id_var, user_id_var
 
 logger = logging.getLogger("jarvis.http")
@@ -73,6 +74,28 @@ class TokenBucketConfig:
     refill_per_sec: float
 
 
+def _identidade_do_cliente(request: Request) -> str:
+    """De quem e este request, para efeito de rate limit.
+
+    X-Forwarded-For e util atras de um proxy que voce controla (nginx, Cloudflare):
+    sem ele, todo request compartilharia o IP do proxy e estouraria o limite.
+    Mas o header e escrito pelo CLIENTE. Num app loopback-only — que e o caso
+    aqui — nao ha proxy nenhum, e confiar nele significa que um script local
+    manda um IP diferente a cada request e ganha um balde novo toda vez,
+    anulando o teto de ingestao e o limite da rota de PIN. O modelo de ameaca do
+    controle parental inclui exatamente esse script local.
+
+    Por isso: so olha o header quando TRUST_PROXY=1 diz que existe um proxy
+    confiavel na frente. Caso contrario, vale o peer real da conexao, que o
+    cliente nao consegue falsificar.
+    """
+    if get_settings().trust_proxy:
+        xff = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        if xff:
+            return xff
+    return request.client.host if request.client else "unknown"
+
+
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Per-key token bucket, keyed by (client_ip, first_matching_prefix).
 
@@ -117,12 +140,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if match is None:
             return await call_next(request)
         prefix, cfg = match
-        # Prefer the leftmost X-Forwarded-For entry when present (common behind
-        # nginx/gunicorn/Cloudflare). Falls back to the direct peer address.
-        # Without this, every request coming through a reverse proxy would share
-        # the proxy's IP and hit the rate limit almost immediately in prod.
-        xff = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-        client_ip = xff or (request.client.host if request.client else "unknown")
+        client_ip = _identidade_do_cliente(request)
         key = (client_ip, prefix)
         allowed, info = self._consume(key, cfg)
         if not allowed:

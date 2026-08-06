@@ -95,7 +95,7 @@ packages/
 |---|---|---|
 | Classificador (139) | `powershell -File apps\guardian\app\Testes\Executar-Testes.ps1` | texto PT/EN/ES/FR, evasões, contexto seguro |
 | Precisão (corpus 373) | `powershell -File apps\guardian\app\Testes\Medir-Precisao.ps1` | acurácia, falsos positivos/negativos |
-| API + CRM (478) | `apps\crm\backend\.venv\Scripts\python.exe -m pytest -q` (em `apps/crm/backend`) | rotas, serviços, Jarvis, módulo Sentinela |
+| API + CRM (492) | `apps\crm\backend\.venv\Scripts\python.exe -m pytest -q` (em `apps/crm/backend`) | rotas, serviços, Jarvis, módulo Sentinela |
 | E2E extensão + ponte (25) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Sync.py` | navegador real → API, ponte PowerShell |
 | E2E painel (32) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Painel.py` | identidade da casca, página Sentinela, tema claro, celular |
 

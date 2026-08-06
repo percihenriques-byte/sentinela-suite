@@ -1,7 +1,15 @@
 /*
-  classificador.js — IA local do Sentinela (mesma lógica do módulo
-  Sentinela-Classificador.ps1). Roda no navegador, sem internet.
-  Expõe window.SentinelaIA.classify(texto, config).
+  classificador.js — IA local do Sentinela. Roda no navegador, sem internet.
+  Expoe window.SentinelaIA.classify(texto, config).
+
+  ESPELHO de ../Sentinela-Classificador.ps1: os dois precisam ter os MESMOS
+  termos, pesos, categorias e contexto seguro. Editou la, edita aqui.
+
+  Cuidado: o corpus de 373 casos roda contra o PowerShell, mas quem protege a
+  tela da crianca e ESTE arquivo. Um termo que exista so no PS passa direto no
+  navegador e o corpus marca 100% sem perceber — foi exatamente o que aconteceu
+  com "xingamentos pesados" e "como criar conta no". A paridade agora e checada
+  por apps/crm/backend/tests/test_classificador_paridade.py.
 */
 (function (global) {
   function normalizar(s) {
@@ -29,11 +37,11 @@
     { nome:'Drogas', padrao:true, semReducao:false, termos:{'como usar drogas':1,'comprar maconha':1,'usar cocaina':1,'cheirar cocaina':1,'comprar cocaina':1,'comprar droga':1,'cheirar cola':1,'cocaina':.5,'crack':.5,'maconha':.5,'lsd':.5,'ecstasy':.5,'droga':.35,'entorpecente':.5,'lanca perfume':1,'cheirar lolo':1,'cheirinho da lolo':1,'fumar baseado':1,'baseado de maconha':1,'comprar skunk':1,'skunk droga':1,'buy weed':1,'smoke weed':1,'weed dealer':1,'buy cocaine':1,'buy drugs':1,'how to get high':.5,'cocaine':.5,'acheter de la drogue':1}},
     { nome:'Apostas', padrao:true, semReducao:true, termos:{'cassino online':1,'aposta esportiva':1,'jogo do bicho':1,'aposta':.5,'cassino':.5,'tigrinho':1,'jogo do tigrinho':1,'bet365':1,'betano':1,'sportingbet':1,'blaze aposta':1,'roleta':.5,'roleta cassino':1,'apostar dinheiro':1,'apostas online':1,'site de apostas':1,'blaze':.5,'aviator':.5,'jogo aviator':1,'fortune tiger':1,'caca-niquel':1,'caca niquel':1,'jogo de azar':1,'poker valendo':1,'poker a dinheiro':1,'jogar no bicho':1,'raspadinha valendo':1,'raspadinha online':1,'raspadinha premiada':1,'online casino':1,'sports betting':1,'online gambling':1,'slot machine':1,'gambling':.5,'stake bet':1,'stake casino':1,'1xbet':1,'pixbet':1,'esportes da sorte':1,'superbet':1,'betfair':1,'kto bet':1,'kto apostas':1,'sportsbet':1,'blaze apostas':1,'estrelabet':1,'vaidebet':1,'realsbet':1,'betnacional':1,'bet nacional':1,'multibet':1,'br4bet':1,'brabet':1,'f12bet':1,'f12 bet':1,'pagbet':1,'7games bet':1}},
     { nome:'Burlar proteção', padrao:true, semReducao:true, termos:{'burlar filtro':1,'burlar o filtro':1,'driblar o filtro':1,'desativar safesearch':1,'desbloquear sites':1,'filtro da escola':1,'vpn para escola':1,'como burlar':.5,'proxy anonimo':.5}},
-    { nome:'Linguagem imprópria', padrao:true, semReducao:true, termos:{'caralho':.5,'porra':.5,'buceta':1,'piroca':1}},
+    { nome:'Linguagem imprópria', padrao:true, semReducao:true, termos:{'caralho':.5,'porra':.5,'buceta':1,'piroca':1,'xingamentos pesados':.5}},
     // Odio/extremismo: so frases apologeticas bloqueiam; historia/educacao liberada.
     { nome:'Ódio e extremismo', padrao:true, semReducao:false, termos:{'apologia ao nazismo':1,'apologia ao racismo':1,'grupo neonazista':1,'ser neonazista':1,'como ser racista':1,'piada racista':1,'piadas racistas':1,'raca superior':1,'superioridade da raca':1,'saudacao nazista':1,'simbolo nazista':1,'grupo de odio':1,'supremacia branca':.5,'limpeza etnica':.5}},
     { nome:'Namoro e relacionamento', padrao:false, semReducao:true, termos:{'app de namoro':1,'tinder':1,'como beijar':.5,'namorada online':.5,'pegar meninas':.5}},
-    { nome:'Redes sociais', padrao:false, semReducao:true, termos:{'tiktok':.5,'instagram':.5,'kwai':.5,'snapchat':.5}}
+    { nome:'Redes sociais', padrao:false, semReducao:true, termos:{'tiktok':.5,'instagram':.5,'kwai':.5,'snapchat':.5,'como criar conta no':.35}}
   ];
   var CTX_SEGURO = ['dever de casa','trabalho escolar','feira de ciencias','aula de ciencias','biologia','saude','medico','doenca','cancer','prevencao','sintomas','aula de','sexo masculino','sexo feminino','sexo do bebe','sexo biologico','sexo do feto','qual o sexo','sexo fragil','sexo forte','sexo oposto','sexo dos anjos','ambos os sexos','sexo dos personagens','estatua','escultura','renascentista','museu','historia da arte','obra de arte','pintura','arte grega'];
 

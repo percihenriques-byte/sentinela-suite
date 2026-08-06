@@ -54,6 +54,35 @@ def _exigir_chave_de_cifra() -> None:
     )
 
 
+SECRET_INSEGURO = "dev-insecure-change-me"
+
+
+def _exigir_segredo_de_assinatura() -> None:
+    """Recusa subir em producao com o segredo de assinatura padrao.
+
+    O JWT e assinado com APP_SECRET_KEY. Com o valor default — que esta no
+    codigo, publico — qualquer um forja um token de acesso valido. O instalador
+    gera um segredo real, mas ele segue adiante com "AVISO: nao critico" quando
+    um passo falha; sem esta guarda, uma instalacao meio-quebrada subiria
+    assinando com segredo conhecido e ninguem perceberia.
+
+    Em `APP_ENV=dev` o default continua valendo, para nao atrapalhar quem so
+    quer rodar o projeto.
+    """
+    s = get_settings()
+    if s.app_env.strip().lower() == "dev":
+        return
+    if s.app_secret_key.strip() and s.app_secret_key.strip() != SECRET_INSEGURO:
+        return
+    raise RuntimeError(
+        "APP_SECRET_KEY esta vazia ou com o valor padrao publico.\n"
+        "Com ela qualquer pessoa forja um token de acesso valido, entao o app recusa subir.\n"
+        "Gere um segredo com:\n"
+        '  python -c "import secrets; print(secrets.token_urlsafe(48))"\n'
+        "e cole em APP_SECRET_KEY= no arquivo .env (ou rode INSTALAR.bat de novo)."
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.services.backup_scheduler import run_backup_scheduler
@@ -61,6 +90,7 @@ async def lifespan(app: FastAPI):
 
     configure_logging()
     _exigir_chave_de_cifra()
+    _exigir_segredo_de_assinatura()
     init_db()
     stop_event = asyncio.Event()
     tarefas = [
