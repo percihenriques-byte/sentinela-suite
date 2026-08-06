@@ -98,6 +98,8 @@ packages/
 
 ## Documentação
 
+- [`RELATORIO-UNIFICACAO.md`](RELATORIO-UNIFICACAO.md) — como os dois projetos viraram um: decisões, validação e limitações
+
 - [`packages/ui/README.md`](packages/ui/README.md) — design system e como trocar a identidade em um lugar só
 - [`apps/guardian/README.md`](apps/guardian/README.md) — o Sentinela em detalhe
 - [`apps/guardian/CONTINUAR-AQUI.md`](apps/guardian/CONTINUAR-AQUI.md) — estado do projeto e regras de trabalho
