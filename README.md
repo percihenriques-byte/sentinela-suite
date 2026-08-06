@@ -1,5 +1,7 @@
 # 🛡️ Sentinela Suite
 
+[![CI](https://github.com/percihenriques-byte/sentinela-suite/actions/workflows/ci.yml/badge.svg)](https://github.com/percihenriques-byte/sentinela-suite/actions/workflows/ci.yml)
+
 **Um app só**, com a UX do Sentinela: um servidor, uma janela, um login, um
 instalador. Dentro dele, dois módulos:
 
