@@ -52,6 +52,22 @@ def api(base, rota, dados=None, token=None, cabecalhos=None):
         return json.loads(r.read().decode() or "{}")
 
 
+def _diagnostico(log_servidor, servidor) -> None:
+    """Mostra por que o servidor nao subiu, em vez de so dizer que nao subiu."""
+    print("  [FALHA] servidor nao subiu")
+    print(f"  codigo de saida: {servidor.poll()}")
+    try:
+        texto = log_servidor.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        texto = ""
+    if texto:
+        print("  --- saida do servidor ---")
+        for linha in texto.splitlines()[-25:]:
+            print(f"    {linha}")
+    else:
+        print("  (servidor nao escreveu nada — provavelmente nem chegou a iniciar)")
+
+
 def main() -> int:
     from playwright.sync_api import sync_playwright
 
@@ -64,13 +80,16 @@ def main() -> int:
     env["FIELD_ENCRYPTION_KEY"] = "teste-painel-encryption"
     env["RATE_LIMIT_ENABLED"] = "false"
 
+    # Saida do servidor em arquivo: sem isso, "nao subiu" nao diz por que.
+    log_servidor = tmp / "servidor.log"
+    handle_log = open(log_servidor, "w", encoding="utf-8", errors="replace")
     servidor = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", str(porta)],
-        cwd=str(BACKEND), env=env, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        cwd=str(BACKEND), env=env, stdout=handle_log, stderr=subprocess.STDOUT,
     )
     email, senha = "mae@exemplo.com", "senha-de-teste-123"
     try:
-        limite = time.time() + 30
+        limite = time.time() + 90
         pronto = False
         while time.time() < limite and not pronto:
             try:
@@ -79,7 +98,7 @@ def main() -> int:
             except (urllib.error.URLError, OSError):
                 time.sleep(0.3)
         if not pronto:
-            print("  [FALHA] servidor nao subiu")
+            _diagnostico(log_servidor, servidor)
             return 1
 
         jwt = api(base, "/api/v1/auth/register", {

@@ -49,7 +49,7 @@ def porta_livre() -> int:
         return s.getsockname()[1]
 
 
-def esperar_servidor(base: str, segundos: float = 30.0) -> bool:
+def esperar_servidor(base: str, segundos: float = 90.0) -> bool:
     limite = time.time() + segundos
     while time.time() < limite:
         try:
@@ -124,6 +124,22 @@ def testar_ponte_powershell(base: str, token: str, jwt: str) -> None:
     checar("com a ponte desligada nada e enviado", total2 == total, f"-> {total2}")
 
 
+def _diagnostico(log_servidor, servidor) -> None:
+    """Mostra por que o servidor nao subiu, em vez de so dizer que nao subiu."""
+    print("  [FALHA] servidor nao subiu")
+    print(f"  codigo de saida: {servidor.poll()}")
+    try:
+        texto = log_servidor.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        texto = ""
+    if texto:
+        print("  --- saida do servidor ---")
+        for linha in texto.splitlines()[-25:]:
+            print(f"    {linha}")
+    else:
+        print("  (servidor nao escreveu nada — provavelmente nem chegou a iniciar)")
+
+
 def main() -> int:
     from playwright.sync_api import sync_playwright
 
@@ -139,15 +155,19 @@ def main() -> int:
     env["RATE_LIMIT_ENABLED"] = "false"
 
     print(f"\n  Servidor de teste: {base}  (banco temporario)")
+    # A saida do servidor vai para arquivo, nao para DEVNULL: quando ele nao sobe
+    # (aconteceu no primeiro CI real), "servidor nao subiu" sozinho nao diz nada.
+    log_servidor = tmp / "servidor.log"
+    handle_log = open(log_servidor, "w", encoding="utf-8", errors="replace")
     servidor = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", str(porta)],
         cwd=str(BACKEND), env=env,
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        stdout=handle_log, stderr=subprocess.STDOUT,
     )
     udd = tmp / "perfil"
     try:
         if not esperar_servidor(base):
-            print("  [FALHA] servidor nao subiu")
+            _diagnostico(log_servidor, servidor)
             return 1
 
         conta = api(base, "/api/v1/auth/register", {
