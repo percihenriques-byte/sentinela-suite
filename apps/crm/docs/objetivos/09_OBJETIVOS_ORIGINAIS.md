@@ -46,7 +46,7 @@ Construir um CRM que:
 
 ### "sim ate n ter mais bugs e quando n tiver e estiver 100 funcional faca outro up para o repo e crie uma pasta"
 - ✅ Rodadas até 0 bugs
-- ✅ Pasta `objetivos crm/` criada (esta aqui)
+- ✅ Pasta `docs/objetivos/` criada (esta aqui)
 - ⏳ Push final pendente (próxima ação)
 
 ## Métricas finais

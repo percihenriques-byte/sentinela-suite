@@ -1,8 +1,11 @@
-# VisiQuost
+# VisiQuost — o CRM da Sentinela Suite
 
-An AI-powered Universal CRM with **Jarvis**, an assistant that runs entirely on your machine — no cloud APIs required to be fully functional.
+An AI-powered Universal CRM with **Jarvis**, an assistant that runs entirely on your machine.
 
-Cloud LLM (Anthropic Claude) is an **optional** enhancement for free-form conversation; the local engine handles everything else.
+**Zero external APIs.** There is no cloud-LLM path in the code: the local intent
+engine handles everything, and the app works with the network unplugged. It also
+hosts the **Sentinela** parental-control panel — see the
+[README da suite](../../README.md).
 
 ## What's in it
 
