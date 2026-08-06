@@ -3453,6 +3453,10 @@ function openWorkflowEditor() {
 function openModal(title, fields, onSave) {
   const modal = document.getElementById("modal");
   document.getElementById("modal-title").textContent = title;
+  // Modais especializados (ex.: "Conectar dispositivo") trocam o rotulo do
+  // botao. Restaurar aqui cobre tambem quem fechou com Esc, que nao passa
+  // pelos botoes de cancelar/fechar.
+  document.getElementById("modal-save").textContent = "Salvar";
   const form = document.getElementById("modal-form");
   form.innerHTML = "";
   for (const f of fields) {
@@ -4482,7 +4486,6 @@ async function snConectarDispositivo() {
   document.getElementById("modal-cancel").onclick = close;
   document.getElementById("modal-x").onclick = close;
   const salvar = document.getElementById("modal-save");
-  const rotuloOriginal = salvar.textContent;
   salvar.textContent = "Gerar novo token";
   salvar.onclick = async () => {
     try {
@@ -4491,10 +4494,6 @@ async function snConectarDispositivo() {
       toast("Token novo gerado. Reconecte os dispositivos.", "info");
     } catch (err) { toast(err.message, "error"); }
   };
-  // openModal() reusa esses mesmos botoes; devolve o rotulo ao fechar.
-  const restaurar = () => { salvar.textContent = rotuloOriginal; };
-  document.getElementById("modal-cancel").addEventListener("click", restaurar, { once: true });
-  document.getElementById("modal-x").addEventListener("click", restaurar, { once: true });
   form.onsubmit = ev => ev.preventDefault();
   modal.classList.remove("hidden");
 }

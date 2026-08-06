@@ -90,7 +90,7 @@ Owner/admin only. UUIDs preserved when importing into an empty workspace, regene
 ## Layout
 
 ```
-jarvis-crm/
+apps/crm/
 ├── backend/
 │   ├── app/
 │   │   ├── api/            HTTP routes
