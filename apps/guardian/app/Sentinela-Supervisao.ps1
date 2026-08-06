@@ -50,6 +50,14 @@ function Add-SupervisaoRegistro {
     if ($Resultado.Bloquear) {
         Write-SentinelaLog ("SUPERVISAO: busca bloqueada [{0}] '{1}' (origem {2})" -f $Resultado.Categoria, $Texto, $Origem) 'WARN'
     }
+
+    # Espelha no painel local, se a ponte estiver configurada (Sentinela-Ponte.ps1).
+    # Best-effort: painel fora do ar nao pode atrapalhar a protecao, e o .jsonl
+    # acima ja guardou o registro. Sync-SupervisaoComPainel recupera depois.
+    if (Get-Command Send-PainelEventos -ErrorAction SilentlyContinue) {
+        try { Send-PainelEventos -Registros @($registro) -Silencioso | Out-Null } catch { }
+    }
+
     return $Resultado
 }
 

@@ -73,6 +73,57 @@ def api(base: str, rota: str, dados=None, token=None, metodo=None):
         return json.loads(r.read().decode() or "{}")
 
 
+def powershell(script: str) -> tuple[int, str]:
+    """Roda um trecho de PowerShell no modo simulacao (nada toca o sistema real)."""
+    completo = "$ErrorActionPreference='Stop'; $env:SENTINELA_SIMULAR='1'; " + script
+    r = subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", completo],
+        capture_output=True, text=True, timeout=120,
+    )
+    return r.returncode, (r.stdout or "") + (r.stderr or "")
+
+
+def testar_ponte_powershell(base: str, token: str, jwt: str) -> None:
+    """O app Windows tambem entrega o que classifica ao painel."""
+    app = RAIZ / "apps" / "guardian" / "app"
+    carregar = (
+        f". '{app / 'Sentinela-Core.ps1'}'; . '{app / 'Sentinela-Classificador.ps1'}'; "
+        f". '{app / 'Sentinela-Supervisao.ps1'}'; . '{app / 'Sentinela-Ponte.ps1'}'; "
+    )
+    # Comeca de uma pasta de simulacao limpa: sobra de execucao anterior
+    # falsearia a contagem.
+    powershell("Remove-Item -Recurse -Force (Join-Path $env:TEMP 'SentinelaSim') -ErrorAction SilentlyContinue")
+
+    cod, saida = powershell(
+        carregar + "try { Set-PainelConfig -Url 'http://exemplo.com' -Token 'x' -Ligado $true | Out-Null; "
+        "'ACEITOU' } catch { 'RECUSOU' }"
+    )
+    checar("ponte PS recusa painel fora do loopback", "RECUSOU" in saida, f"-> {saida.strip()[:120]}")
+
+    cod, saida = powershell(
+        carregar + f"Set-PainelConfig -Url '{base}' -Token '{token}' -Dispositivo 'pc-powershell' -Ligado $true | Out-Null; "
+        "Add-SupervisaoRegistro -Texto 'jogo do tigrinho' -Origem 'app' | Out-Null; 'FEITO'"
+    )
+    checar("app PowerShell registrou e enviou", cod == 0 and "FEITO" in saida, f"-> {saida.strip()[:200]}")
+
+    eventos = api(base, "/api/v1/sentinela/eventos?dispositivo=pc-powershell", token=jwt)
+    checar("evento do app PowerShell chegou ao painel", eventos["total"] == 1, f"-> {eventos['total']}")
+    if eventos["total"]:
+        ev = eventos["items"][0]
+        checar("classificacao do app veio junto", ev["bloqueado"] and ev["tema"], f"-> {ev}")
+        checar("busca do app aparece decifrada", ev["busca"] == "jogo do tigrinho", f"-> {ev['busca']!r}")
+
+    # Envio em massa do historico (primeira conexao / painel que ficou fora).
+    cod, saida = powershell(carregar + "Sync-SupervisaoComPainel")
+    total = api(base, "/api/v1/sentinela/eventos?dispositivo=pc-powershell", token=jwt)["total"]
+    checar("EnviarTudo reenvia o historico acumulado", total == 2, f"-> {total} (saida: {saida.strip()[:120]})")
+
+    cod, saida = powershell(carregar + "Set-PainelConfig -Ligado $false | Out-Null; "
+                            "Add-SupervisaoRegistro -Texto 'cassino online' -Origem 'app' | Out-Null; 'FEITO'")
+    total2 = api(base, "/api/v1/sentinela/eventos?dispositivo=pc-powershell", token=jwt)["total"]
+    checar("com a ponte desligada nada e enviado", total2 == total, f"-> {total2}")
+
+
 def main() -> int:
     from playwright.sync_api import sync_playwright
 
@@ -193,7 +244,10 @@ def main() -> int:
             finally:
                 ctx.close()
 
-        # --- 4) o texto da busca nao pode estar legivel no banco ---
+        # --- 4) a ponte do app PowerShell tambem entrega ao painel ---
+        testar_ponte_powershell(base, token, jwt)
+
+        # --- 5) o texto da busca nao pode estar legivel no banco ---
         import sqlite3
         con = sqlite3.connect(str(db))
         cru = " ".join(str(r[0]) for r in con.execute("select busca_enc from sentinelaevent"))
