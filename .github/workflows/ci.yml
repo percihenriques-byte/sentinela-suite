@@ -1,0 +1,121 @@
+name: CI
+
+# Monorepo que uniu dois projetos: a regressao silenciosa entre guardian e crm
+# e exatamente o risco que so um CI pega. O que roda sem navegador e sem Windows
+# roda em todo push; o resto fica em jobs proprios.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  api:
+    name: API + CRM (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/crm/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/crm/backend/requirements.txt
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: pytest
+        env:
+          # Mesmas variaveis do conftest: o app recusa subir sem chave de cifra
+          # (ver A1 na auditoria), e isso e proposital.
+          DATABASE_URL: "sqlite:///:memory:"
+          APP_SECRET_KEY: "ci-secret-nao-usar-em-producao"
+          FIELD_ENCRYPTION_KEY: "ci-encryption-nao-usar-em-producao"
+          RATE_LIMIT_ENABLED: "false"
+        run: python -m pytest -q
+
+  migrations:
+    name: Migrations (up / down / up)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/crm/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: apps/crm/backend/requirements.txt
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Ciclo completo em banco limpo
+        env:
+          DATABASE_URL: "sqlite:///./ci.db"
+          APP_SECRET_KEY: "ci-secret"
+          FIELD_ENCRYPTION_KEY: "ci-encryption"
+        run: |
+          python -m alembic upgrade head
+          python -m alembic downgrade base
+          python -m alembic upgrade head
+
+  classificador:
+    name: Classificador + corpus (PowerShell)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Suite do classificador (139)
+        shell: pwsh
+        run: ./apps/guardian/app/Testes/Executar-Testes.ps1
+      - name: Precisao no corpus rotulado (373)
+        shell: pwsh
+        run: ./apps/guardian/app/Testes/Medir-Precisao.ps1
+
+  paridade:
+    name: Corpus contra o motor do navegador
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar Playwright + Chromium
+        run: |
+          python -m pip install --upgrade pip
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      # O corpus mede o classificador PowerShell, mas quem protege a tela da
+      # crianca e o JS da extensao. Rodar o mesmo corpus contra o motor JS e a
+      # unica forma de garantir que os dois nao divergiram de verdade.
+      - name: Corpus rotulado no motor JS
+        run: python apps/guardian/app/Testes/Testar-Paridade.py
+
+  # Os E2E carregam a extensao num Chromium real e sobem um servidor; dependem
+  # de ambiente grafico e de PowerShell. Ficam sob demanda para nao travar o
+  # fluxo de todo push — mas ficam versionados e documentados aqui.
+  e2e:
+    name: E2E (extensao + painel)
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/crm/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m playwright install chromium
+      - name: E2E extensao + ponte PowerShell
+        working-directory: .
+        run: python apps/guardian/app/Testes/Testar-Sync.py
+      - name: E2E painel na SPA
+        working-directory: .
+        run: python apps/guardian/app/Testes/Testar-Painel.py
