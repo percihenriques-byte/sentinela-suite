@@ -32,7 +32,7 @@ Tracks incremental progress across autonomous loop ticks. Each tick should compl
 
 ## Phase 2 — Jarvis MVP (in progress)
 
-**Constraint:** Jarvis must work without any external APIs. Local engine is primary; cloud LLM is bonus.
+**Constraint:** Jarvis must work without any external APIs. There is no cloud tier — items abaixo que dependam de uma sao historicos e estao fora de escopo.
 
 - [x] Chat endpoint `/jarvis/chat` — local-first, LLM optional
 - [x] Context snapshot endpoint `/jarvis/context`
