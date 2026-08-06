@@ -16,7 +16,7 @@
 │  ── Jarvis chat +    │     │       │    ├─ 25+ intent handlers         │
 │     nudges chips     │     │       │    ├─ Tool registry                │
 │                      │     │       │    └─ NL date parser (offline)     │
-│                      │     │       └─ Anthropic runner (optional)      │
+│                      │     │       (sem camada de nuvem: so o local)   │
 └──────────────────────┘     └──┬───────────────────────────────────────┘
                                 │
                                 ▼
@@ -42,7 +42,7 @@ Requests flow: Middleware chain (RequestId → RateLimit → CORS) → route →
 | Prod DB | PostgreSQL | JSONB, full-text search, row-level security |
 | Auth | JWT + argon2 password hashing | Stateless, well-supported |
 | Frontend | Flutter (planned) | One codebase → web, Android, desktop |
-| AI | Anthropic Claude API | Long context, tool use, reliable structured output |
+| AI | Local intent engine (regex + fuzzy + slot filling) | Works offline, no key, no per-call cost, no data leaves the machine |
 | Task queue (future) | Celery + Redis | Standard for background workflows |
 
 ## Multi-tenant model
@@ -64,7 +64,7 @@ Every entity carries `id` (UUID), `workspace_id`, `created_at`, `updated_at`. So
 
 ## Jarvis
 
-**Design constraint:** Jarvis must be fully usable **without any external APIs**. The local engine is the primary path. Claude (or any cloud LLM) is an optional enhancement, never a hard requirement.
+**Design constraint:** Jarvis must be fully usable **without any external APIs** — and in this codebase that is not a preference but the only path: there is no cloud tier. What the local engine cannot do, the assistant reports honestly.
 
 `backend/app/jarvis/` is where the assistant lives. Two tiers:
 
@@ -78,9 +78,9 @@ Every entity carries `id` (UUID), `workspace_id`, `created_at`, `updated_at`. So
 
 Handled intents include: greetings, help, entity counts, pipeline summary, overdue tasks, upcoming meetings, open opportunities, task creation ("create task: …"), and contact search. Every new capability starts here.
 
-### Tier 2 — Cloud LLM (optional bonus)
+### Tier 2 — removido
 
-`runner.py` wraps the Claude tool-use loop. Only consulted when Tier 1 explicitly escalates *and* `ANTHROPIC_API_KEY` is configured. Failure of Tier 2 never breaks the endpoint — the user gets the Tier 1 reply plus a note.
+Existiu um `runner.py` que falava com a API da Anthropic. Foi removido junto com a configuracao `anthropic_*` quando a regra de zero APIs externas passou a valer. Nao ha caminho de nuvem no codigo — se voltar a aparecer um, e bug.
 
 ### Shared components
 
