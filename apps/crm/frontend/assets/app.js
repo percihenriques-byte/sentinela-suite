@@ -2114,7 +2114,7 @@ function renderMonthlyForecast(data) {
       <span class="subtle">${state.lang === "pt" ? "Total ponderado:" : "Weighted total:"} <strong>$ ${totalWeighted.toLocaleString(undefined, { maximumFractionDigits: 0 })}</strong></span>
     </div>
     <svg viewBox="0 0 100 60" preserveAspectRatio="none" style="width:100%;height:160px;display:block;">
-      <defs><linearGradient id="mfGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+      <defs><linearGradient id="mfGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2dd4bf"/><stop offset="1" stop-color="#0ea5a0"/></linearGradient></defs>
       ${bars}
     </svg>
   `;
@@ -2278,8 +2278,8 @@ function renderPipelineChart(byStageResp) {
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="width:100%;height:160px;display:block;">
       <defs>
         <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#a855f7"/>
-          <stop offset="1" stop-color="#6366f1"/>
+          <stop offset="0" stop-color="#2dd4bf"/>
+          <stop offset="1" stop-color="#0ea5a0"/>
         </linearGradient>
       </defs>
       ${bars}
@@ -2861,7 +2861,9 @@ async function loadPipelineTemplates() {
 }
 
 // Palette used to auto-color kanban stages by index
-const STAGE_PALETTE = ["#6366f1", "#3b82f6", "#0ea5e9", "#06b6d4", "#14b8a6", "#22c55e", "#eab308", "#f97316", "#ef4444"];
+// Rampa categorica ancorada no teal do Sentinela: progride do frio (inicio do
+// funil) ao quente (fechamento), mantendo contraste entre estagios vizinhos.
+const STAGE_PALETTE = ["#0ea5a0", "#2dd4bf", "#7ff5e6", "#38bdf8", "#818cf8", "#f6b73c", "#fb923c", "#ff6b6b", "#e879f9"];
 
 async function loadKanban() {
   await loadPipelineTemplates();
