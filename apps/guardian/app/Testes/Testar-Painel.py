@@ -141,6 +141,20 @@ def main() -> int:
             checar("primeiro acesso abre no Sentinela",
                    not pag.locator("#page-sentinela").evaluate("e => e.classList.contains('hidden')"))
 
+            # Sem PIN a trava parental nao existe. Como o app ja abre no
+            # Sentinela, o pedido de PIN aparece aqui, antes de qualquer clique
+            # (achado A3 da auditoria: aviso em cinza que ninguem le nao protege).
+            pag.wait_for_timeout(900)
+            modal_pin = pag.locator("#modal:not(.hidden)")
+            checar("primeira visita pede o PIN do responsavel", modal_pin.count() == 1,
+                   "-> nao pediu")
+            if modal_pin.count():
+                checar("o pedido de PIN diz do que se trata",
+                       "PIN" in pag.locator("#modal-title").inner_text(),
+                       f"-> {pag.locator('#modal-title').inner_text()!r}")
+                pag.click("#modal-cancel")
+                pag.wait_for_timeout(400)
+
             alvo = '.nav-item[data-page="sentinela"]'
             checar("item Sentinela existe no menu", pag.locator(alvo).count() == 1)
             pag.click(alvo)

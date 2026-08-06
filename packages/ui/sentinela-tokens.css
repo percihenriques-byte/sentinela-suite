@@ -61,6 +61,13 @@
   --danger: var(--sn-coral);
   --danger-soft: rgba(255, 107, 107, 0.14);
 
+  /* Cores de etiqueta livre. Ficam aqui, e nao cravadas no CSS do app, para
+     que trocar a identidade continue sendo mexer num arquivo so. */
+  --sn-tag-orange: #f59e5b;
+  --sn-tag-orange-soft: rgba(245, 158, 91, 0.18);
+  --sn-tag-pink: #f08fb4;
+  --sn-tag-pink-soft: rgba(240, 143, 180, 0.18);
+
   /* --- Espacamento --- */
   --s-1: 4px;
   --s-2: 8px;

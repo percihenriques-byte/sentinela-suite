@@ -3,16 +3,22 @@
 
 def test_cors_origins_empty_env_falls_back_to_default(monkeypatch):
     """CORS_ORIGINS=`` (or ` , , `) previously became [] which silently broke
-    all cross-origin requests."""
-    from app.core.config import Settings
+    all cross-origin requests.
+
+    O default mudou de `localhost:3000` (porta de dev que nao existe neste
+    produto) para as origens loopback do proprio app — ver A5 na auditoria e
+    test_a5_cors_default_e_so_loopback."""
+    from app.core.config import CORS_PADRAO, Settings
+
+    padrao = list(CORS_PADRAO)
 
     monkeypatch.setenv("CORS_ORIGINS", "")
     s = Settings()
-    assert s.cors_origins == ["http://localhost:3000"]
+    assert s.cors_origins == padrao
 
     monkeypatch.setenv("CORS_ORIGINS", " , , ,")
     s = Settings()
-    assert s.cors_origins == ["http://localhost:3000"]
+    assert s.cors_origins == padrao
 
     # Real value still parses.
     monkeypatch.setenv("CORS_ORIGINS", "https://a.com, https://b.com")

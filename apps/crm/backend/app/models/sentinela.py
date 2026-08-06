@@ -46,3 +46,8 @@ class SentinelaConfig(TimestampedModel, table=True):
     token_ingestao: str = Field(default="", nullable=False)
     pin_hash: Optional[str] = Field(default=None)
     retencao_dias: int = Field(default=90)
+    # Um PIN de 4 digitos tem 10.000 combinacoes: sem trava, um script local
+    # esgota isso em segundos e a "trava parental" nao trava nada. Registrar a
+    # tentativa nao e defesa contra a tentativa.
+    pin_falhas: int = Field(default=0)
+    pin_bloqueado_ate: Optional[datetime] = Field(default=None)

@@ -10,6 +10,14 @@ Duas superficies, com credenciais diferentes de proposito:
 
   * painel (todo o resto) — exige login normal do CRM. Quem esta logado nesta
     instalacao local e o responsavel.
+
+INVARIANTE (nao remover sem substituir por outra guarda): estas rotas nao sao
+workspace-scoped de proposito — o registro parental pertence a maquina, nao a um
+espaco de trabalho comercial. A consequencia e que QUALQUER usuario autenticado
+desta instalacao le o painel. Isso e aceitavel enquanto a instalacao for de uma
+familia, com um responsavel. No dia em que o CRM servir usuarios nao
+relacionados na mesma instalacao, `CurrentUser` aqui vira brecha: e preciso um
+papel `responsavel` no User e um Depends proprio que o exija.
 """
 from __future__ import annotations
 
@@ -211,15 +219,32 @@ def editar_config(payload: ConfigPatch, session: SessionDep, user: CurrentUser) 
     )
 
 
+def _exige_pin_liberado(session) -> None:
+    """Barra a tentativa antes de comparar o PIN, se estiver em lockout."""
+    faltam = svc.pin_bloqueado_por(session)
+    if faltam is not None:
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Muitas tentativas de PIN. Tente de novo em {faltam}s.",
+            headers={"Retry-After": str(faltam)},
+        )
+
+
 @router.post("/config/pin")
 def definir_pin(payload: PinIn, session: SessionDep, user: CurrentUser) -> dict:
     """Define ou troca o PIN. Trocar exige o PIN atual — senao bastaria roubar a
-    sessao aberta do responsavel para desarmar a trava."""
+    sessao aberta do responsavel para desarmar a trava. A troca conta para o
+    mesmo lockout da verificacao: senao ela viraria o oraculo de forca bruta."""
     if not payload.pin.isdigit():
         raise HTTPException(400, "PIN deve conter apenas digitos")
     cfg = svc.get_config(session)
-    if cfg.pin_hash and not (payload.pin_atual and verify_password(payload.pin_atual, cfg.pin_hash)):
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "PIN atual incorreto")
+    if cfg.pin_hash:
+        _exige_pin_liberado(session)
+        if not (payload.pin_atual and verify_password(payload.pin_atual, cfg.pin_hash)):
+            svc.registrar_falha_de_pin(session)
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "PIN atual incorreto")
+        svc.limpar_falhas_de_pin(session)
+    cfg = svc.get_config(session)
     cfg.pin_hash = hash_password(payload.pin)
     session.add(cfg)
     session.commit()
@@ -231,8 +256,12 @@ def verificar_pin(payload: PinCheck, session: SessionDep, user: CurrentUser) -> 
     cfg = svc.get_config(session)
     if not cfg.pin_hash:
         raise HTTPException(400, "Nenhum PIN definido")
+    _exige_pin_liberado(session)
     ok = verify_password(payload.pin, cfg.pin_hash)
-    if not ok:
+    if ok:
+        svc.limpar_falhas_de_pin(session)
+    else:
+        svc.registrar_falha_de_pin(session)
         # A tentativa falha vira evento: o responsavel ve quem tentou desarmar.
         svc.registrar_evento(
             session,
@@ -280,7 +309,7 @@ def importar_jsonl(payload: dict, session: SessionDep, user: CurrentUser) -> dic
         except (ValueError, TypeError):
             ignorados += 1
             continue
-        if not isinstance(obj, dict) or not obj.get("busca"):
+        if not isinstance(obj, dict):
             ignorados += 1
             continue
         quando = None
@@ -289,17 +318,23 @@ def importar_jsonl(payload: dict, session: SessionDep, user: CurrentUser) -> dic
                 quando = datetime.fromisoformat(str(obj["hora"]).replace("Z", "+00:00"))
             except ValueError:
                 quando = None
-        svc.registrar_evento(
-            session,
-            busca=str(obj.get("busca"))[: svc.MAX_BUSCA],
-            origem=str(obj.get("origem") or "importado"),
-            dispositivo=str(obj.get("dispositivo") or "este-pc"),
-            tema=obj.get("tema"),
-            confianca=float(obj.get("confianca") or 0.0),
-            bloqueado=bool(obj.get("bloqueado")),
-            ocorrido_em=quando,
-            commit=False,
-        )
+        try:
+            # Mesma validacao da ingestao ao vivo (svc.normalizar_evento):
+            # linha sem texto de busca cai aqui como ignorada, nao entra torta.
+            svc.registrar_evento(
+                session,
+                busca=str(obj.get("busca") or ""),
+                origem=str(obj.get("origem") or "importado"),
+                dispositivo=str(obj.get("dispositivo") or "este-pc"),
+                tema=obj.get("tema"),
+                confianca=float(obj.get("confianca") or 0.0),
+                bloqueado=bool(obj.get("bloqueado")),
+                ocorrido_em=quando,
+                commit=False,
+            )
+        except (ValueError, TypeError):
+            ignorados += 1
+            continue
         importados += 1
     session.commit()
     return {"importados": importados, "ignorados": ignorados}

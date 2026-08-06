@@ -1039,8 +1039,8 @@ body.jarvis-collapsed .jarvis-reopen { display: flex; align-items: center; justi
 .tag-pill.color-blue { background: var(--accent-soft); color: var(--accent); }
 .tag-pill.color-green { background: var(--ok-soft); color: var(--ok); }
 .tag-pill.color-purple { background: var(--primary-soft); color: var(--primary); }
-.tag-pill.color-orange { background: rgba(251,146,60,0.18); color: #fb923c; }
-.tag-pill.color-pink { background: rgba(244,114,182,0.18); color: #f472b6; }
+.tag-pill.color-orange { background: var(--sn-tag-orange-soft); color: var(--sn-tag-orange); }
+.tag-pill.color-pink { background: var(--sn-tag-pink-soft); color: var(--sn-tag-pink); }
 .tag-pill.color-red { background: var(--danger-soft); color: var(--danger); }
 .tag-pill.color-yellow { background: var(--warn-soft); color: var(--warn); }
 

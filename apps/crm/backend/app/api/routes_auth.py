@@ -9,6 +9,28 @@ from app.services import auth_service
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+@router.get("/estado-inicial")
+def estado_inicial(session: SessionDep) -> dict:
+    """Diz a tela de entrada se esta e uma instalacao nova.
+
+    Sem isso a SPA nao tem como saber se deve oferecer "entrar" ou pedir que o
+    responsavel crie a conta dele — e o botao de demo ficava oferecendo uma
+    conta que so existe em ambiente de desenvolvimento.
+    """
+    from sqlmodel import func, select as _select
+
+    from app.core.config import get_settings
+    from app.models import User
+
+    total = int(session.exec(_select(func.count()).select_from(User)).one())
+    demo = session.exec(_select(User).where(User.email == "demo@visiquost.app")).first()
+    return {
+        "tem_usuarios": total > 0,
+        "demo_disponivel": demo is not None,
+        "ambiente": get_settings().app_env,
+    }
+
+
 @router.post("/register", response_model=TokenPair, status_code=status.HTTP_201_CREATED)
 def register(req: RegisterRequest, session: SessionDep) -> TokenPair:
     try:

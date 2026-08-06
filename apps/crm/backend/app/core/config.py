@@ -4,6 +4,11 @@ from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
+# Unicas origens legitimas: o proprio app, em loopback. Ver teste
+# test_cors_default_e_so_loopback.
+CORS_PADRAO = ("http://127.0.0.1:8000", "http://localhost:8000")
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False, extra="ignore")
 
@@ -20,7 +25,10 @@ class Settings(BaseSettings):
     # so our @field_validator gets to see the comma-separated form (previously
     # pydantic-settings 2.x tried json.loads first, blew up on plain strings,
     # and never called our validator).
-    cors_origins: Annotated[List[str], NoDecode] = Field(default_factory=lambda: ["http://localhost:3000"])
+    # O app serve a si mesmo em 8000; nao existe front separado em porta de dev.
+    # Manter uma origem que nao existe so amplia superficie (o middleware roda com
+    # allow_credentials=True).
+    cors_origins: Annotated[List[str], NoDecode] = Field(default_factory=lambda: list(CORS_PADRAO))
     field_encryption_key: str = ""
 
     rate_limit_enabled: bool = True
@@ -37,7 +45,7 @@ class Settings(BaseSettings):
             # If the env var is set but empty (or only whitespace/commas), fall
             # back to the localhost default instead of an empty list — an empty
             # allow list would break CORS silently in dev.
-            return parts or ["http://localhost:3000"]
+            return parts or list(CORS_PADRAO)
         return v
 
 

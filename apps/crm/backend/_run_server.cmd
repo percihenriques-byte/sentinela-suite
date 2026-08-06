@@ -1,12 +1,14 @@
 @echo off
 REM Auxiliar interno chamado pelos .bat do topo. Nao clique diretamente.
-title VisiQuost Server
+title Sentinela Server
 cd /d "%~dp0"
-echo Iniciando VisiQuost em 0.0.0.0:8000 (LAN)
-echo   PC:      http://127.0.0.1:8000/
-echo   Celular: pegue o IP do PC na mesma rede Wi-Fi
+REM Loopback por padrao. SENTINELA_BIND_LAN=1 abre para a rede (ver INICIAR.bat).
+set "BIND=127.0.0.1"
+if "%SENTINELA_BIND_LAN%"=="1" set "BIND=0.0.0.0"
+echo Iniciando Sentinela em %BIND%:8000
+echo   PC: http://127.0.0.1:8000/
 echo.
-".venv\Scripts\python.exe" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+".venv\Scripts\python.exe" -m uvicorn app.main:app --host %BIND% --port 8000
 echo.
 echo Servidor parou. Pressione qualquer tecla para fechar.
 pause >nul

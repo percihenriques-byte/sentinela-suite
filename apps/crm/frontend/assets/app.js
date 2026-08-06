@@ -454,10 +454,30 @@ function bindAuth() {
       await enterApp();
     } catch (err) {
       errEl.textContent = (state.lang === "pt")
-        ? `Demo indisponivel: ${err.message}. Rode "python scripts/bootstrap.py" no backend para criar a conta demo.`
-        : `Demo unavailable: ${err.message}. Run "python scripts/bootstrap.py" in backend to create the demo account.`;
+        ? `Conta demo indisponivel (${err.message}). Ela so existe em ambiente de desenvolvimento — crie sua conta na aba "Criar conta".`
+        : `Demo account unavailable (${err.message}). It only exists in development — create your account under "Sign up".`;
     }
   });
+
+  // Instalacao nova nao tem usuario nenhum: a tela abre em "Criar conta" e o
+  // botao de demo some (a conta demo tem senha fixa e so existe em dev).
+  // Sem isso o responsavel caia numa tela de login sem ter o que digitar.
+  (async () => {
+    try {
+      const est = await api("/auth/estado-inicial");
+      const btnDemo = document.getElementById("auth-demo-btn");
+      if (btnDemo && !est.demo_disponivel) btnDemo.classList.add("hidden");
+      if (!est.tem_usuarios) {
+        document.querySelector('.tab[data-tab="register"]')?.click();
+        const sub = document.querySelector(".auth-sub");
+        if (sub) {
+          sub.textContent = state.lang === "pt"
+            ? "Primeiro acesso: crie a conta do responsável. Ela é a única chave deste computador — nada é enviado para fora."
+            : "First run: create the parent account. It is the only key to this machine — nothing is sent anywhere.";
+        }
+      }
+    } catch { /* servidor ainda subindo: a tela padrao serve */ }
+  })();
 
   document.getElementById("register-form").addEventListener("submit", async e => {
     e.preventDefault();
@@ -4523,6 +4543,7 @@ function snDefinirPin() {
 }
 
 let snWired = false;
+let snPinPedido = false;
 async function loadSentinela() {
   if (!snWired) {
     snWired = true;
@@ -4547,5 +4568,13 @@ async function loadSentinela() {
       salvar({ retencao_dias: n });
     });
   }
-  await Promise.all([snCarregarResumo(), snCarregarEventos(), snCarregarConfig()]);
+  const [, , cfg] = await Promise.all([snCarregarResumo(), snCarregarEventos(), snCarregarConfig()]);
+
+  // Sem PIN, a trava parental nao existe: qualquer um desarma a proteção. Na
+  // primeira visita da sessão o app pede o PIN em vez de só avisar em cinza —
+  // um aviso que ninguém lê não protege ninguém.
+  if (cfg && !cfg.pin_definido && !snPinPedido) {
+    snPinPedido = true;
+    setTimeout(snDefinirPin, 400);
+  }
 }

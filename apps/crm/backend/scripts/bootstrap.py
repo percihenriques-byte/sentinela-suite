@@ -1,7 +1,12 @@
-"""Idempotent bootstrap: create demo user + workspace + seed data.
+"""Bootstrap de DESENVOLVIMENTO: cria usuario demo + workspace + dados de exemplo.
 
-Safe to re-run — creates only what is missing.
-Prints the demo credentials on success.
+NAO roda em instalacao de produto. A conta demo tem senha fixa e conhecida
+(`demo1234`); num app que guarda o historico de navegacao de uma crianca, isso
+seria uma credencial default publicada em disco. Em producao o responsavel cria
+a propria conta no primeiro acesso.
+
+So executa quando APP_ENV=dev (ou com --force, para uso consciente em dev).
+Idempotente: cria apenas o que falta.
 """
 from __future__ import annotations
 
@@ -14,6 +19,7 @@ from sqlmodel import Session, select
 
 from app.db.session import engine, init_db
 from app.models import User, Workspace, WorkspaceMember, WorkspaceRole
+from app.core.config import get_settings
 from app.core.security import hash_password
 from app.services import demo_seed
 
@@ -25,6 +31,14 @@ DEMO_WORKSPACE = "Demo Workspace"
 
 
 def main() -> int:
+    forcado = "--force" in sys.argv
+    ambiente = get_settings().app_env.strip().lower()
+    if ambiente != "dev" and not forcado:
+        print(f"[bootstrap] APP_ENV={ambiente!r}: conta demo NAO criada (senha fixa nao entra em producao).")
+        print("[bootstrap] O responsavel cria a conta dele no primeiro acesso ao app.")
+        print("[bootstrap] Para forcar em ambiente de dev: python scripts/bootstrap.py --force")
+        return 0
+
     init_db()
     with Session(engine) as s:
         user = s.exec(select(User).where(User.email == DEMO_EMAIL)).first()

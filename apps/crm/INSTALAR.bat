@@ -102,20 +102,35 @@ if errorlevel 1 (
 
 REM ---- .env ----
 if not exist "%ENV_FILE%" (
-    echo    - Criando "%ENV_FILE%" com chave secreta aleatoria
+    echo    - Criando "%ENV_FILE%" com chaves aleatorias
     copy "%ENV_EXAMPLE%" "%ENV_FILE%" >nul
     for /f "delims=" %%k in ('"%VPY%" -c "import secrets;print(secrets.token_urlsafe(48))"') do set "SECRET=%%k"
     powershell -NoProfile -Command "(Get-Content '%ENV_FILE%') -replace 'APP_SECRET_KEY=.*', 'APP_SECRET_KEY=!SECRET!' | Set-Content '%ENV_FILE%'"
+    REM Chave de cifra em repouso do registro de supervisao. Sem ela o app
+    REM recusa subir (de proposito): melhor recusar do que gravar texto claro.
+    for /f "delims=" %%f in ('"%VPY%" -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"') do set "FERNET=%%f"
+    powershell -NoProfile -Command "(Get-Content '%ENV_FILE%') -replace 'FIELD_ENCRYPTION_KEY=.*', 'FIELD_ENCRYPTION_KEY=!FERNET!' | Set-Content '%ENV_FILE%'"
+)
+
+REM Instalacao antiga pode ter .env sem a chave de cifra: preenche sem tocar no resto.
+"%VPY%" -c "import io,sys;p=r'%ENV_FILE%';t=io.open(p,encoding='utf-8').read();sys.exit(0 if [l for l in t.splitlines() if l.startswith('FIELD_ENCRYPTION_KEY=') and l.split('=',1)[1].strip()] else 1)"
+if errorlevel 1 (
+    echo    - Preenchendo FIELD_ENCRYPTION_KEY que faltava no .env
+    for /f "delims=" %%f in ('"%VPY%" -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"') do set "FERNET2=%%f"
+    powershell -NoProfile -Command "$c = Get-Content '%ENV_FILE%'; if ($c -match '^FIELD_ENCRYPTION_KEY=') { $c = $c -replace '^FIELD_ENCRYPTION_KEY=.*', 'FIELD_ENCRYPTION_KEY=!FERNET2!' } else { $c += 'FIELD_ENCRYPTION_KEY=!FERNET2!' }; Set-Content '%ENV_FILE%' $c"
 )
 
 REM ---- [5/6] Migrations + seed ----
-echo [5/6] Aplicando migrations + populando dados demo...
+echo [5/6] Aplicando migrations...
 pushd "%BACKEND%"
 "%VPY%" -m alembic upgrade head
 if errorlevel 1 (
     echo ERRO em alembic upgrade. Apague "%BACKEND%\jarvis_crm.db" e reinstale.
     popd & pause & exit /b 1
 )
+REM Em producao o bootstrap nao cria conta nenhuma: a conta demo tem senha
+REM fixa e nao entra em instalacao real. O responsavel cria a conta dele no
+REM primeiro acesso, pela propria tela do app.
 "%VPY%" scripts\bootstrap.py
 if errorlevel 1 (
     echo AVISO: bootstrap falhou -- nao critico, voce ainda pode usar o app
@@ -144,6 +159,10 @@ echo   Instalacao concluida!
 echo ========================================
 echo.
 echo Pasta de trabalho: %USERPROFILE%\Documents\VisiQuost
+echo.
+echo No primeiro acesso, crie a conta do responsavel na tela do app
+echo e defina o PIN em Sentinela -^> PIN do responsavel.
+echo.
 echo Iniciando servidor...
 echo.
 

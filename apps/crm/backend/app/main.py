@@ -34,22 +34,51 @@ from app.api.routes_files import router as files_router
 from app.api.routes_sentinela import router as sentinela_router
 
 
+def _exigir_chave_de_cifra() -> None:
+    """Recusa subir sem FIELD_ENCRYPTION_KEY.
+
+    O texto das buscas registradas pelo Sentinela vai cifrado em repouso. Sem a
+    chave, `crypto.encrypt` levanta erro — e antes desta guarda isso so aparecia
+    na PRIMEIRA busca da crianca, como um 500 silencioso, com o painel nunca
+    recebendo evento nenhum. Falhar aqui torna o problema obvio no minuto da
+    instalacao, que e quando da para consertar.
+    """
+    if get_settings().field_encryption_key.strip():
+        return
+    raise RuntimeError(
+        "FIELD_ENCRYPTION_KEY nao esta configurada no .env.\n"
+        "Sem ela o registro de supervisao nao pode ser cifrado, e o app recusa subir.\n"
+        "Gere uma chave com:\n"
+        '  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"\n'
+        "e cole em FIELD_ENCRYPTION_KEY= no arquivo .env (ou rode INSTALAR.bat de novo)."
+    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.services.backup_scheduler import run_backup_scheduler
+    from app.services.retencao_scheduler import run_retention_scheduler
 
     configure_logging()
+    _exigir_chave_de_cifra()
     init_db()
     stop_event = asyncio.Event()
-    backup_task = asyncio.create_task(run_backup_scheduler(stop_event))
+    tarefas = [
+        asyncio.create_task(run_backup_scheduler(stop_event)),
+        # Purga do registro de supervisao. Roda sempre — a retencao e promessa
+        # ao usuario, nao recurso opcional, e nao pode depender de haver
+        # ingestao acontecendo.
+        asyncio.create_task(run_retention_scheduler(stop_event)),
+    ]
     try:
         yield
     finally:
         stop_event.set()
-        try:
-            await asyncio.wait_for(backup_task, timeout=2.0)
-        except asyncio.TimeoutError:
-            backup_task.cancel()
+        for tarefa in tarefas:
+            try:
+                await asyncio.wait_for(asyncio.shield(tarefa), timeout=2.0)
+            except (asyncio.TimeoutError, asyncio.CancelledError):
+                tarefa.cancel()
 
 
 def create_app() -> FastAPI:

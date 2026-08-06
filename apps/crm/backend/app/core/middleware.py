@@ -153,4 +153,7 @@ def default_rate_limits() -> list[tuple[str, TokenBucketConfig]]:
         # of 60 covers "send the whole backlog" (200 events per request) while
         # capping a flood from a local process guessing tokens.
         ("/api/v1/sentinela/eventos", TokenBucketConfig(capacity=60, refill_per_sec=60 / 60)),
+        # PIN — segunda barreira alem do lockout persistido em SentinelaConfig.
+        # O lockout sobrevive a reinicio do servidor; este balde corta a rajada.
+        ("/api/v1/sentinela/config/pin", TokenBucketConfig(capacity=10, refill_per_sec=10 / 300)),
     ]

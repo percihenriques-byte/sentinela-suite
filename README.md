@@ -95,9 +95,9 @@ packages/
 |---|---|---|
 | Classificador (139) | `powershell -File apps\guardian\app\Testes\Executar-Testes.ps1` | texto PT/EN/ES/FR, evasões, contexto seguro |
 | Precisão (corpus 373) | `powershell -File apps\guardian\app\Testes\Medir-Precisao.ps1` | acurácia, falsos positivos/negativos |
-| API + CRM (458) | `apps\crm\backend\.venv\Scripts\python.exe -m pytest -q` (em `apps/crm/backend`) | rotas, serviços, Jarvis, módulo Sentinela |
+| API + CRM (478) | `apps\crm\backend\.venv\Scripts\python.exe -m pytest -q` (em `apps/crm/backend`) | rotas, serviços, Jarvis, módulo Sentinela |
 | E2E extensão + ponte (25) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Sync.py` | navegador real → API, ponte PowerShell |
-| E2E painel (30) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Painel.py` | identidade da casca, página Sentinela, tema claro, celular |
+| E2E painel (32) | `apps\crm\backend\.venv\Scripts\python.exe apps\guardian\app\Testes\Testar-Painel.py` | identidade da casca, página Sentinela, tema claro, celular |
 
 ## Documentação
 
@@ -120,9 +120,16 @@ git log --oneline -- apps/guardian/app/Sentinela-Classificador.ps1
 git log --oneline -- apps/crm/backend/app/main.py
 ```
 
-## Privacidade
+## Privacidade e rede
 
+- O servidor escuta **só em `127.0.0.1`**. Abrir para a rede local exige
+  `SENTINELA_BIND_LAN=1` — opt-in consciente, porque o painel guarda o histórico
+  de navegação de uma criança e "rede local" costuma incluir estranhos.
+- **Não existe conta padrão.** O responsável cria a dele no primeiro acesso e
+  define o PIN ali mesmo. A conta demo só existe com `APP_ENV=dev`.
 - Buscas e páginas são classificadas **no dispositivo**; nada é enviado para fora.
 - O texto das buscas fica **cifrado em repouso** (Fernet) no banco local.
 - O registro de supervisão tem janela de retenção configurável (padrão 90 dias).
 - Ingestão só aceita conexão de `127.0.0.1` **e** token válido.
+- PIN com lockout progressivo (5 erros → 1 min, 10 → 15 min, 15 → 1 h): um PIN de
+  4 dígitos sem trava cai em segundos.

@@ -4,7 +4,13 @@ VisiQuost desktop launcher.
 Roda uvicorn em thread background e abre uma janela pywebview (WebView2 no
 Windows) apontando para 127.0.0.1:PORT. Ao fechar a janela, para o servidor.
 
-Uvicorn ouve em 0.0.0.0 para que o celular na mesma Wi-Fi acesse o IP local.
+Por padrao uvicorn ouve SO em 127.0.0.1. O painel do responsavel guarda o
+historico de navegacao de uma crianca, decifrado na leitura; expor isso a toda
+a rede Wi-Fi por conveniencia nao vale o risco (em rede de predio, escola ou
+cafe, "a rede local" inclui estranhos).
+
+Quem realmente quiser abrir no celular liga SENTINELA_BIND_LAN=1, ciente de
+que passa a depender so da senha do responsavel.
 """
 from __future__ import annotations
 
@@ -18,9 +24,16 @@ from urllib.error import URLError
 import uvicorn  # type: ignore
 import webview  # type: ignore
 
+import os
+
 PORT = 8000
-HOST_LAN = "0.0.0.0"
 HOST_LOCAL = "127.0.0.1"
+HOST_LAN = "0.0.0.0"
+
+
+def bind_host() -> str:
+    """127.0.0.1 por padrao; 0.0.0.0 so com opt-in explicito."""
+    return HOST_LAN if os.environ.get("SENTINELA_BIND_LAN") == "1" else HOST_LOCAL
 
 
 def wait_for_health(url: str, timeout_s: float = 30.0) -> bool:
@@ -50,7 +63,7 @@ def get_lan_ip() -> str | None:
 def run_server() -> None:
     config = uvicorn.Config(
         "app.main:app",
-        host=HOST_LAN,
+        host=bind_host(),
         port=PORT,
         log_level="warning",
         access_log=False,
