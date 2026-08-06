@@ -38,6 +38,12 @@
   button.ghost{background:var(--panel);color:var(--muted);border:1px solid var(--line)}
   h3{font-size:12px;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin:12px 0 6px}
   .hint{font-size:11px;color:var(--muted2);margin-top:4px;line-height:1.4}
+  .fld{width:100%;background:#08131c;border:1px solid var(--line);border-radius:8px;color:var(--txt);padding:8px;font-family:inherit;font-size:12.5px}
+  .fld:focus{outline:none;border-color:var(--teal)}
+  .conn{display:flex;align-items:center;gap:8px;font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin:10px 0}
+  .conn::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--muted2);flex:0 0 auto}
+  .conn.on::before{background:var(--teal);box-shadow:0 0 8px var(--teal)}
+  .conn.off::before{background:var(--red)}
 </style>
 </head>
 <body>
@@ -48,6 +54,7 @@
   <div class="tabs">
     <div class="tab active" data-view="sup">Supervisão</div>
     <div class="tab" data-view="cfg">Configurar temas</div>
+    <div class="tab" data-view="pnl">Painel</div>
   </div>
 
   <div class="view active" id="view-sup">
@@ -74,6 +81,34 @@
     <div class="hint">Some às regras da IA. Útil para bloquear algo específico da sua família.</div>
     <div class="btns"><button class="act" id="btn-salvar">Salvar configurações</button></div>
     <div class="hint" id="salvo" style="color:var(--teal);text-align:center"></div>
+  </div>
+
+  <div class="view" id="view-pnl">
+    <h3>Painel do responsável (no seu PC)</h3>
+    <div class="hint">Ligue para que tudo o que a extensão registrar apareça no painel da suite,
+      sem precisar exportar arquivo. A conexão é só com o seu próprio computador (127.0.0.1) —
+      nada sai da máquina.</div>
+
+    <div class="conn" id="conn-estado">Verificando…</div>
+
+    <div class="row"><label for="pnl-ligado"><b>Enviar para o painel</b></label><input type="checkbox" id="pnl-ligado"></div>
+
+    <h3>Endereço do painel</h3>
+    <input class="fld" id="pnl-url" placeholder="http://127.0.0.1:8000" autocomplete="off">
+    <div class="hint">Precisa ser 127.0.0.1 ou localhost.</div>
+
+    <h3>Token de ingestão</h3>
+    <input class="fld" id="pnl-token" placeholder="cole aqui o token do painel" autocomplete="off" spellcheck="false">
+    <div class="hint">No painel: <b>Sentinela → Conectar dispositivo</b>. Copie e cole aqui.</div>
+
+    <h3>Nome deste dispositivo</h3>
+    <input class="fld" id="pnl-disp" placeholder="pc-da-sala" autocomplete="off">
+
+    <div class="btns">
+      <button class="act" id="pnl-salvar">Salvar e conectar</button>
+      <button class="act ghost" id="pnl-sync">Sincronizar agora</button>
+    </div>
+    <div class="hint" id="pnl-msg" style="text-align:center"></div>
   </div>
 
   <script src="classificador.js"></script>
