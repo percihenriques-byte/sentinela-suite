@@ -31,6 +31,7 @@ from app.api.routes_external_accounts import router as integrations_router
 from app.api.routes_restore import router as restore_router
 from app.api.routes_email_templates import router as email_templates_router
 from app.api.routes_files import router as files_router
+from app.api.routes_sentinela import router as sentinela_router
 
 
 @asynccontextmanager
@@ -97,6 +98,7 @@ def create_app() -> FastAPI:
     app.include_router(restore_router, prefix="/api/v1")
     app.include_router(email_templates_router, prefix="/api/v1")
     app.include_router(files_router, prefix="/api/v1")
+    app.include_router(sentinela_router, prefix="/api/v1")
 
     # Design system compartilhado da suite (packages/ui) — servido em /ui.
     # Precisa ser montado ANTES do catch-all "/", senao o mount da raiz engole

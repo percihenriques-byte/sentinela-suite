@@ -9,6 +9,7 @@ from app.models.jarvis_chat import JarvisConversation, JarvisMessage
 from app.models.lead_scoring import LeadScoringRule
 from app.models.workflow import Workflow, WorkflowRun, WorkflowStep
 from app.models.external_account import ExternalAccount
+from app.models.sentinela import SentinelaConfig, SentinelaEvent
 
 __all__ = [
     "TimestampedModel",
@@ -41,4 +42,6 @@ __all__ = [
     "WorkflowRun",
     "WorkflowStep",
     "ExternalAccount",
+    "SentinelaEvent",
+    "SentinelaConfig",
 ]
