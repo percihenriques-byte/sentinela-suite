@@ -1526,3 +1526,64 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
     scroll-behavior: auto !important;
   }
 }
+
+/* ==================== MODULO SENTINELA ====================
+   Painel do responsavel. Usa os mesmos primitivos do CRM (.card, .kpi,
+   .btn-ghost) para que as duas metades da suite pareçam o mesmo produto. */
+.nav-item.nav-sentinela .ico { filter: drop-shadow(0 0 6px var(--sn-teal-glow)); }
+
+/* Sao 4 indicadores curtos: cabem lado a lado num tile menor que o do painel
+   do CRM, evitando a quebra 3+1. */
+#sn-kpis { grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); }
+
+.sn-cols {
+  display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--s-4); margin-top: var(--s-5);
+  align-items: start;
+}
+@media (max-width: 1100px) { .sn-cols { grid-template-columns: 1fr; } }
+
+.sn-filtro { display: flex; align-items: center; gap: var(--s-2); font-size: 0.85em; color: var(--fg-3); cursor: pointer; }
+.sn-filtro input { accent-color: var(--primary); }
+
+.sn-lista { display: flex; flex-direction: column; gap: var(--s-2); max-height: 60vh; overflow-y: auto; }
+.sn-ev {
+  display: flex; gap: var(--s-3); align-items: flex-start;
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-left: 3px solid var(--ok);
+  border-radius: var(--r-md); padding: var(--s-3);
+}
+.sn-ev.bloq { border-left-color: var(--danger); }
+.sn-ev .sn-ico { font-size: 1.1em; line-height: 1.4; flex: 0 0 auto; }
+.sn-ev .sn-txt { min-width: 0; flex: 1; }
+.sn-ev .sn-q { font-weight: 600; word-break: break-word; }
+.sn-ev .sn-meta { display: flex; flex-wrap: wrap; gap: var(--s-3); font-size: 0.8em; color: var(--fg-3); margin-top: 2px; }
+.sn-ev .sn-tema { color: var(--danger); font-weight: 600; }
+.sn-ev .sn-hora { font-family: var(--font-mono); font-size: 0.95em; }
+
+.sn-temas { display: flex; flex-direction: column; gap: var(--s-2); }
+.sn-tema-row { display: grid; grid-template-columns: 1fr auto; gap: var(--s-2); align-items: center; font-size: 0.9em; }
+.sn-tema-bar { grid-column: 1 / -1; height: 6px; border-radius: 999px; background: var(--bg-3); overflow: hidden; }
+.sn-tema-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--warn), var(--danger)); }
+
+.sn-cfg { display: flex; flex-direction: column; gap: var(--s-1); }
+.sn-row {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  padding: var(--s-3) 0; border-bottom: 1px solid var(--border);
+}
+.sn-row:last-child { border-bottom: none; }
+.sn-row > span { display: flex; flex-direction: column; }
+.sn-row b { font-weight: 600; }
+.sn-row em { font-style: normal; font-size: 0.8em; color: var(--fg-4); }
+.sn-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+.sn-row input[type="number"], .sn-row select {
+  background: var(--bg-3); color: var(--fg); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 6px 8px; font: inherit; font-size: 0.9em; max-width: 130px;
+}
+.sn-row input[type="number"] { max-width: 90px; }
+
+.sn-token {
+  font-family: var(--font-mono); font-size: 0.85em; word-break: break-all;
+  background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: var(--s-3); margin: var(--s-3) 0; user-select: all;
+}
+.sn-vazio { color: var(--fg-4); font-size: 0.9em; text-align: center; padding: var(--s-8) 0; }

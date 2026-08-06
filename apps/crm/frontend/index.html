@@ -135,6 +135,7 @@
           <button class="nav-item" data-page="kanban"><span class="ico">📋</span>Pipeline</button>
           <button class="nav-item" data-page="tasks"><span class="ico">✓</span>Tarefas</button>
           <button class="nav-item" data-page="meetings"><span class="ico">📅</span>Reuniões</button>
+          <button class="nav-item nav-sentinela" data-page="sentinela"><span class="ico">🛡️</span>Sentinela</button>
           <button class="nav-item nav-more-toggle" id="nav-more-toggle"><span class="ico">⋯</span>Mais</button>
           <button class="nav-item" data-page="device"><span class="ico">🖥️</span>Meu dispositivo</button>
           <div class="nav-more hidden" id="nav-more">
@@ -451,6 +452,60 @@
           </div>
           <p class="subtle" id="device-hint">Arquivos que o Jarvis pode ler desta pasta. Deixe .csv/.vcf (contatos) ou .ics (calendário) aqui — Jarvis importa por comando. Peça: <em>"importe contatos"</em>, <em>"minha agenda"</em>, <em>"leia arquivo notas.md"</em>.</p>
           <div id="device-tools-list" class="grid-2" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));"></div>
+        </div>
+
+        <!-- Painel do responsavel: o modulo Sentinela dentro da mesma casca. -->
+        <div id="page-sentinela" class="page hidden">
+          <div class="page-header">
+            <h2>🛡️ Sentinela</h2>
+            <div class="flex-row">
+              <button id="sn-conectar" class="btn-ghost">Conectar dispositivo</button>
+              <button id="sn-refresh" class="icon-btn" title="Recarregar" style="font-size:1.1em;">⟳</button>
+            </div>
+          </div>
+          <p class="subtle">O que a IA local observou nos aparelhos da família. Tudo fica neste computador — nada é enviado para a internet.</p>
+
+          <div id="sn-kpis" class="kpi-row"></div>
+
+          <div class="sn-cols">
+            <section class="card">
+              <div class="card-header">
+                <h3>Tentativas registradas</h3>
+                <label class="sn-filtro"><input type="checkbox" id="sn-so-bloq"> só bloqueadas</label>
+              </div>
+              <div id="sn-lista" class="sn-lista"></div>
+              <button id="sn-mais" class="btn-ghost hidden" style="width:100%;margin-top:10px;">Ver mais</button>
+            </section>
+
+            <section class="card">
+              <div class="card-header"><h3>Temas mais barrados</h3></div>
+              <div id="sn-temas" class="sn-temas"></div>
+
+              <div class="card-header" style="margin-top:24px;"><h3>Proteção</h3></div>
+              <div class="sn-cfg">
+                <label class="sn-row" for="sn-ativo">
+                  <span><b>Sentinela ativo</b><em>protegendo as buscas deste computador</em></span>
+                  <input type="checkbox" id="sn-ativo">
+                </label>
+                <label class="sn-row" for="sn-sens">
+                  <span><b>Sensibilidade</b><em>quão rígido o filtro deve ser</em></span>
+                  <select id="sn-sens">
+                    <option value="baixa">Baixa</option>
+                    <option value="media">Média</option>
+                    <option value="alta">Alta</option>
+                  </select>
+                </label>
+                <label class="sn-row" for="sn-ret">
+                  <span><b>Guardar registro por</b><em>0 = para sempre</em></span>
+                  <input type="number" id="sn-ret" min="0" max="3650" step="1">
+                </label>
+                <div class="sn-row">
+                  <span><b>PIN do responsável</b><em id="sn-pin-estado">carregando…</em></span>
+                  <button id="sn-pin-btn" class="btn-ghost">Definir</button>
+                </div>
+              </div>
+            </section>
+          </div>
         </div>
 
         <div id="page-meetings" class="page hidden">

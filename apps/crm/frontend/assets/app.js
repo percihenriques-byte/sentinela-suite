@@ -994,6 +994,7 @@ const routes = {
   integrations: loadIntegrations,
   device: loadDevice,
   jarvis: loadJarvisHero,
+  sentinela: loadSentinela,
 };
 
 async function loadConversationsList() {
@@ -4130,7 +4131,7 @@ function gotoPage(page) {
 const G_CHORDS = {
   d: "dashboard", c: "contacts", e: "companies", o: "opportunities",
   l: "leads", k: "kanban", t: "tasks", m: "meetings",
-  a: "automations", i: "integrations", v: "device",
+  a: "automations", i: "integrations", v: "device", s: "sentinela",
 };
 let gArmed = false;
 let gTimeout = null;
@@ -4357,3 +4358,184 @@ function newBadge(createdAt) {
   if (restored) await enterApp();
   else show("auth");
 })();
+
+// ==================== MODULO SENTINELA ====================
+// Painel do responsavel. Le a API local (/sentinela/*): eventos observados
+// pela extensao, resumo por tema e a configuracao da protecao.
+// Nada aqui fala com a internet — a mesma promessa do resto da suite.
+
+const SN_PAGINA = 50;
+const snState = { offset: 0, soBloqueadas: false, carregando: false, fim: false };
+
+function snHora(iso) {
+  try {
+    const d = new Date(iso);
+    const hoje = new Date();
+    const mesmoDia = d.toDateString() === hoje.toDateString();
+    const hh = d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    return mesmoDia ? hh : `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })} ${hh}`;
+  } catch { return ""; }
+}
+
+function snEventoHtml(ev) {
+  const conf = Math.round((ev.confianca || 0) * 100);
+  const status = ev.bloqueado
+    ? `<span class="sn-tema">🛡️ bloqueada${ev.tema ? ` · ${escapeHtml(ev.tema)}` : ""}${conf ? ` · ${conf}%` : ""}</span>`
+    : `<span style="color:var(--ok)">✔ liberada</span>`;
+  return `<div class="sn-ev ${ev.bloqueado ? "bloq" : ""}">
+    <div class="sn-ico">${ev.bloqueado ? "🛡️" : "🔎"}</div>
+    <div class="sn-txt">
+      <div class="sn-q">${escapeHtml(ev.busca || "")}</div>
+      <div class="sn-meta">${status}
+        <span>${escapeHtml(ev.origem || "")}</span>
+        <span>${escapeHtml(ev.dispositivo || "")}</span>
+        <span class="sn-hora">${snHora(ev.ocorrido_em)}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function snCarregarEventos({ append = false } = {}) {
+  const lista = document.getElementById("sn-lista");
+  const mais = document.getElementById("sn-mais");
+  if (!lista || snState.carregando) return;
+  snState.carregando = true;
+  if (!append) { snState.offset = 0; snState.fim = false; lista.innerHTML = `<p class="sn-vazio">…</p>`; }
+  try {
+    const qs = new URLSearchParams({ limite: SN_PAGINA, offset: snState.offset });
+    if (snState.soBloqueadas) qs.set("somente_bloqueados", "true");
+    const data = await api(`/sentinela/eventos?${qs}`);
+    const html = (data.items || []).map(snEventoHtml).join("");
+    if (!append) lista.innerHTML = "";
+    if (!html && !append) {
+      lista.innerHTML = `<p class="sn-vazio">Nada registrado ainda.<br>Conecte um dispositivo para começar a acompanhar.</p>`;
+    } else {
+      lista.insertAdjacentHTML("beforeend", html);
+    }
+    snState.offset += (data.items || []).length;
+    snState.fim = snState.offset >= (data.total || 0);
+    mais?.classList.toggle("hidden", snState.fim);
+  } catch (err) {
+    lista.innerHTML = `<p class="sn-vazio">Não consegui ler o registro: ${escapeHtml(err.message)}</p>`;
+  } finally {
+    snState.carregando = false;
+  }
+}
+
+async function snCarregarResumo() {
+  const kpis = document.getElementById("sn-kpis");
+  const temas = document.getElementById("sn-temas");
+  if (!kpis) return;
+  try {
+    const r = await api("/sentinela/resumo?dias=7");
+    const hoje = (r.por_dia || []).slice(-1)[0] || { total: 0, bloqueados: 0 };
+    kpis.innerHTML = `
+      <div class="kpi" data-kind="risk"><div class="label">BLOQUEADAS</div><div class="value">${r.bloqueados || 0}</div><div class="subtle">${hoje.bloqueados || 0} hoje</div></div>
+      <div class="kpi" data-kind="pipeline"><div class="label">OBSERVADAS</div><div class="value">${r.total || 0}</div><div class="subtle">${hoje.total || 0} hoje</div></div>
+      <div class="kpi"><div class="label">DISPOSITIVOS</div><div class="value">${(r.dispositivos || []).length}</div><div class="subtle">${escapeHtml((r.dispositivos || []).join(", ") || "nenhum conectado")}</div></div>
+      <div class="kpi"><div class="label">ÚLTIMO SINAL</div><div class="value" style="font-size:1.3em">${r.ultimo_evento ? snHora(r.ultimo_evento) : "—"}</div><div class="subtle">${r.ultimo_evento ? "registro chegando" : "sem atividade"}</div></div>`;
+
+    const lista = r.temas || [];
+    const topo = (lista[0] && lista[0].vezes) || 1;
+    temas.innerHTML = lista.length
+      ? lista.slice(0, 8).map(t => `<div class="sn-tema-row"><span>${escapeHtml(t.tema)}</span><b>${t.vezes}</b>
+          <div class="sn-tema-bar"><i style="width:${Math.round((t.vezes / topo) * 100)}%"></i></div></div>`).join("")
+      : `<p class="sn-vazio">Nenhum bloqueio ainda. 🎉</p>`;
+  } catch (err) {
+    kpis.innerHTML = `<p class="sn-vazio">Não consegui ler o resumo: ${escapeHtml(err.message)}</p>`;
+  }
+}
+
+async function snCarregarConfig() {
+  try {
+    const cfg = await api("/sentinela/config");
+    document.getElementById("sn-ativo").checked = !!cfg.ativo;
+    document.getElementById("sn-sens").value = cfg.sensibilidade || "media";
+    document.getElementById("sn-ret").value = cfg.retencao_dias == null ? 90 : cfg.retencao_dias;
+    const estado = document.getElementById("sn-pin-estado");
+    const btn = document.getElementById("sn-pin-btn");
+    estado.textContent = cfg.pin_definido ? "definido — só ele desarma a proteção" : "sem PIN — qualquer um pode desarmar";
+    estado.style.color = cfg.pin_definido ? "" : "var(--warn)";
+    btn.textContent = cfg.pin_definido ? "Trocar" : "Definir";
+    btn.dataset.definido = cfg.pin_definido ? "1" : "";
+    return cfg;
+  } catch { return null; }
+}
+
+// Mostra o token para colar no popup da extensao. Fica atras de um clique de
+// proposito: e credencial, nao deve ficar exposta na tela o tempo todo.
+async function snConectarDispositivo() {
+  let cfg;
+  try { cfg = await api("/sentinela/config"); }
+  catch (err) { toast(err.message, "error"); return; }
+
+  const modal = document.getElementById("modal");
+  document.getElementById("modal-title").textContent = "Conectar dispositivo";
+  const form = document.getElementById("modal-form");
+  form.innerHTML = `
+    <p class="subtle" style="margin-bottom:8px">No navegador da criança, abra a extensão <b>Sentinela</b>,
+    vá na aba <b>Painel</b>, ligue "Enviar para o painel" e cole o token abaixo.</p>
+    <div class="sn-token" id="sn-token-val">${escapeHtml(cfg.token_ingestao)}</div>
+    <p class="subtle">Endereço do painel: <code>${escapeHtml(location.origin)}</code></p>
+    <p class="subtle" style="margin-top:8px">Se o token vazar, gere outro — os dispositivos antigos param de enviar até serem reconectados.</p>`;
+  const close = () => modal.classList.add("hidden");
+  document.getElementById("modal-cancel").onclick = close;
+  document.getElementById("modal-x").onclick = close;
+  const salvar = document.getElementById("modal-save");
+  const rotuloOriginal = salvar.textContent;
+  salvar.textContent = "Gerar novo token";
+  salvar.onclick = async () => {
+    try {
+      const novo = await api("/sentinela/token/rotacionar", { method: "POST" });
+      document.getElementById("sn-token-val").textContent = novo.token_ingestao;
+      toast("Token novo gerado. Reconecte os dispositivos.", "info");
+    } catch (err) { toast(err.message, "error"); }
+  };
+  // openModal() reusa esses mesmos botoes; devolve o rotulo ao fechar.
+  const restaurar = () => { salvar.textContent = rotuloOriginal; };
+  document.getElementById("modal-cancel").addEventListener("click", restaurar, { once: true });
+  document.getElementById("modal-x").addEventListener("click", restaurar, { once: true });
+  form.onsubmit = ev => ev.preventDefault();
+  modal.classList.remove("hidden");
+}
+
+function snDefinirPin() {
+  const jaTem = !!document.getElementById("sn-pin-btn").dataset.definido;
+  const campos = jaTem
+    ? [{ label: "PIN atual", name: "pin_atual", type: "password", required: true },
+       { label: "PIN novo (4 a 12 dígitos)", name: "pin", type: "password", required: true }]
+    : [{ label: "PIN (4 a 12 dígitos)", name: "pin", type: "password", required: true }];
+  openModal(jaTem ? "Trocar PIN do responsável" : "Definir PIN do responsável", campos, async data => {
+    await api("/sentinela/config/pin", { method: "POST", body: data });
+    toast("PIN salvo.", "success");
+    snCarregarConfig();
+  });
+}
+
+let snWired = false;
+async function loadSentinela() {
+  if (!snWired) {
+    snWired = true;
+    document.getElementById("sn-refresh")?.addEventListener("click", () => loadSentinela());
+    document.getElementById("sn-conectar")?.addEventListener("click", snConectarDispositivo);
+    document.getElementById("sn-pin-btn")?.addEventListener("click", snDefinirPin);
+    document.getElementById("sn-mais")?.addEventListener("click", () => snCarregarEventos({ append: true }));
+    document.getElementById("sn-so-bloq")?.addEventListener("change", ev => {
+      snState.soBloqueadas = ev.target.checked;
+      snCarregarEventos();
+    });
+    // Config salva sozinha ao mudar — sem botao "Salvar" para esquecer de clicar.
+    const salvar = async campos => {
+      try { await api("/sentinela/config", { method: "PATCH", body: campos }); toast("Salvo.", "success", 1400); }
+      catch (err) { toast(err.message, "error"); snCarregarConfig(); }
+    };
+    document.getElementById("sn-ativo")?.addEventListener("change", e => salvar({ ativo: e.target.checked }));
+    document.getElementById("sn-sens")?.addEventListener("change", e => salvar({ sensibilidade: e.target.value }));
+    document.getElementById("sn-ret")?.addEventListener("change", e => {
+      const n = parseInt(e.target.value, 10);
+      if (Number.isNaN(n) || n < 0) { snCarregarConfig(); return; }
+      salvar({ retencao_dias: n });
+    });
+  }
+  await Promise.all([snCarregarResumo(), snCarregarEventos(), snCarregarConfig()]);
+}
