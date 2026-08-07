@@ -1,0 +1,126 @@
+{{HEADER}}
+(function (global) {
+  function normalizar(s) {
+    s = (s || '').toLowerCase();
+    // homoglifos cirilicos -> latinos (evasao "p\u043ern\u043e")
+    var homo = {{HOMO}};
+    s = s.replace(/{{HOMO_CLASS}}/g, function (c) { return homo[c] || c; });
+    // NFKD resolve full-width (\uff53\uff45\uff58\uff4f) e ligaduras; depois remove acentos
+    s = s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    var raw = s.replace(/(.)\1{2,}/g, '$1');
+    var mapa = {{LEET}};
+    var leet = s.replace(/{{LEET_CLASS}}/g, function (c) { return mapa[c] || c; }).replace(/(.)\1{2,}/g, '$1');
+    // "colado": junta APENAS sequencias de chars isolados (evasao "p o r n o"),
+    // sem juntar palavras (evita 'gore' casar em "frango receita").
+    function colapsa(str) { return str.replace(/\b[a-z0-9]\b(?:[\s._\-]+\b[a-z0-9]\b)+/g, function (m) { return m.replace(/[^a-z0-9]/g, ''); }); }
+    return { texto: leet, colado: colapsa(leet), textoRaw: raw, coladoRaw: colapsa(raw) };
+  }
+
+  // Padrao: true = bloqueia por padrao; false = tema opcional (responsavel ativa)
+  var CATS = {{CATS}};
+  var CTX_SEGURO = {{CTX}};
+
+  function nrmNome(s) { return (s || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); }
+
+  function classify(texto, config) {
+    config = config || {};
+    // nomes de tema comparados sem acento/caixa (BUG-11)
+    var desativados = (config.temasDesativados || []).map(nrmNome);
+    var ativados = (config.temasAtivados || []).map(nrmNome);
+    var termosExtra = config.termosPersonalizados || [];
+    var limiar = config.modoRigido ? 0.5 : 1.0;
+
+    var n = normalizar(texto);
+    var reducao = 0;
+    for (var i = 0; i < CTX_SEGURO.length; i++) { if (n.texto.indexOf(CTX_SEGURO[i]) !== -1) { reducao = 0.5; break; } }
+
+    var cats = [];
+    for (var c = 0; c < CATS.length; c++) {
+      var cat = CATS[c];
+      var cn = nrmNome(cat.nome);
+      if (desativados.indexOf(cn) !== -1) continue;
+      if (!cat.padrao && ativados.indexOf(cn) === -1) continue;
+      cats.push(cat);
+    }
+    if (termosExtra.length) {
+      var extra = {};
+      for (var e = 0; e < termosExtra.length; e++) {
+        var t = (termosExtra[e] || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (t) extra[t] = 1;
+      }
+      cats.push({ nome:'Bloqueio do responsável', padrao:true, semReducao:true, termos:extra });
+    }
+
+    var melhor = null;
+    for (var k = 0; k < cats.length; k++) {
+      var ct = cats[k], score = 0, sinais = [];
+      for (var termo in ct.termos) {
+        var colado = termo.replace(/[^a-z0-9]/g, '');
+        var achou = n.texto.indexOf(termo) !== -1 || n.textoRaw.indexOf(termo) !== -1;
+        if (!achou && colado.length >= 3) { achou = n.colado.indexOf(colado) !== -1 || n.coladoRaw.indexOf(colado) !== -1; }
+        if (achou) {
+          score += ct.termos[termo]; sinais.push(termo);
+        }
+      }
+      if (score > 0) {
+        var red = ct.semReducao ? 0 : reducao;
+        var sf = Math.max(0, score - red);
+        if (!melhor || sf > melhor.score) melhor = { category: ct.nome, score: sf, signals: sinais };
+      }
+    }
+    if (!melhor) return { block: false, category: null, confidence: 0, signals: [] };
+    return {
+      block: melhor.score >= limiar,
+      category: melhor.category,
+      confidence: Math.min(1, melhor.score / (limiar * 1.5)),
+      signals: melhor.signals
+    };
+  }
+
+  function contarOcorrencias(hay, needle) {
+    if (!needle) return 0;
+    var n = 0, i = 0;
+    while ((i = hay.indexOf(needle, i)) >= 0) { n++; i += needle.length; }
+    return n;
+  }
+
+  // Analisa o CONTEUDO de uma pagina inteira (o que a crianca VE), contando
+  // ocorrencias, com limiar mais alto p/ nao bloquear mencao incidental.
+  function classifyPagina(texto, config, limiar) {
+    config = config || {}; limiar = limiar || 3.0;
+    if (!texto || !texto.trim()) return { block: false, category: null, score: 0, signals: [] };
+    var n = normalizar(texto);
+    var desativados = (config.temasDesativados || []).map(nrmNome);
+    var ativados = (config.temasAtivados || []).map(nrmNome);
+    var termosExtra = config.termosPersonalizados || [];
+    var cats = [];
+    for (var c = 0; c < CATS.length; c++) {
+      var cat = CATS[c], cn = nrmNome(cat.nome);
+      if (desativados.indexOf(cn) !== -1) continue;
+      if (!cat.padrao && ativados.indexOf(cn) === -1) continue;
+      cats.push(cat);
+    }
+    if (termosExtra.length) {
+      var extra = {};
+      for (var e = 0; e < termosExtra.length; e++) {
+        var t = (termosExtra[e] || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (t) extra[t] = 1;
+      }
+      cats.push({ nome: 'Bloqueio do responsável', padrao: true, semReducao: true, termos: extra });
+    }
+    var melhor = null;
+    for (var k = 0; k < cats.length; k++) {
+      var ct = cats[k], score = 0, sinais = [];
+      for (var termo in ct.termos) {
+        var occ = contarOcorrencias(n.texto, termo);
+        if (occ === 0) occ = contarOcorrencias(n.textoRaw, termo);
+        if (occ > 0) { score += ct.termos[termo] * Math.min(occ, 3); sinais.push(occ + 'x' + termo); }
+      }
+      if (score > 0 && (!melhor || score > melhor.score)) melhor = { category: ct.nome, score: score, signals: sinais };
+    }
+    if (!melhor) return { block: false, category: null, score: 0, signals: [] };
+    return { block: melhor.score >= limiar, category: melhor.category, score: Math.round(melhor.score * 10) / 10, signals: melhor.signals };
+  }
+
+  global.SentinelaIA = { classify: classify, classifyPagina: classifyPagina, temas: CATS.map(function (c) { return { tema: c.nome, padraoLigado: c.padrao }; }) };
+})(this);
