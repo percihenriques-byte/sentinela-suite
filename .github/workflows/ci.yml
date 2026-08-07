@@ -83,6 +83,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      # rules.json e a fonte unica; classificador.js e Sentinela-Classificador.ps1
+      # sao GERADOS a partir dele. Este passo regenera em memoria e falha se algum
+      # dos dois foi editado a mao sem atualizar o rules.json (drift). So stdlib,
+      # roda antes de instalar o navegador para dar retorno rapido.
+      - name: Classificador em sincronia com rules.json
+        run: python apps/guardian/build_rules.py --check
       - name: Instalar Playwright + Chromium
         run: |
           python -m pip install --upgrade pip

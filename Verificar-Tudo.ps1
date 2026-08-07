@@ -74,6 +74,14 @@ Invoke-Etapa 'Paridade PS <-> JS do classificador' {
     Pop-Location
 }
 
+# --- 1b. Motores em sincronia com a fonte unica (rules.json) ---
+# classificador.js e Sentinela-Classificador.ps1 sao GERADOS por build_rules.py
+# a partir de rules.json. Isto falha se algum dos dois foi editado a mao sem
+# atualizar o rules.json (ou o rules.json mudou sem regenerar).
+Invoke-Etapa 'Classificador em sincronia com rules.json' {
+    & $py (Join-Path $raiz 'apps\guardian\build_rules.py') --check
+}
+
 # --- 2. Regressoes das auditorias ---
 Invoke-Etapa 'Achados de auditoria (A* e B*)' {
     Push-Location (Join-Path $raiz 'apps\crm\backend')
