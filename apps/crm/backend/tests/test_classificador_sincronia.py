@@ -64,6 +64,52 @@ def test_hash_embutido_bate_com_rules_json():
         )
 
 
+@pytest.mark.parametrize(
+    "termo_hostil",
+    ["termo'com apostrofe", 'termo"com aspas', "termo\\com barra",
+     "termo`com crase", "termo\ncom quebra"],
+    ids=["apostrofe", "aspas", "barra", "crase", "quebra-de-linha"],
+)
+def test_gerador_rejeita_termo_com_caractere_perigoso(tmp_path, termo_hostil):
+    """D1: um termo com apostrofe/aspas/barra nao pode virar um motor
+    sintaticamente invalido (no navegador isso e falha ABERTA: o content.js
+    revela a pagina quando o classificador quebra). O gerador tem de recusar
+    a entrada com erro claro apontando o termo, nunca gerar em silencio."""
+    import json
+
+    gerador = _carregar_gerador()
+    regras = json.loads(RULES.read_text(encoding="utf-8"))
+    regras["categorias"][0]["termos"][termo_hostil] = 1.0
+
+    hostil = tmp_path / "rules.json"
+    hostil.write_text(json.dumps(regras, ensure_ascii=False), encoding="utf-8")
+    gerador.RULES = hostil  # aponta o gerador para a fonte adulterada
+
+    with pytest.raises(ValueError) as erro:
+        gerador.gerar()
+    # o erro tem de dizer QUAL string ofendeu (embutida via repr), para o
+    # autor corrigir na hora
+    assert repr(termo_hostil) in str(erro.value)
+
+
+def test_gerador_rejeita_nome_de_tema_e_contexto_perigosos(tmp_path):
+    """A mesma guarda vale para nomes de tema e contexto seguro."""
+    import json
+
+    for alvo in ("nome", "contexto"):
+        gerador = _carregar_gerador()
+        regras = json.loads(RULES.read_text(encoding="utf-8"))
+        if alvo == "nome":
+            regras["categorias"][0]["nome"] = "Tema'quebrado"
+        else:
+            regras["contextoSeguro"].append("contexto'quebrado")
+        hostil = tmp_path / f"rules-{alvo}.json"
+        hostil.write_text(json.dumps(regras, ensure_ascii=False), encoding="utf-8")
+        gerador.RULES = hostil
+        with pytest.raises(ValueError):
+            gerador.gerar()
+
+
 @pytest.mark.parametrize("caminho", [JS, PS])
 def test_cabecalho_avisa_que_e_gerado(caminho):
     """Quem abrir um arquivo gerado precisa ser avisado de que nao deve edita-lo."""

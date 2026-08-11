@@ -35,10 +35,55 @@ PS_OUT = BASE / "app" / "Sentinela-Classificador.ps1"
 
 
 # --------------------------------------------------------------------------
+# validacao de entrada (D1): nenhum termo legitimo de classificacao precisa de
+# apostrofe, aspas, barra invertida, crase ou quebra de linha. Sem esta guarda,
+# um termo com apostrofe geraria um classificador.js sintaticamente invalido —
+# e no navegador isso e falha ABERTA: o content.js revela a pagina quando o
+# classificador quebra. Rejeitamos na origem, com erro apontando o culpado.
+# --------------------------------------------------------------------------
+_PROIBIDOS = {"'": "apostrofe", '"': "aspas", "\\": "barra invertida",
+              "`": "crase", "\n": "quebra de linha", "\r": "quebra de linha"}
+
+
+def _exigir_seguro(valor: str, onde: str) -> None:
+    for ch, nome in _PROIBIDOS.items():
+        if ch in valor:
+            raise ValueError(
+                f"rules.json invalido: {onde} contem {nome} ({valor!r}). "
+                "Termos, nomes de tema e contexto nao podem conter "
+                "' \" \\ ` nem quebra de linha."
+            )
+
+
+def _validar(regras: dict) -> None:
+    for cat in regras["categorias"]:
+        _exigir_seguro(cat["nome"], f"nome de tema")
+        for termo in cat["termos"]:
+            _exigir_seguro(termo, f"termo de '{cat['nome']}'")
+    for ctx in regras["contextoSeguro"]:
+        _exigir_seguro(ctx, "contexto seguro")
+    for mapa in ("homoglifos", "leet"):
+        for k, v in regras["normalizacao"][mapa].items():
+            _exigir_seguro(k, f"chave de {mapa}")
+            _exigir_seguro(v, f"valor de {mapa}")
+
+
+# --------------------------------------------------------------------------
 # formatacao de valores (preserva 1:1 o que cada linguagem ja usava)
 # --------------------------------------------------------------------------
 def _sem_acento(s: str) -> str:
     return "".join(c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c))
+
+
+def _js_str(s: str) -> str:
+    # string JS entre aspas simples; escape correto por construcao, mesmo que a
+    # validacao acima mude um dia. Para o rules.json atual a saida e identica.
+    return "'" + s.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def _ps_str(s: str) -> str:
+    # string PowerShell entre aspas simples: o unico escape e dobrar a apostrofe.
+    return "'" + s.replace("'", "''") + "'"
 
 
 def _js_peso(w: float) -> str:
@@ -70,19 +115,19 @@ def _js_blocos(regras: dict, sha: str) -> dict:
     homo = regras["normalizacao"]["homoglifos"]
     leet = regras["normalizacao"]["leet"]
 
-    homo_obj = "{" + ",".join(f"'{k}':'{v}'" for k, v in homo.items()) + "}"
-    leet_obj = "{ " + ",".join(f"'{k}':'{v}'" for k, v in leet.items()) + " }"
+    homo_obj = "{" + ",".join(f"{_js_str(k)}:{_js_str(v)}" for k, v in homo.items()) + "}"
+    leet_obj = "{ " + ",".join(f"{_js_str(k)}:{_js_str(v)}" for k, v in leet.items()) + " }"
 
     cats = []
     for c in regras["categorias"]:
-        termos = ",".join(f"'{t}':{_js_peso(p)}" for t, p in c["termos"].items())
+        termos = ",".join(f"{_js_str(t)}:{_js_peso(p)}" for t, p in c["termos"].items())
         cats.append(
-            f"{{ nome:'{c['nome']}', padrao:{str(c['padrao']).lower()}, "
+            f"{{ nome:{_js_str(c['nome'])}, padrao:{str(c['padrao']).lower()}, "
             f"semReducao:{str(c['semReducao']).lower()}, termos:{{{termos}}}}}"
         )
     cats_js = "[\n" + ",\n".join("    " + linha for linha in cats) + "\n  ]"
 
-    ctx_js = "[" + ",".join(f"'{c}'" for c in regras["contextoSeguro"]) + "]"
+    ctx_js = "[" + ",".join(_js_str(c) for c in regras["contextoSeguro"]) + "]"
 
     header = f"""/*
   classificador.js — ARQUIVO GERADO A PARTIR DE rules.json — NÃO EDITE À MÃO.
@@ -119,22 +164,22 @@ def _ps_blocos(regras: dict, sha: str) -> dict:
     homo = regras["normalizacao"]["homoglifos"]
     leet = regras["normalizacao"]["leet"]
 
-    homo_ps = "@{ " + "; ".join(f"([char]0x{ord(k):04X})='{v}'" for k, v in homo.items()) + " }"
-    leet_ps = "@{ " + "; ".join(f"'{k}'='{v}'" for k, v in leet.items()) + " }"
+    homo_ps = "@{ " + "; ".join(f"([char]0x{ord(k):04X})={_ps_str(v)}" for k, v in homo.items()) + " }"
+    leet_ps = "@{ " + "; ".join(f"{_ps_str(k)}={_ps_str(v)}" for k, v in leet.items()) + " }"
 
     cats = []
     for c in regras["categorias"]:
         nome = _sem_acento(c["nome"])                      # PS e ASCII (lido como ANSI)
-        termos = ";".join(f"'{t}'={_ps_peso(p)}" for t, p in c["termos"].items())
+        termos = ";".join(f"{_ps_str(t)}={_ps_peso(p)}" for t, p in c["termos"].items())
         padrao = "$true" if c["padrao"] else "$false"
         semred = "$true" if c["semReducao"] else "$false"
         cats.append(
-            f"    @{{ Nome='{nome}'; Padrao={padrao}; SemReducao={semred}; Termos=@{{\n"
+            f"    @{{ Nome={_ps_str(nome)}; Padrao={padrao}; SemReducao={semred}; Termos=@{{\n"
             f"        {termos} }} }}"
         )
     cats_ps = "@(\n" + ",\n".join(cats) + "\n)"
 
-    ctx_ps = "@(\n" + ",\n".join(f"    '{c}'" for c in regras["contextoSeguro"]) + "\n)"
+    ctx_ps = "@(\n" + ",\n".join("    " + _ps_str(c) for c in regras["contextoSeguro"]) + "\n)"
 
     header = f"""<#
     Sentinela-Classificador.ps1
@@ -192,6 +237,7 @@ def hash_regras() -> str:
 def gerar() -> dict:
     """Gera o conteudo dos dois arquivos EM MEMORIA. Retorna {Path: str}."""
     regras = json.loads(RULES.read_text(encoding="utf-8"))
+    _validar(regras)
     sha = hash_regras()
     js_tmpl = (TMPL / "classificador.js.tmpl").read_text(encoding="utf-8")
     ps_tmpl = (TMPL / "Sentinela-Classificador.ps1.tmpl").read_text(encoding="utf-8")
