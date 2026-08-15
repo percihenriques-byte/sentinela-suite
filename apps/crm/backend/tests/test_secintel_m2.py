@@ -124,7 +124,9 @@ def test_correlacao_nao_duplica_incidente(auth_client):
     incs = auth_client.get("/api/v1/seguranca/incidentes").json()
     do_cenario = [i for i in incs if i["cenario"] == "account_takeover"]
     assert len(do_cenario) == 1, "reincidencia deve atualizar, nao duplicar"
-    assert do_cenario[0]["ocorrencias"] >= 2
+    # correcao pos-revisao: sem evento NOVO entre os ciclos, ocorrencias NAO
+    # incrementa (o mesmo conjunto de eventos nao e reincidencia)
+    assert do_cenario[0]["ocorrencias"] == 1
 
 
 def test_transicao_de_estado_valida_e_invalida(auth_client):

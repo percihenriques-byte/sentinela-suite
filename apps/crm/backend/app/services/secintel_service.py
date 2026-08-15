@@ -40,6 +40,16 @@ def _hash(valor: str) -> str:
     return hashlib.sha256(valor.strip().lower().encode("utf-8")).hexdigest()
 
 
+def _idade_dias(quando: Optional[datetime]) -> float:
+    """Idade em dias de um timestamp. O SQLite devolve datetimes naive (o app
+    grava sempre UTC), entao normalizamos antes de subtrair."""
+    if quando is None:
+        return 0.0
+    if quando.tzinfo is None:
+        quando = quando.replace(tzinfo=timezone.utc)
+    return max(0.0, (_now() - quando).total_seconds() / 86400.0)
+
+
 # ---- auditoria ------------------------------------------------------------
 
 def registrar_auditoria(
@@ -361,8 +371,20 @@ def correlacionar(session: Session, workspace_id: UUID) -> list[SecIncidente]:
             continue
         fp = _fingerprint_incidente(h.cenario, h.usuario)
         atual = candidatos.get(fp)
-        if atual is None or _peso_nivel[h.nivel] > _peso_nivel[atual.nivel]:
+        if atual is None:
             candidatos[fp] = h
+            continue
+        # Hits do mesmo incidente (ex.: duas ondas do mesmo ataque no dia):
+        # fica o de maior nivel, mas as EVIDENCIAS se UNEM — sem isso, os
+        # eventos da segunda onda nunca chegariam a linha do tempo e a
+        # reincidencia real passaria despercebida.
+        escolhido = h if _peso_nivel[h.nivel] > _peso_nivel[atual.nivel] else atual
+        outro = atual if escolhido is h else h
+        escolhido.chaves = set(escolhido.chaves) | set(outro.chaves)
+        escolhido.evento_ids = list(dict.fromkeys(
+            list(escolhido.evento_ids) + list(outro.evento_ids)
+        ))
+        candidatos[fp] = escolhido
 
     tocados = []
     for fp, h in candidatos.items():
@@ -405,6 +427,17 @@ def _upsert_incidente(session, workspace_id, fp, h: "regras.Hit") -> SecIncident
         for eid in h.evento_ids:
             _add_item(session, inc.id, SecItemTipo.evento, ref_id=eid)
     else:
+        # Reincidencia REAL exige evento novo. O laco de correlacao roda a cada
+        # 5 min sobre a mesma janela de 24h: sem esta guarda, o MESMO conjunto
+        # de eventos incrementava `ocorrencias` e poluia a linha do tempo a
+        # cada ciclo (~288 notas/dia para um ataque unico).
+        ja_contados = {
+            i.ref_id for i in itens_do_incidente(session, inc.id)
+            if i.ref_tipo == SecItemTipo.evento and i.ref_id is not None
+        }
+        novos = [eid for eid in h.evento_ids if eid not in ja_contados]
+        if not novos:
+            return inc  # mesma evidencia de sempre: nada a atualizar
         inc.ultimo_visto = _now()
         inc.ocorrencias += 1
         # escala severidade/score se o novo hit for mais grave
@@ -416,8 +449,10 @@ def _upsert_incidente(session, workspace_id, fp, h: "regras.Hit") -> SecIncident
         session.add(inc)
         session.commit()
         session.refresh(inc)
+        for eid in novos:
+            _add_item(session, inc.id, SecItemTipo.evento, ref_id=eid)
         _add_item(session, inc.id, SecItemTipo.nota,
-                  nota=f"Reincidencia ({inc.ocorrencias}x)")
+                  nota=f"Reincidencia ({inc.ocorrencias}x): {len(novos)} evento(s) novo(s)")
     return inc
 
 
@@ -516,7 +551,7 @@ def transicionar(session, workspace_id, user_id, incidente_id, novo: SecIncident
     return inc
 
 
-def marcar_recomendacao(session, workspace_id, incidente_id, indice: int, feito: bool):
+def marcar_recomendacao(session, workspace_id, user_id, incidente_id, indice: int, feito: bool):
     inc = get_incidente(session, workspace_id, incidente_id)
     recs = json.loads(inc.recomendacoes or "[]")
     if indice < 0 or indice >= len(recs):
@@ -526,6 +561,10 @@ def marcar_recomendacao(session, workspace_id, incidente_id, indice: int, feito:
     session.add(inc)
     session.commit()
     session.refresh(inc)
+    registrar_auditoria(
+        session, workspace_id, user_id, "recomendacao_marcada",
+        {"incidente_id": str(incidente_id), "indice": indice, "feito": feito},
+    )
     return inc
 
 
@@ -646,13 +685,15 @@ def visao_geral(session, workspace_id) -> dict:
     for a in achados:
         por_sev_ach[a.severidade.value] = por_sev_ach.get(a.severidade.value, 0) + 1
 
-    # score do workspace = maior score entre incidentes abertos e achados ativos
+    # score do workspace = maior score entre incidentes abertos e achados ativos.
+    # Achados usam a IDADE REAL (decaimento por recencia, ESPEC secao 9): uma
+    # exposicao de meses atras nao pesa como uma de hoje.
     scores = [i.score for i in abertos] + [
         score_engine.calcular(
             p=score_engine.P_FORTE,
             impacto=1.0,
             confianca=a.confianca,
-            idade_dias=0.0,
+            idade_dias=_idade_dias(a.descoberto_em),
             confirmado=(a.classificacao == SecClassificacao.confirmed),
         )[0]
         for a in achados

@@ -143,6 +143,16 @@ def _upsert_achado(session, workspace_id, fonte_nome, b: AchadoBruto) -> SecAcha
     if existente:
         existente.confianca = b.confianca
         existente.severidade = sev
+        # Exposicao marcada como RESOLVIDA que reaparece numa varredura futura
+        # REABRE: se ela ainda esta la, nao foi resolvida de verdade — deixar o
+        # status antigo tornaria a recorrencia invisivel. (Falso-positivo NAO
+        # reabre: a decisao humana com motivo prevalece.)
+        if existente.status == SecAchadoStatus.resolvido:
+            existente.status = SecAchadoStatus.novo
+            existente.descoberto_em = datetime.now(timezone.utc)
+            existente.evidencia_resumo = (
+                f"{b.evidencia_resumo} — REAPARECEU apos ter sido marcada como resolvida"
+            )
         session.add(existente)
         session.commit()
         session.refresh(existente)

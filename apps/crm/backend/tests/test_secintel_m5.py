@@ -52,7 +52,9 @@ def test_ciclo_correlacao_agora_cria_e_nao_duplica(auth_client):
             SecIncidente.deleted_at.is_(None),
         )))
     assert len(incs) == 1  # dois ciclos, um so incidente
-    assert incs[0].ocorrencias >= 2
+    # correcao pos-revisao: mesmo conjunto de eventos nos dois ciclos ->
+    # ocorrencias fica em 1 (nada de reincidencia fantasma a cada 5 min)
+    assert incs[0].ocorrencias == 1
 
 
 def test_ciclo_exposicao_agora_nao_toca_fonte_desligada(auth_client):

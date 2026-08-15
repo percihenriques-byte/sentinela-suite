@@ -153,7 +153,7 @@ def marcar_recomendacao(
 ) -> IncidenteDetalheOut:
     import json
 
-    inc = svc.marcar_recomendacao(session, ws.id, incidente_id, indice, payload.feito)
+    inc = svc.marcar_recomendacao(session, ws.id, user.id, incidente_id, indice, payload.feito)
     itens = svc.itens_do_incidente(session, incidente_id)
     base = IncidenteOut.model_validate(inc, from_attributes=True).model_dump()
     return IncidenteDetalheOut(
