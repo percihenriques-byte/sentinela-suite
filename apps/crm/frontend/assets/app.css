@@ -1625,3 +1625,6 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
 .sg-fonte-head { display: flex; justify-content: space-between; align-items: center; }
 .sg-egresso { margin: 8px 0 0; }
 .sg-switch { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font-size: 0.9em; }
+.sg-cred { margin-top: 10px; }
+.sg-cred .sg-form { margin-top: 6px; margin-bottom: 0; }
+.sg-erro { color: var(--danger); margin: 8px 0 0; }

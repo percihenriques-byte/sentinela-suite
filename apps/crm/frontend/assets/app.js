@@ -4761,16 +4761,43 @@ async function sgRenderAtivos(panel) {
 
 async function sgRenderFontes(panel) {
   const fontes = await api("/seguranca/fontes");
-  panel.innerHTML = `<div class="sg-fontes">` + fontes.map(f => `
+  panel.innerHTML = `<div class="sg-fontes">` + fontes.map(f => {
+    const nome = escapeHtml(f.nome);
+    // fonte que exige chave: mostra input de credencial (nunca o valor salvo)
+    const credBloco = f.exige_credencial ? `
+      <div class="sg-cred">
+        <span class="subtle">🔑 Chave de API: ${f.tem_credencial ? "configurada" : "não configurada"}</span>
+        <div class="sg-form">
+          <input type="password" data-cred="${nome}" placeholder="${f.tem_credencial ? "substituir chave…" : "colar a chave da API"}" autocomplete="off" />
+          <button class="btn-secondary" data-cred-save="${nome}">Salvar chave</button>
+        </div>
+      </div>` : "";
+    const erro = (f.estado === "erro" && f.erro_msg)
+      ? `<p class="subtle sg-erro">⚠️ ${escapeHtml(f.erro_msg)}</p>` : "";
+    // trava do toggle: exige chave e ainda não tem
+    const travado = f.exige_credencial && !f.tem_credencial && !f.habilitada;
+    return `
     <div class="sg-fonte">
       <div class="sg-fonte-head">
-        <strong>${escapeHtml(f.nome)}</strong>
-        <label class="sg-switch"><input type="checkbox" data-fonte="${escapeHtml(f.nome)}" ${f.habilitada ? "checked" : ""}/> ${f.habilitada ? "Ligada" : "Desligada"}</label>
+        <strong>${nome}</strong>
+        <label class="sg-switch"><input type="checkbox" data-fonte="${nome}" ${f.habilitada ? "checked" : ""} ${travado ? "disabled" : ""}/> ${f.habilitada ? "Ligada" : "Desligada"}</label>
       </div>
       <p class="subtle sg-egresso">🔎 O que sai da máquina: ${escapeHtml(f.descricao_egresso)}</p>
-    </div>`).join("") + `</div>`;
+      ${credBloco}${erro}
+      ${travado ? `<p class="subtle">Configure a chave de API para poder ligar esta fonte.</p>` : ""}
+    </div>`;
+  }).join("") + `</div>`;
+
   panel.querySelectorAll("[data-fonte]").forEach(cb => cb.onchange = async () => {
     try { await api(`/seguranca/fontes/${encodeURIComponent(cb.dataset.fonte)}`, { method: "PATCH", body: { habilitada: cb.checked } }); toast("Preferência salva.", "success", 1400); sgRenderTab(); loadSeguranca(); }
     catch (e) { toast(e.message || "Falha", "error"); cb.checked = !cb.checked; }
+  });
+  panel.querySelectorAll("[data-cred-save]").forEach(b => b.onclick = async () => {
+    const nome = b.dataset.credSave;
+    const inp = panel.querySelector(`[data-cred="${nome}"]`);
+    const credencial = (inp?.value || "").trim();
+    if (!credencial) { toast("Cole a chave antes de salvar.", "warn", 1600); return; }
+    try { await api(`/seguranca/fontes/${encodeURIComponent(nome)}/credencial`, { method: "PUT", body: { credencial } }); toast("Chave guardada (cifrada).", "success", 1600); sgRenderTab(); }
+    catch (e) { toast(e.message || "Falha", "error"); }
   });
 }

@@ -34,7 +34,7 @@ def listar_fontes(
     session: SessionDep, user: CurrentUser, ws: CurrentResponsavel
 ) -> list[FonteOut]:
     fontes = svc.garantir_fontes(session)
-    return [FonteOut.model_validate(f, from_attributes=True) for f in fontes]
+    return [_fonte_out(f) for f in fontes]
 
 
 @router.get("/auditoria", response_model=list[AuditoriaOut])
@@ -215,9 +215,25 @@ def resolver(
 # ---- consentimento de fontes + varredura de exposicao (M4) ----
 from pydantic import BaseModel  # noqa: E402
 
+from app.schemas.secintel import CredencialIn  # noqa: E402
+from app.services import secintel_fontes  # noqa: E402
+
 
 class _FontePatch(BaseModel):
     habilitada: bool
+
+
+def _fonte_out(f) -> FonteOut:
+    """Serializa a fonte, computando exige_credencial (do adapter) e
+    tem_credencial (existe chave?). A credencial em si NUNCA sai."""
+    adapter = secintel_fontes.ADAPTERS.get(f.nome)
+    return FonteOut(
+        nome=f.nome, habilitada=f.habilitada, requer_nivel=f.requer_nivel,
+        descricao_egresso=f.descricao_egresso, consentida_em=f.consentida_em,
+        ultima_consulta=f.ultima_consulta, estado=f.estado, erro_msg=f.erro_msg,
+        exige_credencial=bool(adapter and getattr(adapter, "EXIGE_CREDENCIAL", False)),
+        tem_credencial=bool(f.credencial_enc),
+    )
 
 
 @router.patch("/fontes/{nome}", response_model=FonteOut)
@@ -226,7 +242,16 @@ def alternar_fonte(
     session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
 ) -> FonteOut:
     f = svc.alternar_fonte(session, ws.id, user.id, nome, payload.habilitada)
-    return FonteOut.model_validate(f, from_attributes=True)
+    return _fonte_out(f)
+
+
+@router.put("/fontes/{nome}/credencial", response_model=FonteOut)
+def definir_credencial(
+    nome: str, payload: CredencialIn,
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> FonteOut:
+    f = svc.definir_credencial_fonte(session, ws.id, user.id, nome, payload.credencial)
+    return _fonte_out(f)
 
 
 @router.post("/varreduras/exposicao", response_model=list[AchadoOut])

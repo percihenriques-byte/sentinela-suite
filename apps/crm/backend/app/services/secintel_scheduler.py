@@ -34,7 +34,64 @@ def _http_real(url: str, headers: dict | None = None):
     HABILITADA (o runner barra as desligadas antes de chegar aqui)."""
     import httpx
 
-    return httpx.get(url, headers=headers or {}, timeout=20.0)
+    return httpx.get(url, headers=headers or {}, timeout=20.0, follow_redirects=True)
+
+
+# leitura de repositorio para o github_secrets: tarball da API do GitHub, com
+# token opcional (repos privados), limite de tamanho por arquivo e allowlist de
+# extensoes de texto (nao adianta varrer binario atras de secret).
+_GH_TARBALL = "https://api.github.com/repos/{repo}/tarball"
+_MAX_ARQUIVO_BYTES = 512 * 1024          # 512 KB por arquivo
+_MAX_ARQUIVOS = 2000
+_EXT_TEXTO = {
+    ".py", ".js", ".ts", ".tsx", ".jsx", ".json", ".yml", ".yaml", ".env",
+    ".sh", ".ps1", ".rb", ".go", ".java", ".php", ".txt", ".cfg", ".ini",
+    ".toml", ".xml", ".properties", ".tf", ".conf", ".md",
+}
+
+
+def _repo_files_github(asset, credencial=None):
+    """transporte "repo_files": baixa o tarball do repo `owner/nome` e devolve
+    [(caminho, texto)] dos arquivos de texto dentro dos limites. Importado sob
+    demanda; so chamado por fonte HABILITADA e repo `verificado`."""
+    import io
+    import tarfile
+
+    import httpx
+
+    headers = {"User-Agent": "Sentinela-Seguranca", "Accept": "application/vnd.github+json"}
+    if credencial:
+        headers["Authorization"] = f"Bearer {credencial}"
+    resp = httpx.get(_GH_TARBALL.format(repo=asset.identificador),
+                     headers=headers, timeout=30.0, follow_redirects=True)
+    if resp.status_code != 200:
+        raise RuntimeError(f"GitHub respondeu {resp.status_code} para {asset.identificador}")
+
+    arquivos = []
+    with tarfile.open(fileobj=io.BytesIO(resp.content), mode="r:gz") as tar:
+        for membro in tar:
+            if not membro.isfile() or membro.size > _MAX_ARQUIVO_BYTES:
+                continue
+            # o tarball prefixa com "owner-repo-sha/"; tira o primeiro componente
+            caminho = membro.name.split("/", 1)[-1]
+            ext = caminho[caminho.rfind("."):].lower() if "." in caminho else ""
+            if ext not in _EXT_TEXTO:
+                continue
+            f = tar.extractfile(membro)
+            if f is None:
+                continue
+            try:
+                texto = f.read().decode("utf-8", errors="replace")
+            except Exception:
+                continue
+            arquivos.append((caminho, texto))
+            if len(arquivos) >= _MAX_ARQUIVOS:
+                break
+    return arquivos
+
+
+def _transportes_reais() -> dict:
+    return {"http_url": _http_real, "repo_files": _repo_files_github}
 
 
 # ---- passos sincronos (testaveis isoladamente) ----------------------------
@@ -47,11 +104,12 @@ def ciclo_correlacao_agora() -> int:
     return total
 
 
-def ciclo_exposicao_agora(http=None) -> int:
+def ciclo_exposicao_agora(transportes=None) -> int:
     total = 0
+    tr = transportes or _transportes_reais()
     with Session(engine) as session:
         for ws_id in svc.workspaces_ativos(session):
-            total += len(svc.rodar_exposicao(session, ws_id, http=http or _http_real))
+            total += len(svc.rodar_exposicao(session, ws_id, transportes=tr))
     return total
 
 

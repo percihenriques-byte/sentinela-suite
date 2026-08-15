@@ -58,16 +58,16 @@ def test_ciclo_correlacao_agora_cria_e_nao_duplica(auth_client):
 
 
 def test_ciclo_exposicao_agora_nao_toca_fonte_desligada(auth_client):
-    """Nenhuma fonte ligada: o ciclo usa o http_real, mas nunca o chama (o runner
-    barra fontes desligadas). Se chamasse rede, o teste falharia por timeout/erro.
-    Passamos um http que EXPLODE para provar que nao e chamado."""
+    """Nenhuma fonte ligada: o ciclo monta os transportes reais, mas nunca os
+    chama (o runner barra fontes desligadas). Passamos transportes que EXPLODEM
+    para provar que nao sao chamados."""
     ws_id = _ws(auth_client)
     auth_client.post("/api/v1/seguranca/ativos", json={"tipo": "email", "identificador": "a@b.com"})
 
-    def http_bomba(*a, **k):
+    def bomba(*a, **k):
         raise AssertionError("rede chamada sem fonte habilitada!")
 
-    total = sched.ciclo_exposicao_agora(http=http_bomba)
+    total = sched.ciclo_exposicao_agora(transportes={"http_url": bomba, "repo_files": bomba})
     assert total == 0
 
 

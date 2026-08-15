@@ -113,9 +113,9 @@ FONTES_CONHECIDAS: list[dict] = [
         "requer_nivel": SecNivelAutorizacao.declarado,
         "descricao_egresso": (
             "Envia o e-mail monitorado a API oficial do Have I Been Pwned "
-            "para saber se apareceu em vazamentos. Senhas NUNCA sao enviadas: "
-            "a checagem de senha usa k-anonymity (apenas os 5 primeiros "
-            "caracteres do hash SHA-1 saem da maquina)."
+            "para saber se apareceu em vazamentos. Senhas NUNCA sao enviadas — "
+            "esta fonte so verifica e-mail. Exige uma chave de API do HIBP, "
+            "configurada aqui e guardada cifrada."
         ),
     },
     {
@@ -727,6 +727,16 @@ def alternar_fonte(session, workspace_id, user_id, nome: str, habilitada: bool):
     if nome == "eventos_locais" and not habilitada:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
                             "a fonte local nao pode ser desligada")
+    # gate de credencial (E1): fonte que exige chave nao liga sem chave — assim
+    # o usuario recebe uma mensagem clara em vez de ligar e a fonte falhar.
+    if habilitada:
+        from app.services import secintel_fontes
+        adapter = secintel_fontes.ADAPTERS.get(nome)
+        if adapter and getattr(adapter, "EXIGE_CREDENCIAL", False) and not fonte.credencial_enc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"a fonte '{nome}' exige uma chave de API; configure-a antes de ligar",
+            )
     fonte.habilitada = habilitada
     if habilitada:
         fonte.consentida_em = _now()
@@ -745,11 +755,31 @@ def alternar_fonte(session, workspace_id, user_id, nome: str, habilitada: bool):
     return fonte
 
 
-def rodar_exposicao(session, workspace_id, http=None):
+def rodar_exposicao(session, workspace_id, transportes=None):
     """Roda as fontes de exposicao habilitadas. Delegado ao runner que garante
     a trava de consentimento (fonte desligada nunca e chamada)."""
     from app.services import secintel_fontes
-    return secintel_fontes.executar_exposicao(session, workspace_id, http=http)
+    return secintel_fontes.executar_exposicao(session, workspace_id, transportes=transportes)
+
+
+def definir_credencial_fonte(session, workspace_id, user_id, nome: str, credencial: str):
+    """Grava a credencial (chave de API / token) de uma fonte, CIFRADA. Passar
+    string vazia remove a credencial. Auditado; o valor nunca e logado."""
+    garantir_fontes(session)
+    fonte = session.exec(select(SecFonte).where(SecFonte.nome == nome)).first()
+    if not fonte:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "fonte desconhecida")
+    credencial = (credencial or "").strip()
+    fonte.credencial_enc = crypto.encrypt(credencial) if credencial else None
+    session.add(fonte)
+    session.commit()
+    session.refresh(fonte)
+    registrar_auditoria(
+        session, workspace_id, user_id,
+        "fonte_credencial_definida" if credencial else "fonte_credencial_removida",
+        {"fonte": nome},
+    )
+    return fonte
 
 
 # ---- higiene / retencao (M5) ----------------------------------------------

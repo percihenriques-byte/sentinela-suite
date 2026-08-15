@@ -2,14 +2,23 @@
 
 Contrato: NENHUMA fonte desligada faz chamada de rede. O runner checa o
 consentimento (SecFonte.habilitada) ANTES de tocar qualquer adapter. O acesso
-a rede passa por um `http` injetavel; o default e um SENTINELA que LEVANTA
+a rede passa por um TRANSPORTE injetavel; o default e uma SENTINELA que LEVANTA
 excecao — assim, em teste, qualquer request que escape sem consentimento
 explode na hora (test_secintel_consentimento).
+
+Despacho de transporte POR FONTE (auditoria 6a rodada, E2): cada adapter
+declara o transporte que precisa; o runner monta o certo, em vez de um `http`
+unico servindo assinaturas diferentes. Transportes:
+    "http_url"   -> transporte(url, headers) -> resposta (.status_code, .json())
+    "repo_files" -> transporte(asset) -> list[(caminho, texto)]
 
 Adapter = modulo com:
     NOME: str
     REQUER_NIVEL: SecNivelAutorizacao
-    def consultar(assets: list[AssetCtx], http) -> list[AchadoBruto]
+    TIPOS_ATIVO: set[str]
+    TRANSPORTE: "http_url" | "repo_files"
+    EXIGE_CREDENCIAL: bool          # se True, so opera com SecFonte.credencial_enc
+    def consultar(assets, transporte, credencial) -> list[AchadoBruto]
 """
 from __future__ import annotations
 
@@ -61,7 +70,7 @@ class AchadoBruto:
 ADAPTERS = {m.NOME: m for m in (fonte_hibp, fonte_ct, fonte_github)}
 
 
-def _sentinela_http(*_a, **_k):
+def _sentinela_transporte(*_a, **_k):
     raise RuntimeError(
         "secintel: tentativa de acesso a rede SEM consentimento — o runner "
         "deveria ter barrado a fonte desligada antes de chegar aqui."
@@ -97,11 +106,15 @@ def _assets_elegiveis(session: Session, workspace_id: UUID, requer_nivel: SecNiv
 
 
 def executar_exposicao(
-    session: Session, workspace_id: UUID, http: Optional[Callable] = None,
+    session: Session, workspace_id: UUID, transportes: Optional[dict] = None,
 ) -> list[SecAchado]:
     """Roda TODAS as fontes de exposicao HABILITADAS sobre os ativos elegiveis.
-    Fonte desligada e pulada — nunca chamada. Dedupe por fingerprint."""
-    http = http or _sentinela_http
+    Fonte desligada e pulada — nunca chamada. Dedupe por fingerprint.
+
+    `transportes` (opcional, para teste): {nome_do_transporte: callable}. Em
+    producao vem do scheduler (`_http_real` etc.); default e a sentinela que
+    explode — nunca chamada para fonte desligada."""
+    transportes = transportes or {}
     tocados: list[SecAchado] = []
     fontes = {f.nome: f for f in session.exec(select(SecFonte).where(SecFonte.deleted_at.is_(None)))}
 
@@ -109,11 +122,21 @@ def executar_exposicao(
         fonte = fontes.get(nome)
         if not fonte or not fonte.habilitada:
             continue  # SEM consentimento -> nao toca a fonte
+        # gate de credencial (E1): fonte que exige chave nao roda sem ela.
+        if getattr(adapter, "EXIGE_CREDENCIAL", False) and not fonte.credencial_enc:
+            fonte.estado = SecFonteEstado.erro
+            fonte.erro_msg = "fonte exige credencial (chave de API) e nenhuma foi configurada"
+            fonte.ultima_consulta = datetime.now(timezone.utc)
+            session.add(fonte)
+            session.commit()
+            continue
         assets = _assets_elegiveis(session, workspace_id, adapter.REQUER_NIVEL, adapter.TIPOS_ATIVO)
         if not assets:
             continue
+        transporte = transportes.get(adapter.TRANSPORTE, _sentinela_transporte)
+        credencial = crypto.decrypt(fonte.credencial_enc) if fonte.credencial_enc else None
         try:
-            brutos = adapter.consultar(assets, http)
+            brutos = adapter.consultar(assets, transporte, credencial)
             fonte.estado = SecFonteEstado.ok
             fonte.erro_msg = None
         except Exception as e:  # best-effort: uma fonte com erro nao derruba as outras

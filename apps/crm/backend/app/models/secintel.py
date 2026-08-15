@@ -150,6 +150,9 @@ class SecFonte(TimestampedModel, table=True):
         default=SecNivelAutorizacao.verificado, nullable=False
     )
     descricao_egresso: str = Field(nullable=False)
+    # credencial da fonte (ex.: chave de API do HIBP, token GitHub), cifrada
+    # com Fernet. NUNCA sai em resposta de API — só `tem_credencial: bool`.
+    credencial_enc: Optional[str] = Field(default=None)
     consentida_em: Optional[datetime] = Field(default=None)
     consentida_por: Optional[UUID] = Field(default=None, foreign_key="user.id")
     ultima_consulta: Optional[datetime] = Field(default=None)

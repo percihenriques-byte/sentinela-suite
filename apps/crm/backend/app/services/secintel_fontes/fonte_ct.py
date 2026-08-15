@@ -2,7 +2,9 @@
 
 O que SAI da maquina: o nome do dominio verificado, ao crt.sh. Detecta
 subdominios/certificados que o responsavel talvez nao conheca (possivel phishing
-ou exposicao). So dominios `verificado`.
+ou exposicao). So dominios `verificado`. Nao exige credencial (crt.sh e publico).
+
+Transporte "http_url": transporte(url, headers) -> resposta (.status_code, .json()).
 """
 from __future__ import annotations
 
@@ -12,15 +14,17 @@ from app.services import secintel_mascara as mascara
 NOME = "ct"
 REQUER_NIVEL = SecNivelAutorizacao.verificado
 TIPOS_ATIVO = {"dominio", "subdominio"}
+TRANSPORTE = "http_url"
+EXIGE_CREDENCIAL = False
 _API = "https://crt.sh/?q=%25.{dominio}&output=json"
 
 
-def consultar(assets, http):
+def consultar(assets, transporte, credencial=None):
     from app.services.secintel_fontes import AchadoBruto
 
     achados = []
     for a in assets:
-        resp = http(_API.format(dominio=a.identificador), {})
+        resp = transporte(_API.format(dominio=a.identificador), {})
         status = getattr(resp, "status_code", 200)
         if status != 200:
             raise RuntimeError(f"crt.sh respondeu {status}")

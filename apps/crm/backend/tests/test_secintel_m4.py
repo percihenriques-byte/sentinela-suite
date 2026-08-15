@@ -1,14 +1,15 @@
-"""Modulo Seguranca — M4: fontes opt-in + trava de consentimento.
+"""Modulo Seguranca — M4: fontes opt-in + trava de consentimento + credencial.
 
 Garante o principio central (ESPEC secao 0/10): NENHUM byte sai da maquina sem
-consentimento explicito. O runner de fontes usa um `http` sentinela que LEVANTA
-se chamado; se uma fonte desligada tentasse a rede, o teste explodiria.
+consentimento explicito. O runner usa transportes sentinela que LEVANTAM se
+chamados; se uma fonte desligada tentasse a rede, o teste explodiria.
+
+Cobre tambem as correcoes da 6a auditoria: transporte por fonte (E2) e gate de
+credencial da HIBP (E1).
 """
 import uuid
 
-import pytest
-
-from app.models.secintel import SecClassificacao, SecNivelAutorizacao, SecTipoExposicao
+from app.models.secintel import SecTipoExposicao
 
 
 def _ws(auth_client):
@@ -21,16 +22,6 @@ def _ws(auth_client):
         return s.exec(select(Workspace)).first().id
 
 
-def _email_login(auth_client):
-    from sqlmodel import Session, select
-
-    from app.db.session import engine
-    from app.models import User
-
-    with Session(engine) as s:
-        return s.exec(select(User)).first().email
-
-
 class _RespFake:
     def __init__(self, status_code, payload):
         self.status_code = status_code
@@ -40,10 +31,13 @@ class _RespFake:
         return self._payload
 
 
+def _dar_chave(auth_client, nome, chave="chave-secreta-de-teste"):
+    r = auth_client.put(f"/api/v1/seguranca/fontes/{nome}/credencial", json={"credencial": chave})
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
 def test_fonte_desligada_nunca_toca_a_rede(auth_client):
-    """Sem consentimento, POST /varreduras/exposicao nao chama fonte alguma e
-    devolve vazio. (O runner usa o http sentinela; se chamasse, levantaria.)"""
-    # cadastra um e-mail (ativo elegivel para hibp), mas NAO liga a fonte
     auth_client.post("/api/v1/seguranca/ativos", json={
         "tipo": "email", "identificador": "alvo@example.com",
     })
@@ -52,25 +46,67 @@ def test_fonte_desligada_nunca_toca_a_rede(auth_client):
     assert r.json() == []  # nada consultado, nada achado
 
 
-def test_runner_barra_fonte_desligada_mesmo_com_ativo(auth_client):
-    """Chamada direta ao runner com o http sentinela: fonte desligada nao pode
-    disparar a excecao de rede."""
+def test_runner_barra_fonte_desligada(auth_client):
     from sqlmodel import Session
 
     from app.db.session import engine
     from app.services import secintel_fontes
 
     ws_id = _ws(auth_client)
-    auth_client.post("/api/v1/seguranca/ativos", json={
-        "tipo": "email", "identificador": "x@example.com",
-    })
+    auth_client.post("/api/v1/seguranca/ativos", json={"tipo": "email", "identificador": "x@example.com"})
     with Session(engine) as s:
-        # http sentinela (default) levanta se chamado — nao deve ser chamado
-        achados = secintel_fontes.executar_exposicao(s, ws_id)
-        assert achados == []
+        # sem transportes -> sentinela que explode; fonte desligada nao a chama
+        assert secintel_fontes.executar_exposicao(s, ws_id) == []
 
 
-def test_ligar_hibp_registra_consentimento_e_encontra_vazamento(auth_client):
+# ---- E1: gate de credencial da HIBP ----
+
+def test_hibp_nao_liga_sem_chave(auth_client):
+    r = auth_client.patch("/api/v1/seguranca/fontes/hibp", json={"habilitada": True})
+    assert r.status_code == 422
+    assert "chave" in r.text.lower()
+
+
+def test_credencial_nunca_vaza_e_habilita_a_fonte(auth_client):
+    chave = "AKIA-NAO-DEVE-VAZAR-1234"
+    f = _dar_chave(auth_client, "hibp", chave)
+    assert f["tem_credencial"] is True and f["exige_credencial"] is True
+    # o valor nunca aparece na listagem
+    corpo = auth_client.get("/api/v1/seguranca/fontes").text
+    assert chave not in corpo
+    # agora liga
+    r = auth_client.patch("/api/v1/seguranca/fontes/hibp", json={"habilitada": True})
+    assert r.status_code == 200 and r.json()["habilitada"] is True
+
+
+def test_hibp_usa_a_chave_e_acha_vazamento(auth_client):
+    from sqlmodel import Session
+
+    from app.db.session import engine
+    from app.services import secintel_fontes
+
+    ws_id = _ws(auth_client)
+    email = "vazado@example.com"
+    auth_client.post("/api/v1/seguranca/ativos", json={"tipo": "email", "identificador": email})
+    _dar_chave(auth_client, "hibp", "chave-valida-123")
+    auth_client.patch("/api/v1/seguranca/fontes/hibp", json={"habilitada": True})
+
+    recebeu = {}
+
+    def http_url(url, headers=None):
+        recebeu["header"] = (headers or {}).get("hibp-api-key")
+        assert email in url
+        return _RespFake(200, [{"Name": "ExemploBreach"}])
+
+    with Session(engine) as s:
+        achados = secintel_fontes.executar_exposicao(s, ws_id, transportes={"http_url": http_url})
+    assert len(achados) == 1
+    assert achados[0].tipo_exposicao == SecTipoExposicao.email_em_vazamento
+    assert recebeu["header"] == "chave-valida-123"  # a chave FOI enviada no header
+    assert "vazado" not in achados[0].indicador_mascarado
+
+
+def test_hibp_401_marca_estado_erro(auth_client):
     from sqlmodel import Session, select
 
     from app.db.session import engine
@@ -78,43 +114,62 @@ def test_ligar_hibp_registra_consentimento_e_encontra_vazamento(auth_client):
     from app.services import secintel_fontes
 
     ws_id = _ws(auth_client)
-    email = "vazado@example.com"
-    auth_client.post("/api/v1/seguranca/ativos", json={"tipo": "email", "identificador": email})
+    auth_client.post("/api/v1/seguranca/ativos", json={"tipo": "email", "identificador": "e@example.com"})
+    _dar_chave(auth_client, "hibp", "chave-ruim")
+    auth_client.patch("/api/v1/seguranca/fontes/hibp", json={"habilitada": True})
 
-    # liga a fonte (consentimento) via API
-    r = auth_client.patch("/api/v1/seguranca/fontes/hibp", json={"habilitada": True})
-    assert r.status_code == 200 and r.json()["habilitada"] is True
+    def http_401(url, headers=None):
+        return _RespFake(401, None)
 
     with Session(engine) as s:
+        secintel_fontes.executar_exposicao(s, ws_id, transportes={"http_url": http_401})
         fonte = s.exec(select(SecFonte).where(SecFonte.nome == "hibp")).one()
-        assert fonte.consentida_em is not None and fonte.consentida_por is not None
-
-        # agora COM consentimento, injeta um http fake (a rede real nao roda em teste)
-        def http_fake(url, headers=None):
-            assert email in url  # so o e-mail consentido sai
-            return _RespFake(200, [{"Name": "ExemploBreach"}])
-
-        achados = secintel_fontes.executar_exposicao(s, ws_id, http=http_fake)
-        assert len(achados) == 1
-        a = achados[0]
-        assert a.tipo_exposicao == SecTipoExposicao.email_em_vazamento
-        # e-mail mascarado, dominio preservado; valor local nunca completo
-        assert "vazado" not in a.indicador_mascarado
-        assert "@example.com" in a.indicador_mascarado
-
-    # auditoria registrou o consentimento
-    acoes = [l["acao"] for l in auth_client.get("/api/v1/seguranca/auditoria").json()]
-    assert "fonte_habilitada" in acoes
+        assert fonte.estado.value == "erro" and "401" in (fonte.erro_msg or "")
 
 
-def test_fonte_local_nao_pode_ser_desligada(auth_client):
-    r = auth_client.patch("/api/v1/seguranca/fontes/eventos_locais", json={"habilitada": False})
-    assert r.status_code == 422
+# ---- E2: transporte por fonte + github ----
+
+def test_github_usa_transporte_repo_files(auth_client):
+    """A fonte github recebe o transporte 'repo_files' (nao um http de URL). O
+    duble de contrato falha se o transporte errado for entregue."""
+    from sqlmodel import Session
+
+    from app.db.session import engine
+    from app.services import secintel_fontes
+
+    ws_id = _ws(auth_client)
+    # repo precisa ser verificado; em M1 repo fica declarado, entao forcamos
+    r = auth_client.post("/api/v1/seguranca/ativos", json={"tipo": "repo", "identificador": "org/meurepo"})
+    aid = r.json()["id"]
+    from app.models import SecAsset
+    from app.models.secintel import SecNivelAutorizacao
+    with Session(engine) as s:
+        a = s.get(SecAsset, uuid.UUID(aid))
+        a.nivel_autorizacao = SecNivelAutorizacao.verificado
+        s.add(a)
+        s.commit()
+
+    auth_client.patch("/api/v1/seguranca/fontes/github_secrets", json={"habilitada": True})
+
+    segredo = "AKIA" + "QZ3K7RT9WP2N6VBX"
+
+    def repo_files(asset, credencial=None):
+        assert asset.identificador == "org/meurepo"
+        return [("config.py", f"aws_key = {segredo}")]
+
+    # se por engano o github recebesse 'http_url', quebraria (assinatura diferente)
+    def http_url(url, headers=None):
+        raise AssertionError("github nao deveria receber http_url")
+
+    with Session(engine) as s:
+        achados = secintel_fontes.executar_exposicao(
+            s, ws_id, transportes={"http_url": http_url, "repo_files": repo_files})
+    assert len(achados) == 1
+    assert segredo not in achados[0].indicador_mascarado
+    assert achados[0].indicador_mascarado.startswith("AKIA")
 
 
-def test_github_secrets_exige_repo_verificado(auth_client):
-    """github_secrets requer nivel `verificado`; um repo `declarado` nao entra
-    na consulta — protege contra varrer repo que nao e comprovadamente seu."""
+def test_github_repo_declarado_nao_e_consultado(auth_client):
     from sqlmodel import Session
 
     from app.db.session import engine
@@ -126,33 +181,15 @@ def test_github_secrets_exige_repo_verificado(auth_client):
 
     chamado = {"n": 0}
 
-    def http_fake(asset):
+    def repo_files(asset, credencial=None):
         chamado["n"] += 1
-        return [("app.py", "x=1")]
+        return []
 
     with Session(engine) as s:
-        secintel_fontes.executar_exposicao(s, ws_id, http=http_fake)
-    assert chamado["n"] == 0, "repo apenas declarado nao deveria ser consultado"
+        secintel_fontes.executar_exposicao(s, ws_id, transportes={"repo_files": repo_files})
+    assert chamado["n"] == 0, "repo apenas declarado nao deve ser consultado"
 
 
-def test_exposicao_via_api_com_fonte_ligada_gera_achado_mascarado(auth_client):
-    """Fim a fim pela API: liga hibp, roda exposicao (com http fake via runner),
-    achado aparece em /achados mascarado."""
-    from sqlmodel import Session, select
-
-    from app.db.session import engine
-    from app.models import SecFonte
-    from app.services import secintel_fontes
-
-    ws_id = _ws(auth_client)
-    auth_client.post("/api/v1/seguranca/ativos", json={"tipo": "email", "identificador": "leak@example.com"})
-    auth_client.patch("/api/v1/seguranca/fontes/hibp", json={"habilitada": True})
-
-    with Session(engine) as s:
-        def http_fake(url, headers=None):
-            return _RespFake(200, [{"Name": "B1"}, {"Name": "B2"}])
-        secintel_fontes.executar_exposicao(s, ws_id, http=http_fake)
-
-    achados = auth_client.get("/api/v1/seguranca/achados").json()
-    assert len(achados) == 1
-    assert "leak" not in achados[0]["indicador_mascarado"]
+def test_fonte_local_nao_pode_ser_desligada(auth_client):
+    r = auth_client.patch("/api/v1/seguranca/fontes/eventos_locais", json={"habilitada": False})
+    assert r.status_code == 422

@@ -23,6 +23,13 @@ class FonteOut(BaseModel):
     consentida_em: Optional[datetime] = None
     ultima_consulta: Optional[datetime] = None
     estado: SecFonteEstado
+    erro_msg: Optional[str] = None
+    exige_credencial: bool = False
+    tem_credencial: bool = False
+
+
+class CredencialIn(BaseModel):
+    credencial: str
 
 
 class AuditoriaOut(BaseModel):
