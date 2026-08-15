@@ -31,6 +31,11 @@ jobs:
         env:
           # Mesmas variaveis do conftest: o app recusa subir sem chave de cifra
           # (ver A1 na auditoria), e isso e proposital.
+          # APP_ENV explicito (C2 da auditoria): o pytest roda de proposito no
+          # caminho "dev" dos gates de secret. Antes isso dependia do DEFAULT de
+          # app_env; se o default um dia virar "prod", este job nao muda de
+          # comportamento por acidente.
+          APP_ENV: "dev"
           DATABASE_URL: "sqlite:///:memory:"
           APP_SECRET_KEY: "ci-secret-nao-usar-em-producao"
           FIELD_ENCRYPTION_KEY: "ci-encryption-nao-usar-em-producao"
