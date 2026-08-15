@@ -9,12 +9,18 @@ instalador. Dentro dele, dois módulos:
 |---|---|
 | **Sentinela** (`apps/guardian`) | Controle parental à prova de incógnito: filtro de rede (DNS + hosts + política do navegador), IA local que analisa busca, texto e imagem, trava por PIN e registro de supervisão. É a cara do app: a marca, a paleta e a primeira seção do menu. |
 | **VisiQuost** (`apps/crm`) | O CRM, uma seção dentro do mesmo app: contatos, empresas, oportunidades, pipeline kanban, tarefas, reuniões, lead scoring, automações e o assistente **Jarvis**. |
+| **Segurança** (`apps/crm`, módulo `secintel`) | Inteligência de segurança defensiva: detecta sinais de invasão, comprometimento de conta e credenciais/segredos expostos, correlaciona eventos, pontua risco e recomenda contenção. Roda 100% local por padrão; só consulta fontes externas que o responsável ligar, uma a uma. Ver [`ESPEC-SEGURANCA.md`](ESPEC-SEGURANCA.md). |
 
 Na primeira vez o app abre no Sentinela. Depois disso ele lembra a última seção
 usada — quem passa o dia no CRM continua caindo no CRM.
 
-**Zero APIs externas.** Nada é enviado para a internet — nem busca, nem dado de
-cliente, nem telemetria. Os dois módulos falam entre si só por `127.0.0.1`.
+**Zero APIs externas por padrão.** Nada é enviado para a internet — nem busca,
+nem dado de cliente, nem telemetria; os dois módulos falam entre si só por
+`127.0.0.1`. A única exceção é opt-in e explícita: o módulo **Segurança** pode
+consultar fontes externas de _threat intelligence_ (ex.: vazamentos, segredos em
+repositórios), mas **cada fonte nasce desligada** e só passa a sair da máquina
+depois que o responsável a liga, vendo antes exatamente o que sai — o
+consentimento fica registrado e auditado.
 
 ---
 
