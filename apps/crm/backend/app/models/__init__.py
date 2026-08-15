@@ -10,6 +10,10 @@ from app.models.lead_scoring import LeadScoringRule
 from app.models.workflow import Workflow, WorkflowRun, WorkflowStep
 from app.models.external_account import ExternalAccount
 from app.models.sentinela import SentinelaConfig, SentinelaEvent
+from app.models.secintel import (
+    SecAchado, SecAsset, SecAuditoria, SecEvento, SecFonte,
+    SecIncidente, SecIncidenteItem,
+)
 
 __all__ = [
     "TimestampedModel",
@@ -44,4 +48,11 @@ __all__ = [
     "ExternalAccount",
     "SentinelaEvent",
     "SentinelaConfig",
+    "SecAsset",
+    "SecFonte",
+    "SecEvento",
+    "SecAchado",
+    "SecIncidente",
+    "SecIncidenteItem",
+    "SecAuditoria",
 ]

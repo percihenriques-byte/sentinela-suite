@@ -102,3 +102,18 @@ def get_current_workspace(
 
 
 CurrentWorkspace = Annotated[WorkspaceCtx, Depends(get_current_workspace)]
+
+
+def get_responsavel_ctx(ws: CurrentWorkspace) -> WorkspaceCtx:
+    """Papel "responsavel" do modulo Seguranca (ESPEC-SEGURANCA.md, secao 5).
+
+    Nesta base, "responsavel" mapeia para owner/admin do workspace: e o adulto
+    dono da instalacao, o mesmo perfil que administra o Sentinela. Membro comum
+    e viewer recebem 403 — dado de seguranca (achados, incidentes, auditoria)
+    nao e para qualquer membro do CRM. Fecha, para o modulo novo, o debito B6.
+    """
+    ws.require_role(WorkspaceRole.owner, WorkspaceRole.admin)
+    return ws
+
+
+CurrentResponsavel = Annotated[WorkspaceCtx, Depends(get_responsavel_ctx)]
