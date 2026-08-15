@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -271,3 +271,294 @@ def verificar_posse(
     session.commit()
     session.refresh(asset)
     return asset
+
+
+# ---- eventos + correlacao + incidentes (M2) -------------------------------
+
+from app.models.secintel import (  # noqa: E402
+    SecEvento,
+    SecEventoOrigem,
+    SecIncidente,
+    SecIncidenteEstado,
+    SecIncidenteItem,
+    SecItemTipo,
+    SecSeveridade,
+)
+from app.services import secintel_regras as regras  # noqa: E402
+
+# allowlist de atributos por evento — nunca guardamos payload bruto (ESPEC 12)
+_ATRIBUTOS_OK = {"user_agent_familia", "motivo", "endpoint"}
+
+_SEV_SCORE = {  # score-base do M2; o M3 substitui pelo scoring completo
+    "INFO": 5, "LOW": 20, "MEDIUM": 40, "HIGH": 65, "CRITICAL": 85,
+}
+
+JANELA_CORRELACAO_S = 24 * 60 * 60
+
+
+def registrar_evento(
+    session: Session,
+    workspace_id: UUID,
+    origem: SecEventoOrigem,
+    tipo: str,
+    *,
+    ip: Optional[str] = None,
+    usuario: Optional[str] = None,
+    dispositivo_id: Optional[str] = None,
+    sessao: Optional[str] = None,
+    endpoint: Optional[str] = None,
+    atributos: Optional[dict] = None,
+) -> SecEvento:
+    """Normaliza e grava um evento para correlacao. `atributos` e minimizado
+    por allowlist. `usuario` deve ser um identificador estavel (ex.: e-mail),
+    nao um segredo."""
+    minimizado = None
+    if atributos:
+        limpo = {k: v for k, v in atributos.items() if k in _ATRIBUTOS_OK}
+        if limpo:
+            minimizado = json.dumps(limpo, ensure_ascii=False)
+    ev = SecEvento(
+        workspace_id=workspace_id, origem=origem, tipo=tipo, ts=_now(),
+        ip=ip, usuario=usuario, dispositivo_id=dispositivo_id,
+        sessao=sessao, endpoint=endpoint, atributos=minimizado,
+    )
+    session.add(ev)
+    session.commit()
+    session.refresh(ev)
+    return ev
+
+
+def listar_eventos(session: Session, workspace_id: UUID, limit: int = 100) -> list[SecEvento]:
+    return list(session.exec(
+        select(SecEvento)
+        .where(SecEvento.workspace_id == workspace_id, SecEvento.deleted_at.is_(None))
+        .order_by(SecEvento.ts.desc()).limit(min(limit, 500))
+    ))
+
+
+def _fingerprint_incidente(cenario: str, usuario: Optional[str]) -> str:
+    dia = _now().strftime("%Y-%m-%d")
+    return mascara.fingerprint(cenario, usuario or "-", dia)
+
+
+def correlacionar(session: Session, workspace_id: UUID) -> list[SecIncidente]:
+    """Roda as regras sobre a janela quente de eventos e cria/atualiza
+    incidentes. Dedupe por fingerprint (cenario|usuario|dia): reincidencia
+    ATUALIZA o incidente existente, nunca duplica (ESPEC Fase 10)."""
+    corte = _now() - timedelta(seconds=JANELA_CORRELACAO_S)
+    eventos = list(session.exec(
+        select(SecEvento).where(
+            SecEvento.workspace_id == workspace_id,
+            SecEvento.deleted_at.is_(None),
+            SecEvento.ts >= corte,
+        )
+    ))
+    hits = regras.avaliar(eventos)
+    # so viram incidente: suspeitas e incidentes (indicadores ficam como sinal
+    # e alimentam as regras compostas). Entre hits do mesmo cenario+usuario, o
+    # de maior severidade vence.
+    candidatos: dict[str, regras.Hit] = {}
+    for h in hits:
+        if h.nivel == "indicador":
+            continue
+        fp = _fingerprint_incidente(h.cenario, h.usuario)
+        atual = candidatos.get(fp)
+        if atual is None or _SEV_SCORE[h.severidade] > _SEV_SCORE[atual.severidade]:
+            candidatos[fp] = h
+
+    tocados = []
+    for fp, h in candidatos.items():
+        inc = _upsert_incidente(session, workspace_id, fp, h)
+        tocados.append(inc)
+    return tocados
+
+
+def _upsert_incidente(session, workspace_id, fp, h: "regras.Hit") -> SecIncidente:
+    inc = session.exec(
+        select(SecIncidente).where(
+            SecIncidente.workspace_id == workspace_id,
+            SecIncidente.fingerprint == fp,
+            SecIncidente.deleted_at.is_(None),
+        )
+    ).first()
+    score = _SEV_SCORE[h.severidade] + min(30, 10 * max(0, len(h.chaves) - 1))
+    score = min(100, score)
+    confianca = {"suspeita": 0.5, "incidente": 0.8}.get(h.nivel, 0.5)
+
+    if inc is None:
+        inc = SecIncidente(
+            workspace_id=workspace_id, titulo=h.titulo, cenario=h.cenario,
+            severidade=SecSeveridade(h.severidade), score=score, confianca=confianca,
+            estado=SecIncidenteEstado.detectado, fingerprint=fp,
+            primeiro_visto=_now(), ultimo_visto=_now(), ocorrencias=1,
+            resumo=h.resumo, recomendacoes=json.dumps(_recomendacoes(h.cenario), ensure_ascii=False),
+        )
+        session.add(inc)
+        session.commit()
+        session.refresh(inc)
+        _add_item(session, inc.id, SecItemTipo.nota, nota=f"Incidente aberto: {h.titulo}")
+        for eid in h.evento_ids:
+            _add_item(session, inc.id, SecItemTipo.evento, ref_id=eid)
+    else:
+        inc.ultimo_visto = _now()
+        inc.ocorrencias += 1
+        # escala severidade/score se o novo hit for mais grave
+        if _SEV_SCORE[h.severidade] > _SEV_SCORE[inc.severidade.value]:
+            inc.severidade = SecSeveridade(h.severidade)
+            inc.titulo = h.titulo
+            inc.resumo = h.resumo
+        inc.score = max(inc.score, score)
+        session.add(inc)
+        session.commit()
+        session.refresh(inc)
+        _add_item(session, inc.id, SecItemTipo.nota,
+                  nota=f"Reincidencia ({inc.ocorrencias}x)")
+    return inc
+
+
+def _add_item(session, incidente_id, ref_tipo, ref_id=None, nota=None):
+    session.add(SecIncidenteItem(
+        incidente_id=incidente_id, ref_tipo=ref_tipo, ref_id=ref_id, nota=nota, ts=_now(),
+    ))
+    session.commit()
+
+
+# recomendacoes por cenario (ESPEC secao 13): DETECCAO ja esta no incidente;
+# aqui vao CONTENCAO/REMEDIACAO/RECUPERACAO como itens acionaveis.
+_RECOMENDACOES: dict[str, list[tuple[str, str]]] = {
+    "account_takeover": [
+        ("Encerrar todas as sessoes ativas", "contencao"),
+        ("Trocar a senha do painel", "remediacao"),
+        ("Ativar verificacao em duas etapas (MFA)", "remediacao"),
+        ("Revisar acessos e dispositivos recentes", "recuperacao"),
+    ],
+    "session_hijacking": [
+        ("Encerrar as sessoes ativas", "contencao"),
+        ("Trocar a senha do painel", "remediacao"),
+        ("Revisar os dispositivos conectados", "recuperacao"),
+    ],
+    "brute_force": [
+        ("Confirmar que o limite de tentativas esta ativo", "contencao"),
+        ("Revisar a forca da senha e do PIN", "remediacao"),
+        ("Acompanhar novas tentativas", "recuperacao"),
+    ],
+    "api_key_exposure": [
+        ("Revogar o token suspeito", "contencao"),
+        ("Rotacionar a chave e remover do repositorio", "remediacao"),
+        ("Auditar onde a chave foi usada", "recuperacao"),
+    ],
+}
+
+
+def _recomendacoes(cenario: str) -> list[dict]:
+    base = _RECOMENDACOES.get(cenario, [("Revisar o alerta", "contencao")])
+    return [{"titulo": t, "bloco": b, "feito": False} for t, b in base]
+
+
+# ---- incidentes: leitura + transicao --------------------------------------
+
+_TRANSICOES = {
+    SecIncidenteEstado.detectado: {SecIncidenteEstado.triagem, SecIncidenteEstado.falso_positivo},
+    SecIncidenteEstado.triagem: {SecIncidenteEstado.contido, SecIncidenteEstado.falso_positivo},
+    SecIncidenteEstado.contido: {SecIncidenteEstado.remediado},
+    SecIncidenteEstado.remediado: {SecIncidenteEstado.recuperado},
+    SecIncidenteEstado.recuperado: {SecIncidenteEstado.fechado},
+    SecIncidenteEstado.fechado: set(),
+    SecIncidenteEstado.falso_positivo: set(),
+}
+
+
+def listar_incidentes(session, workspace_id, estado=None):
+    q = select(SecIncidente).where(
+        SecIncidente.workspace_id == workspace_id, SecIncidente.deleted_at.is_(None)
+    )
+    if estado is not None:
+        q = q.where(SecIncidente.estado == estado)
+    return list(session.exec(q.order_by(SecIncidente.ultimo_visto.desc())))
+
+
+def get_incidente(session, workspace_id, incidente_id) -> SecIncidente:
+    inc = session.get(SecIncidente, incidente_id)
+    if not inc or inc.workspace_id != workspace_id or inc.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "incidente nao encontrado")
+    return inc
+
+
+def itens_do_incidente(session, incidente_id):
+    return list(session.exec(
+        select(SecIncidenteItem)
+        .where(SecIncidenteItem.incidente_id == incidente_id)
+        .order_by(SecIncidenteItem.ts.asc())
+    ))
+
+
+def transicionar(session, workspace_id, user_id, incidente_id, novo: SecIncidenteEstado):
+    inc = get_incidente(session, workspace_id, incidente_id)
+    if novo not in _TRANSICOES.get(inc.estado, set()):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"transicao invalida: {inc.estado.value} -> {novo.value}",
+        )
+    anterior = inc.estado
+    inc.estado = novo
+    session.add(inc)
+    session.commit()
+    session.refresh(inc)
+    _add_item(session, inc.id, SecItemTipo.transicao,
+              nota=f"{anterior.value} -> {novo.value}")
+    registrar_auditoria(session, workspace_id, user_id, "incidente_transicao",
+                        {"incidente_id": str(incidente_id), "de": anterior.value, "para": novo.value})
+    return inc
+
+
+def marcar_recomendacao(session, workspace_id, incidente_id, indice: int, feito: bool):
+    inc = get_incidente(session, workspace_id, incidente_id)
+    recs = json.loads(inc.recomendacoes or "[]")
+    if indice < 0 or indice >= len(recs):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "recomendacao inexistente")
+    recs[indice]["feito"] = feito
+    inc.recomendacoes = json.dumps(recs, ensure_ascii=False)
+    session.add(inc)
+    session.commit()
+    session.refresh(inc)
+    return inc
+
+
+# ---- captura de eventos do proprio app (best-effort) ----------------------
+
+import logging  # noqa: E402
+
+from app.models import WorkspaceMember  # noqa: E402
+
+_log = logging.getLogger("jarvis.secintel")
+
+
+def _workspace_do_email(session: Session, email: str) -> Optional[UUID]:
+    user = session.exec(select(User).where(User.email == email)).first()
+    if not user:
+        return None
+    m = session.exec(
+        select(WorkspaceMember)
+        .where(WorkspaceMember.user_id == user.id, WorkspaceMember.deleted_at.is_(None))
+        .order_by(WorkspaceMember.created_at.asc())
+        .limit(1)
+    ).first()
+    return m.workspace_id if m else None
+
+
+def capturar_login(session: Session, email: str, sucesso: bool, ip: Optional[str]) -> None:
+    """Registra login_ok/login_falha para o motor de deteccao. Best-effort:
+    qualquer excecao e engolida — observar a seguranca nunca pode derrubar o
+    login. Login de usuario desconhecido nao tem workspace para atribuir e e
+    ignorado (nao ha o que proteger)."""
+    try:
+        ws_id = _workspace_do_email(session, email)
+        if ws_id is None:
+            return
+        registrar_evento(
+            session, ws_id, SecEventoOrigem.painel_auth,
+            "login_ok" if sucesso else "login_falha",
+            ip=ip, usuario=(email or "").strip().lower(),
+        )
+    except Exception:  # pragma: no cover - defensivo
+        _log.warning("secintel: falha ao capturar evento de login", exc_info=True)

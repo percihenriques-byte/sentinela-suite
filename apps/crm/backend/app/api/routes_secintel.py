@@ -9,12 +9,18 @@ from uuid import UUID
 from fastapi import APIRouter, Query, status
 
 from app.api.deps import CurrentResponsavel, CurrentUser, SessionDep
+from app.models.secintel import SecIncidenteEstado
 from app.schemas.secintel import (
+    ItemOut,
     AssetCreate,
     AssetOut,
     AssetUpdate,
     AuditoriaOut,
     FonteOut,
+    IncidenteDetalheOut,
+    IncidenteOut,
+    RecomendacaoPatch,
+    TransicaoIn,
 )
 from app.services import secintel_service as svc
 
@@ -102,3 +108,63 @@ def verificar_ativo(
         {"asset_id": str(asset_id), "nivel": asset.nivel_autorizacao.value},
     )
     return AssetOut.model_validate(asset, from_attributes=True)
+
+
+# ---- incidentes + correlacao (M2) ----
+
+@router.get("/incidentes", response_model=list[IncidenteOut])
+def listar_incidentes(
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+    estado: SecIncidenteEstado | None = Query(None),
+) -> list[IncidenteOut]:
+    incs = svc.listar_incidentes(session, ws.id, estado=estado)
+    return [IncidenteOut.model_validate(i, from_attributes=True) for i in incs]
+
+
+@router.get("/incidentes/{incidente_id}", response_model=IncidenteDetalheOut)
+def detalhe_incidente(
+    incidente_id: UUID, session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> IncidenteDetalheOut:
+    import json
+
+    inc = svc.get_incidente(session, ws.id, incidente_id)
+    itens = svc.itens_do_incidente(session, incidente_id)
+    base = IncidenteOut.model_validate(inc, from_attributes=True).model_dump()
+    return IncidenteDetalheOut(
+        **base,
+        recomendacoes=json.loads(inc.recomendacoes or "[]"),
+        itens=[ItemOut.model_validate(i, from_attributes=True) for i in itens],
+    )
+
+
+@router.patch("/incidentes/{incidente_id}/estado", response_model=IncidenteOut)
+def transicionar_incidente(
+    incidente_id: UUID, payload: TransicaoIn,
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> IncidenteOut:
+    inc = svc.transicionar(session, ws.id, user.id, incidente_id, payload.estado)
+    return IncidenteOut.model_validate(inc, from_attributes=True)
+
+
+@router.patch("/incidentes/{incidente_id}/recomendacoes/{indice}", response_model=IncidenteDetalheOut)
+def marcar_recomendacao(
+    incidente_id: UUID, indice: int, payload: RecomendacaoPatch,
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> IncidenteDetalheOut:
+    import json
+
+    inc = svc.marcar_recomendacao(session, ws.id, incidente_id, indice, payload.feito)
+    itens = svc.itens_do_incidente(session, incidente_id)
+    base = IncidenteOut.model_validate(inc, from_attributes=True).model_dump()
+    return IncidenteDetalheOut(
+        **base, recomendacoes=json.loads(inc.recomendacoes or "[]"),
+        itens=[ItemOut.model_validate(i, from_attributes=True) for i in itens],
+    )
+
+
+@router.post("/varreduras/correlacao", response_model=list[IncidenteOut])
+def rodar_correlacao(
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> list[IncidenteOut]:
+    incs = svc.correlacionar(session, ws.id)
+    return [IncidenteOut.model_validate(i, from_attributes=True) for i in incs]

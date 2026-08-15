@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from jose import JWTError
 
 from app.api.deps import SessionDep, CurrentUser
@@ -43,11 +43,17 @@ def register(req: RegisterRequest, session: SessionDep) -> TokenPair:
 
 
 @router.post("/login", response_model=TokenPair)
-def login(req: LoginRequest, session: SessionDep) -> TokenPair:
+def login(req: LoginRequest, session: SessionDep, request: Request) -> TokenPair:
+    from app.services import secintel_service as secintel
+
+    ip = request.client.host if request.client else None
     try:
         _, tokens = auth_service.login(session, req)
     except ValueError:
+        # observabilidade defensiva: alimenta o motor de deteccao (best-effort)
+        secintel.capturar_login(session, req.email, sucesso=False, ip=ip)
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials") from None
+    secintel.capturar_login(session, req.email, sucesso=True, ip=ip)
     return tokens
 
 

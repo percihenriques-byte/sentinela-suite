@@ -55,3 +55,52 @@ class AssetOut(BaseModel):
     ativo: bool
     ultima_verificacao: Optional[datetime] = None
     created_at: datetime
+
+
+# ---- incidentes (M2) ----
+from app.models.secintel import (  # noqa: E402
+    SecIncidenteEstado,
+    SecItemTipo,
+    SecSeveridade,
+)
+
+
+class IncidenteOut(BaseModel):
+    id: UUID
+    titulo: str
+    cenario: str
+    severidade: SecSeveridade
+    score: int
+    confianca: float
+    estado: SecIncidenteEstado
+    primeiro_visto: datetime
+    ultimo_visto: datetime
+    ocorrencias: int
+    resumo: str
+
+
+class ItemOut(BaseModel):
+    id: UUID
+    ref_tipo: SecItemTipo
+    ref_id: Optional[UUID] = None
+    nota: Optional[str] = None
+    ts: datetime
+
+
+class RecomendacaoOut(BaseModel):
+    titulo: str
+    bloco: str
+    feito: bool
+
+
+class IncidenteDetalheOut(IncidenteOut):
+    recomendacoes: list[RecomendacaoOut]
+    itens: list[ItemOut]
+
+
+class TransicaoIn(BaseModel):
+    estado: SecIncidenteEstado
+
+
+class RecomendacaoPatch(BaseModel):
+    feito: bool
