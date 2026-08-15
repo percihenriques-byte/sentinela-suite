@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import UUID
@@ -168,6 +169,48 @@ def garantir_fontes(session: Session) -> list[SecFonte]:
 
 # ---- ativos (M1) ----------------------------------------------------------
 
+# Validacao de formato por tipo: barra lixo antes de cifrar/consultar. Um
+# repo mal-formado nunca vira URL de tarball; um dominio mal-formado nunca
+# vira consulta DNS. Lenient de proposito — so recusa o que jamais seria
+# valido, sem impor politica de nomes. Tipos livres (username, dispositivo,
+# conta_externa) nao tem formato canonico e passam com o strip/nao-vazio.
+_RE_REPO = re.compile(r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$")
+_RE_DOMINIO = re.compile(
+    r"^(?=.{1,253}$)([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,}$"
+)
+_RE_EMAIL = re.compile(r"^[^@\s]+@([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\.)+[A-Za-z]{2,}$")
+
+
+def _validar_identificador(tipo: SecAssetTipo, identificador: str) -> None:
+    """Recusa (422) identificadores que jamais poderiam ser o que o tipo diz
+    ser. So os tipos com formato canonico (repo, dominio, subdominio, email,
+    api_endpoint) sao checados; os demais sao livres."""
+    if tipo == SecAssetTipo.repo:
+        if not _RE_REPO.match(identificador):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "repositorio deve ter o formato dono/nome",
+            )
+    elif tipo in (SecAssetTipo.dominio, SecAssetTipo.subdominio):
+        if not _RE_DOMINIO.match(identificador.lower()):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "dominio invalido (ex.: exemplo.com)",
+            )
+    elif tipo == SecAssetTipo.email:
+        if not _RE_EMAIL.match(identificador):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "e-mail invalido",
+            )
+    elif tipo == SecAssetTipo.api_endpoint:
+        if not re.match(r"^https?://", identificador, re.IGNORECASE):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "endpoint deve comecar com http:// ou https://",
+            )
+
+
 def criar_asset(
     session: Session,
     workspace_id: UUID,
@@ -183,6 +226,7 @@ def criar_asset(
     identificador = (identificador or "").strip()
     if not identificador:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "identificador vazio")
+    _validar_identificador(tipo, identificador)
     h = _hash(identificador)
     existente = session.exec(
         select(SecAsset).where(

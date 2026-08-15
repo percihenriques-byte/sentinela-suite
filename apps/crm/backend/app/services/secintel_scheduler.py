@@ -45,6 +45,8 @@ def _http_real(url: str, headers: dict | None = None):
 _GH_TARBALL = "https://api.github.com/repos/{repo}/tarball"
 _MAX_ARQUIVO_BYTES = 512 * 1024          # 512 KB por arquivo
 _MAX_ARQUIVOS = 2000
+_MAX_TARBALL_BYTES = 80 * 1024 * 1024    # 80 MB de download (trava anti-abuso)
+_MAX_TEXTO_TOTAL_BYTES = 64 * 1024 * 1024  # 64 MB de texto extraido
 _EXT_TEXTO = {
     ".py", ".js", ".ts", ".tsx", ".jsx", ".json", ".yml", ".yaml", ".env",
     ".sh", ".ps1", ".rb", ".go", ".java", ".php", ".txt", ".cfg", ".ini",
@@ -64,13 +66,25 @@ def _repo_files_github(asset, credencial=None):
     headers = {"User-Agent": "Sentinela-Seguranca", "Accept": "application/vnd.github+json"}
     if credencial:
         headers["Authorization"] = f"Bearer {credencial}"
-    resp = httpx.get(_GH_TARBALL.format(repo=asset.identificador),
-                     headers=headers, timeout=30.0, follow_redirects=True)
-    if resp.status_code != 200:
-        raise RuntimeError(f"GitHub respondeu {resp.status_code} para {asset.identificador}")
+
+    # download com teto de tamanho: um tarball gigante (repo enorme ou hostil)
+    # nunca estoura a memoria — corta em _MAX_TARBALL_BYTES via streaming.
+    bruto = io.BytesIO()
+    with httpx.stream("GET", _GH_TARBALL.format(repo=asset.identificador),
+                      headers=headers, timeout=30.0, follow_redirects=True) as resp:
+        if resp.status_code != 200:
+            raise RuntimeError(f"GitHub respondeu {resp.status_code} para {asset.identificador}")
+        for pedaco in resp.iter_bytes():
+            bruto.write(pedaco)
+            if bruto.tell() > _MAX_TARBALL_BYTES:
+                raise RuntimeError(
+                    f"tarball de {asset.identificador} excede {_MAX_TARBALL_BYTES // (1024*1024)} MB"
+                )
+    bruto.seek(0)
 
     arquivos = []
-    with tarfile.open(fileobj=io.BytesIO(resp.content), mode="r:gz") as tar:
+    total_texto = 0
+    with tarfile.open(fileobj=bruto, mode="r:gz") as tar:
         for membro in tar:
             if not membro.isfile() or membro.size > _MAX_ARQUIVO_BYTES:
                 continue
@@ -87,7 +101,8 @@ def _repo_files_github(asset, credencial=None):
             except Exception:
                 continue
             arquivos.append((caminho, texto))
-            if len(arquivos) >= _MAX_ARQUIVOS:
+            total_texto += len(texto)
+            if len(arquivos) >= _MAX_ARQUIVOS or total_texto >= _MAX_TEXTO_TOTAL_BYTES:
                 break
     return arquivos
 
