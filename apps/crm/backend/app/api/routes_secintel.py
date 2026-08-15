@@ -210,3 +210,28 @@ def resolver(
 ) -> AchadoOut:
     a = svc.marcar_resolvido(session, ws.id, user.id, achado_id)
     return AchadoOut.model_validate(a, from_attributes=True)
+
+
+# ---- consentimento de fontes + varredura de exposicao (M4) ----
+from pydantic import BaseModel  # noqa: E402
+
+
+class _FontePatch(BaseModel):
+    habilitada: bool
+
+
+@router.patch("/fontes/{nome}", response_model=FonteOut)
+def alternar_fonte(
+    nome: str, payload: _FontePatch,
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> FonteOut:
+    f = svc.alternar_fonte(session, ws.id, user.id, nome, payload.habilitada)
+    return FonteOut.model_validate(f, from_attributes=True)
+
+
+@router.post("/varreduras/exposicao", response_model=list[AchadoOut])
+def rodar_exposicao(
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> list[AchadoOut]:
+    achados = svc.rodar_exposicao(session, ws.id)
+    return [AchadoOut.model_validate(a, from_attributes=True) for a in achados]

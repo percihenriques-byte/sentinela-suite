@@ -671,3 +671,41 @@ def visao_geral(session, workspace_id) -> dict:
         "fontes_desligadas": [f.nome for f in fontes if not f.habilitada],
         "ultimos_incidentes": [i.id for i in incidentes[:5]],
     }
+
+
+# ---- consentimento de fontes (M4) -----------------------------------------
+
+def alternar_fonte(session, workspace_id, user_id, nome: str, habilitada: bool):
+    """Liga/desliga uma fonte. Ligar registra o consentimento (quem/quando);
+    desligar o limpa. Auditado nos dois sentidos. `eventos_locais` (100% local)
+    nao pode ser desligada — e a base do plano local."""
+    garantir_fontes(session)
+    fonte = session.exec(select(SecFonte).where(SecFonte.nome == nome)).first()
+    if not fonte:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "fonte desconhecida")
+    if nome == "eventos_locais" and not habilitada:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            "a fonte local nao pode ser desligada")
+    fonte.habilitada = habilitada
+    if habilitada:
+        fonte.consentida_em = _now()
+        fonte.consentida_por = user_id
+    else:
+        fonte.consentida_em = None
+        fonte.consentida_por = None
+    session.add(fonte)
+    session.commit()
+    session.refresh(fonte)
+    registrar_auditoria(
+        session, workspace_id, user_id,
+        "fonte_habilitada" if habilitada else "fonte_desabilitada",
+        {"fonte": nome},
+    )
+    return fonte
+
+
+def rodar_exposicao(session, workspace_id, http=None):
+    """Roda as fontes de exposicao habilitadas. Delegado ao runner que garante
+    a trava de consentimento (fonte desligada nunca e chamada)."""
+    from app.services import secintel_fontes
+    return secintel_fontes.executar_exposicao(session, workspace_id, http=http)
