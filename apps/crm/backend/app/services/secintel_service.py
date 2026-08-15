@@ -10,18 +10,34 @@ correlacao em M2...); em M0 entra o alicerce que tudo mais usa:
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
+from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
-from app.models.secintel import SecAuditoria, SecFonte, SecNivelAutorizacao
+from app.core import crypto
+from app.models import User
+from app.models.secintel import (
+    SecAsset,
+    SecAssetTipo,
+    SecAuditoria,
+    SecFonte,
+    SecNivelAutorizacao,
+    SecTitular,
+)
+from app.services import secintel_mascara as mascara
 
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _hash(valor: str) -> str:
+    return hashlib.sha256(valor.strip().lower().encode("utf-8")).hexdigest()
 
 
 # ---- auditoria ------------------------------------------------------------
@@ -137,3 +153,121 @@ def garantir_fontes(session: Session) -> list[SecFonte]:
             select(SecFonte).where(SecFonte.deleted_at.is_(None)).order_by(SecFonte.nome)
         )
     )
+
+
+# ---- ativos (M1) ----------------------------------------------------------
+
+def criar_asset(
+    session: Session,
+    workspace_id: UUID,
+    user: User,
+    tipo: SecAssetTipo,
+    identificador: str,
+    titular: SecTitular = SecTitular.responsavel,
+    fonte_cadastro: str = "manual",
+) -> SecAsset:
+    """Cadastra um ativo autorizado. Identificador vai cifrado (Fernet) + hash
+    (dedupe/busca) + mascarado (listagem). Dedupe por (workspace, tipo, hash):
+    recadastrar o mesmo ativo devolve o existente (reativado se arquivado)."""
+    identificador = (identificador or "").strip()
+    if not identificador:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "identificador vazio")
+    h = _hash(identificador)
+    existente = session.exec(
+        select(SecAsset).where(
+            SecAsset.workspace_id == workspace_id,
+            SecAsset.tipo == tipo,
+            SecAsset.identificador_hash == h,
+            SecAsset.deleted_at.is_(None),
+        )
+    ).first()
+    if existente:
+        if not existente.ativo:
+            existente.ativo = True
+            session.add(existente)
+            session.commit()
+            session.refresh(existente)
+        return existente
+
+    nivel, verificado_em = _avaliar_posse(session, user, tipo, identificador)
+    asset = SecAsset(
+        workspace_id=workspace_id,
+        tipo=tipo,
+        identificador_enc=crypto.encrypt(identificador),
+        identificador_hash=h,
+        identificador_mascarado=mascara.mascarar_por_tipo(tipo.value, identificador),
+        titular=titular,
+        nivel_autorizacao=nivel,
+        verificado_em=verificado_em,
+        fonte_cadastro=fonte_cadastro,
+        ativo=True,
+    )
+    session.add(asset)
+    session.commit()
+    session.refresh(asset)
+    return asset
+
+
+def listar_assets(
+    session: Session, workspace_id: UUID, incluir_arquivados: bool = False
+) -> list[SecAsset]:
+    q = select(SecAsset).where(
+        SecAsset.workspace_id == workspace_id, SecAsset.deleted_at.is_(None)
+    )
+    if not incluir_arquivados:
+        q = q.where(SecAsset.ativo.is_(True))
+    return list(session.exec(q.order_by(SecAsset.created_at.desc())))
+
+
+def get_asset(session: Session, workspace_id: UUID, asset_id: UUID) -> SecAsset:
+    asset = session.get(SecAsset, asset_id)
+    if not asset or asset.workspace_id != workspace_id or asset.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "ativo nao encontrado")
+    return asset
+
+
+def editar_asset(
+    session: Session, workspace_id: UUID, asset_id: UUID, titular: Optional[SecTitular]
+) -> SecAsset:
+    asset = get_asset(session, workspace_id, asset_id)
+    if titular is not None:
+        asset.titular = titular
+        session.add(asset)
+        session.commit()
+        session.refresh(asset)
+    return asset
+
+
+def arquivar_asset(session: Session, workspace_id: UUID, asset_id: UUID) -> None:
+    asset = get_asset(session, workspace_id, asset_id)
+    asset.ativo = False
+    session.add(asset)
+    session.commit()
+
+
+def _avaliar_posse(
+    session: Session, user: User, tipo: SecAssetTipo, identificador: str
+) -> tuple[SecNivelAutorizacao, Optional[datetime]]:
+    """Verificacao de posse SEM rede (ESPEC secao 2). Em M1, so o e-mail de
+    login do responsavel e auto-verificado. Dominio/repo exigem fontes de rede
+    (ct/github), que chegam no M4: ate la ficam `declarado`."""
+    if tipo == SecAssetTipo.email and identificador.strip().lower() == user.email.strip().lower():
+        return SecNivelAutorizacao.verificado, _now()
+    return SecNivelAutorizacao.declarado, None
+
+
+def verificar_posse(
+    session: Session, workspace_id: UUID, user: User, asset_id: UUID
+) -> SecAsset:
+    """Reavalia a posse de um ativo. Registra `ultima_verificacao`."""
+    asset = get_asset(session, workspace_id, asset_id)
+    identificador = crypto.decrypt(asset.identificador_enc)
+    nivel, verificado_em = _avaliar_posse(session, user, asset.tipo, identificador)
+    asset.nivel_autorizacao = nivel
+    if verificado_em and asset.verificado_em is None:
+        asset.verificado_em = verificado_em
+    asset.ultima_verificacao = _now()
+    session.add(asset)
+    session.commit()
+    session.refresh(asset)
+    return asset
