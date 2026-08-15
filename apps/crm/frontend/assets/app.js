@@ -1026,6 +1026,7 @@ const routes = {
   device: loadDevice,
   jarvis: loadJarvisHero,
   sentinela: loadSentinela,
+  seguranca: loadSeguranca,
 };
 
 async function loadConversationsList() {
@@ -4587,4 +4588,189 @@ async function loadSentinela() {
     snPinPedido = true;
     setTimeout(snDefinirPin, 400);
   }
+}
+
+// ==========================================================================
+// Modulo Seguranca (secintel) — UX integrada. Ver ESPEC-SEGURANCA.md secao 14.
+// Todo alerta responde: o que, quando, qual ativo, gravidade, confianca e o
+// que fazer agora. Sem jargao no primeiro nivel; evidencia fica no detalhe.
+// ==========================================================================
+const SG = { tab: "ameacas" };
+const SG_SEV = {
+  CRITICAL: { cor: "#b91c1c", rot: "Crítico" },
+  HIGH: { cor: "#ea580c", rot: "Alto" },
+  MEDIUM: { cor: "#ca8a04", rot: "Médio" },
+  LOW: { cor: "#0ea5a0", rot: "Baixo" },
+  INFO: { cor: "#64748b", rot: "Info" },
+};
+
+function sgBadge(sev) {
+  const s = SG_SEV[sev] || SG_SEV.INFO;
+  return `<span class="sg-badge" style="background:${s.cor}">${s.rot}</span>`;
+}
+function sgQuando(iso) {
+  try { return new Date(iso).toLocaleString(); } catch { return iso || "—"; }
+}
+
+async function loadSeguranca() {
+  const panel = document.getElementById("sg-panel");
+  if (!panel) return;
+  // barra superior
+  try {
+    const vg = await api("/seguranca/visao-geral");
+    const s = SG_SEV[vg.severidade] || SG_SEV.INFO;
+    document.getElementById("sg-overview").innerHTML = `
+      <div class="kpi"><div class="kpi-val" style="color:${s.cor}">${vg.score}</div><div class="kpi-lbl">Risco (${s.rot})</div></div>
+      <div class="kpi"><div class="kpi-val">${vg.incidentes_abertos}</div><div class="kpi-lbl">Ameaças abertas</div></div>
+      <div class="kpi"><div class="kpi-val">${vg.achados_ativos}</div><div class="kpi-lbl">Exposições ativas</div></div>
+      <div class="kpi"><div class="kpi-val">${vg.fontes_ligadas.length}/${vg.fontes_ligadas.length + vg.fontes_desligadas.length}</div><div class="kpi-lbl">Fontes ligadas</div></div>`;
+  } catch (e) {
+    document.getElementById("sg-overview").innerHTML = `<p class="subtle">${escapeHtml(e.message || "Erro")}</p>`;
+  }
+  // abas
+  document.querySelectorAll(".sg-tab").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll(".sg-tab").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      SG.tab = btn.dataset.sgtab;
+      sgRenderTab();
+    };
+  });
+  document.getElementById("sg-varrer").onclick = async () => {
+    try { await api("/seguranca/varreduras/correlacao", { method: "POST" }); toast("Análise concluída.", "success", 1600); loadSeguranca(); }
+    catch (e) { toast(e.message || "Falha na análise", "error"); }
+  };
+  document.getElementById("sg-drawer-close").onclick = () => document.getElementById("sg-drawer").classList.add("hidden");
+  sgRenderTab();
+}
+
+async function sgRenderTab() {
+  const panel = document.getElementById("sg-panel");
+  panel.innerHTML = `<p class="subtle">Carregando…</p>`;
+  try {
+    if (SG.tab === "ameacas") return sgRenderAmeacas(panel);
+    if (SG.tab === "exposicoes") return sgRenderExposicoes(panel);
+    if (SG.tab === "ativos") return sgRenderAtivos(panel);
+    if (SG.tab === "fontes") return sgRenderFontes(panel);
+  } catch (e) {
+    panel.innerHTML = `<p class="subtle">${escapeHtml(e.message || "Erro")}</p>`;
+  }
+}
+
+async function sgRenderAmeacas(panel) {
+  const incs = await api("/seguranca/incidentes");
+  if (!incs.length) { panel.innerHTML = `<p class="subtle">Nenhuma ameaça detectada. 👍</p>`; return; }
+  panel.innerHTML = `<ul class="list sg-list">` + incs.map(i => `
+    <li data-inc="${i.id}" class="sg-item">
+      <div class="sg-item-main">
+        <div>${sgBadge(i.severidade)} <strong>${escapeHtml(i.titulo)}</strong></div>
+        <div class="subtle">${escapeHtml(i.resumo)}</div>
+        <div class="sg-meta subtle">Quando: ${sgQuando(i.ultimo_visto)} · Confiança: ${Math.round(i.confianca * 100)}% · Estado: ${escapeHtml(i.estado)}${i.ocorrencias > 1 ? " · " + i.ocorrencias + "x" : ""}</div>
+      </div>
+      <button class="btn-link">O que fazer →</button>
+    </li>`).join("") + `</ul>`;
+  panel.querySelectorAll(".sg-item").forEach(li => li.onclick = () => sgAbrirIncidente(li.dataset.inc));
+}
+
+async function sgAbrirIncidente(id) {
+  const det = await api(`/seguranca/incidentes/${id}`);
+  document.getElementById("sg-drawer-title").innerHTML = `${sgBadge(det.severidade)} ${escapeHtml(det.titulo)}`;
+  const ESTADOS = ["detectado", "triagem", "contido", "remediado", "recuperado", "fechado"];
+  const proximo = { detectado: "triagem", triagem: "contido", contido: "remediado", remediado: "recuperado", recuperado: "fechado" }[det.estado];
+  const recs = (det.recomendacoes || []).map((r, n) => `
+    <label class="sg-rec"><input type="checkbox" data-rec="${n}" ${r.feito ? "checked" : ""}/>
+    <span class="sg-rec-bloco">${escapeHtml(r.bloco)}</span> ${escapeHtml(r.titulo)}</label>`).join("");
+  const linha = (det.itens || []).map(it => `<li class="subtle">${sgQuando(it.ts)} — ${escapeHtml(it.nota || it.ref_tipo)}</li>`).join("");
+  document.getElementById("sg-drawer-body").innerHTML = `
+    <p>${escapeHtml(det.resumo)}</p>
+    <div class="sg-block"><h4>O que fazer agora</h4>${recs || "<p class='subtle'>—</p>"}</div>
+    ${proximo ? `<button id="sg-avancar" class="btn-secondary">Avançar para "${proximo}"</button>` : ""}
+    <div class="sg-block"><h4>Linha do tempo</h4><ul class="sg-timeline">${linha}</ul></div>`;
+  document.getElementById("sg-drawer").classList.remove("hidden");
+  document.getElementById("sg-drawer-body").querySelectorAll("input[data-rec]").forEach(cb => {
+    cb.onchange = async () => {
+      try { await api(`/seguranca/incidentes/${id}/recomendacoes/${cb.dataset.rec}`, { method: "PATCH", body: { feito: cb.checked } }); }
+      catch (e) { toast(e.message || "Falha", "error"); cb.checked = !cb.checked; }
+    };
+  });
+  const av = document.getElementById("sg-avancar");
+  if (av) av.onclick = async () => {
+    try { await api(`/seguranca/incidentes/${id}/estado`, { method: "PATCH", body: { estado: proximo } }); toast("Estado atualizado.", "success", 1400); sgAbrirIncidente(id); loadSeguranca(); }
+    catch (e) { toast(e.message || "Transição inválida", "error"); }
+  };
+}
+
+async function sgRenderExposicoes(panel) {
+  const achados = await api("/seguranca/achados");
+  if (!achados.length) { panel.innerHTML = `<p class="subtle">Nenhuma exposição ativa.</p>`; return; }
+  panel.innerHTML = `<ul class="list sg-list">` + achados.map(a => `
+    <li class="sg-item">
+      <div class="sg-item-main">
+        <div>${sgBadge(a.severidade)} <strong>${escapeHtml(a.tipo_exposicao)}</strong> <code>${escapeHtml(a.indicador_mascarado)}</code></div>
+        <div class="subtle">${escapeHtml(a.evidencia_resumo)} · fonte: ${escapeHtml(a.fonte)} · ${escapeHtml(a.classificacao)}</div>
+        <div class="sg-meta subtle">Quando: ${sgQuando(a.descoberto_em)} · Confiança: ${Math.round(a.confianca * 100)}%</div>
+      </div>
+      <div class="sg-item-actions">
+        <button class="btn-link" data-fp="${a.id}">Falso positivo</button>
+        <button class="btn-link" data-ok="${a.id}">Resolvido</button>
+      </div>
+    </li>`).join("") + `</ul>`;
+  panel.querySelectorAll("[data-fp]").forEach(b => b.onclick = async () => {
+    const motivo = prompt("Por que é um falso positivo? (obrigatório)");
+    if (!motivo) return;
+    try { await api(`/seguranca/achados/${b.dataset.fp}/falso-positivo`, { method: "PATCH", body: { motivo } }); toast("Marcado.", "success", 1400); sgRenderTab(); loadSeguranca(); }
+    catch (e) { toast(e.message || "Falha", "error"); }
+  });
+  panel.querySelectorAll("[data-ok]").forEach(b => b.onclick = async () => {
+    try { await api(`/seguranca/achados/${b.dataset.ok}/resolver`, { method: "PATCH" }); toast("Resolvido.", "success", 1400); sgRenderTab(); loadSeguranca(); }
+    catch (e) { toast(e.message || "Falha", "error"); }
+  });
+}
+
+async function sgRenderAtivos(panel) {
+  const ativos = await api("/seguranca/ativos");
+  const lista = ativos.length ? `<ul class="list sg-list">` + ativos.map(a => `
+    <li class="sg-item"><div class="sg-item-main">
+      <div><strong>${escapeHtml(a.tipo)}</strong> <code>${escapeHtml(a.identificador_mascarado)}</code>
+        <span class="sg-badge" style="background:${a.nivel_autorizacao === "verificado" ? "#0ea5a0" : "#64748b"}">${a.nivel_autorizacao}</span></div>
+      <div class="sg-meta subtle">Titular: ${escapeHtml(a.titular)}</div>
+    </div>
+    <button class="btn-link" data-verif="${a.id}">Verificar posse</button></li>`).join("") + `</ul>` : `<p class="subtle">Nenhum ativo cadastrado.</p>`;
+  panel.innerHTML = `
+    <form id="sg-novo-ativo" class="sg-form">
+      <select id="sg-tipo">
+        <option value="email">E-mail</option><option value="dominio">Domínio</option>
+        <option value="repo">Repositório</option><option value="username">Usuário</option>
+      </select>
+      <input id="sg-ident" placeholder="identificador (ex.: voce@exemplo.com)" />
+      <button class="btn-primary" type="submit">+ Adicionar</button>
+    </form>${lista}`;
+  document.getElementById("sg-novo-ativo").onsubmit = async ev => {
+    ev.preventDefault();
+    const tipo = document.getElementById("sg-tipo").value;
+    const identificador = document.getElementById("sg-ident").value.trim();
+    if (!identificador) return;
+    try { await api("/seguranca/ativos", { method: "POST", body: { tipo, identificador } }); toast("Ativo cadastrado.", "success", 1400); sgRenderTab(); }
+    catch (e) { toast(e.message || "Falha", "error"); }
+  };
+  panel.querySelectorAll("[data-verif]").forEach(b => b.onclick = async () => {
+    try { await api(`/seguranca/ativos/${b.dataset.verif}/verificar`, { method: "POST" }); toast("Verificado.", "success", 1400); sgRenderTab(); }
+    catch (e) { toast(e.message || "Falha", "error"); }
+  });
+}
+
+async function sgRenderFontes(panel) {
+  const fontes = await api("/seguranca/fontes");
+  panel.innerHTML = `<div class="sg-fontes">` + fontes.map(f => `
+    <div class="sg-fonte">
+      <div class="sg-fonte-head">
+        <strong>${escapeHtml(f.nome)}</strong>
+        <label class="sg-switch"><input type="checkbox" data-fonte="${escapeHtml(f.nome)}" ${f.habilitada ? "checked" : ""}/> ${f.habilitada ? "Ligada" : "Desligada"}</label>
+      </div>
+      <p class="subtle sg-egresso">🔎 O que sai da máquina: ${escapeHtml(f.descricao_egresso)}</p>
+    </div>`).join("") + `</div>`;
+  panel.querySelectorAll("[data-fonte]").forEach(cb => cb.onchange = async () => {
+    try { await api(`/seguranca/fontes/${encodeURIComponent(cb.dataset.fonte)}`, { method: "PATCH", body: { habilitada: cb.checked } }); toast("Preferência salva.", "success", 1400); sgRenderTab(); loadSeguranca(); }
+    catch (e) { toast(e.message || "Falha", "error"); cb.checked = !cb.checked; }
+  });
 }

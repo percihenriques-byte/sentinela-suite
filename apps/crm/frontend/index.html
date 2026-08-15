@@ -127,6 +127,7 @@
 
         <nav class="nav" aria-label="Navegação principal">
           <button class="nav-item active" data-page="sentinela"><span class="ico">🛡️</span>Sentinela</button>
+          <button class="nav-item" data-page="seguranca"><span class="ico">🔐</span>Segurança</button>
           <div class="nav-section" data-i18n="nav_section_crm">CRM</div>
           <button class="nav-item" data-page="dashboard"><span class="ico">▤</span>Painel</button>
           <button class="nav-item" data-page="jarvis"><span class="ico">✨</span>Jarvis</button>
@@ -515,6 +516,34 @@
             <button id="add-meeting-btn" class="btn-primary">+ Nova reunião</button>
           </div>
           <ul class="list" id="meetings-list"></ul>
+        </div>
+
+        <!-- Modulo Seguranca (secintel). UX integrada a do Sentinela; ver
+             ESPEC-SEGURANCA.md secao 14. Todo alerta responde: o que, quando,
+             qual ativo, gravidade, confianca e o que fazer agora. -->
+        <div id="page-seguranca" class="page hidden">
+          <div class="page-header">
+            <h2>Segurança</h2>
+            <div class="sg-actions">
+              <button id="sg-varrer" class="btn-secondary" title="Correlacionar eventos agora">↻ Analisar</button>
+            </div>
+          </div>
+          <div id="sg-overview" class="kpi-row"></div>
+          <div class="sg-tabs">
+            <button class="sg-tab active" data-sgtab="ameacas">Ameaças</button>
+            <button class="sg-tab" data-sgtab="exposicoes">Exposições</button>
+            <button class="sg-tab" data-sgtab="ativos">Ativos</button>
+            <button class="sg-tab" data-sgtab="fontes">Fontes</button>
+          </div>
+          <div id="sg-panel" class="sg-panel"><p class="subtle">Carregando…</p></div>
+          <!-- Drawer de detalhe do incidente -->
+          <aside id="sg-drawer" class="drawer hidden" aria-label="Detalhe do incidente">
+            <div class="drawer-head">
+              <strong id="sg-drawer-title">Incidente</strong>
+              <button id="sg-drawer-close" class="icon-btn" aria-label="Fechar">✕</button>
+            </div>
+            <div id="sg-drawer-body" class="drawer-body"></div>
+          </aside>
         </div>
       </main>
 

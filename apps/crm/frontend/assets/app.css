@@ -1594,3 +1594,34 @@ input:focus-visible, textarea:focus-visible, select:focus-visible {
   padding: var(--s-3); margin: var(--s-3) 0; user-select: all;
 }
 .sn-vazio { color: var(--fg-4); font-size: 0.9em; text-align: center; padding: var(--s-8) 0; }
+
+/* ===== Modulo Seguranca (secintel) — UX integrada. Cores de severidade ficam
+   no JS (inline), aqui so tokens da UX oficial. ===== */
+.sg-tabs { display: flex; gap: 8px; margin: 16px 0 12px; flex-wrap: wrap; }
+.sg-tab { padding: 8px 16px; border: 1px solid var(--border); background: transparent;
+  color: var(--fg-2); border-radius: var(--r-md); cursor: pointer; font-size: 0.92em; }
+.sg-tab.active { background: var(--accent); color: var(--bg-1); border-color: transparent; }
+.sg-list { display: flex; flex-direction: column; gap: 10px; }
+.sg-item { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-md);
+  background: var(--bg-2); cursor: pointer; }
+.sg-item:hover { border-color: var(--accent); }
+.sg-item-main { flex: 1; min-width: 0; }
+.sg-meta { margin-top: 4px; }
+.sg-item-actions { display: flex; flex-direction: column; gap: 6px; }
+.sg-badge { display: inline-block; padding: 2px 9px; border-radius: 999px; color: var(--bg-1);
+  font-size: 0.74em; font-weight: 700; letter-spacing: .02em; vertical-align: middle; }
+.sg-block { margin-top: 18px; }
+.sg-block h4 { margin: 0 0 8px; font-size: 0.95em; }
+.sg-rec { display: flex; gap: 8px; align-items: baseline; padding: 5px 0; cursor: pointer; }
+.sg-rec-bloco { font-size: 0.7em; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--fg-3); min-width: 78px; }
+.sg-timeline { list-style: none; padding-left: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+.sg-form, .sg-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.sg-form input, .sg-form select { padding: 8px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--bg-1); color: var(--fg); }
+.sg-fontes { display: flex; flex-direction: column; gap: 12px; }
+.sg-fonte { padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--r-md); background: var(--bg-2); }
+.sg-fonte-head { display: flex; justify-content: space-between; align-items: center; }
+.sg-egresso { margin: 8px 0 0; }
+.sg-switch { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; font-size: 0.9em; }
