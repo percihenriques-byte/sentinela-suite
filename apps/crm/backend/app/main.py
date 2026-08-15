@@ -88,6 +88,7 @@ def _exigir_segredo_de_assinatura() -> None:
 async def lifespan(app: FastAPI):
     from app.services.backup_scheduler import run_backup_scheduler
     from app.services.retencao_scheduler import run_retention_scheduler
+    from app.services.secintel_scheduler import run_secintel_scheduler
 
     configure_logging()
     _exigir_chave_de_cifra()
@@ -100,6 +101,9 @@ async def lifespan(app: FastAPI):
         # ao usuario, nao recurso opcional, e nao pode depender de haver
         # ingestao acontecendo.
         asyncio.create_task(run_retention_scheduler(stop_event)),
+        # Modulo Seguranca: correlacao de eventos, monitoramento de exposicao
+        # (so fontes habilitadas) e higiene/retencao. Best-effort, como os demais.
+        asyncio.create_task(run_secintel_scheduler(stop_event)),
     ]
     try:
         yield

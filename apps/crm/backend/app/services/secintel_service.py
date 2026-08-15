@@ -709,3 +709,71 @@ def rodar_exposicao(session, workspace_id, http=None):
     a trava de consentimento (fonte desligada nunca e chamada)."""
     from app.services import secintel_fontes
     return secintel_fontes.executar_exposicao(session, workspace_id, http=http)
+
+
+# ---- higiene / retencao (M5) ----------------------------------------------
+
+# Retencoes (ESPEC secao 12). Em dias. Poderiam vir de Settings; ficam aqui com
+# piso documentado porque sao promessa de privacidade, nao ajuste operacional.
+RETENCAO_EVENTO_DIAS = 30
+RETENCAO_ACHADO_DIAS = 365
+RETENCAO_INCIDENTE_FECHADO_DIAS = 180
+RETENCAO_AUDITORIA_DIAS = 365
+FECHAR_RECUPERADO_APOS_DIAS = 30
+
+
+def aplicar_higiene(session) -> dict:
+    """Aplica retencoes e fecha incidentes recuperados ha muito tempo. Global
+    (todas as instalacoes locais tem um workspace); best-effort no scheduler."""
+    from app.models.secintel import SecAchado
+
+    agora = _now()
+    contadores = {"eventos": 0, "achados": 0, "incidentes": 0, "auditoria": 0, "fechados": 0}
+
+    # fecha incidentes 'recuperado' ha mais de N dias
+    corte_rec = agora - timedelta(days=FECHAR_RECUPERADO_APOS_DIAS)
+    for inc in session.exec(select(SecIncidente).where(
+        SecIncidente.estado == SecIncidenteEstado.recuperado,
+        SecIncidente.deleted_at.is_(None),
+        SecIncidente.ultimo_visto < corte_rec,
+    )):
+        inc.estado = SecIncidenteEstado.fechado
+        session.add(inc)
+        contadores["fechados"] += 1
+
+    # purga por retencao (soft-delete via deleted_at)
+    def _purgar(modelo, campo, dias):
+        corte = agora - timedelta(days=dias)
+        n = 0
+        for row in session.exec(select(modelo).where(
+            modelo.deleted_at.is_(None), campo < corte,
+        )):
+            row.deleted_at = agora
+            session.add(row)
+            n += 1
+        return n
+
+    contadores["eventos"] = _purgar(SecEvento, SecEvento.ts, RETENCAO_EVENTO_DIAS)
+    contadores["achados"] = _purgar(SecAchado, SecAchado.descoberto_em, RETENCAO_ACHADO_DIAS)
+    contadores["auditoria"] = _purgar(SecAuditoria, SecAuditoria.ts, RETENCAO_AUDITORIA_DIAS)
+    # incidentes fechados/FP ha mais de N dias
+    corte_inc = agora - timedelta(days=RETENCAO_INCIDENTE_FECHADO_DIAS)
+    for inc in session.exec(select(SecIncidente).where(
+        SecIncidente.estado.in_([SecIncidenteEstado.fechado, SecIncidenteEstado.falso_positivo]),
+        SecIncidente.deleted_at.is_(None),
+        SecIncidente.ultimo_visto < corte_inc,
+    )):
+        inc.deleted_at = agora
+        session.add(inc)
+        contadores["incidentes"] += 1
+
+    session.commit()
+    return contadores
+
+
+def workspaces_ativos(session) -> list[UUID]:
+    from app.models import Workspace
+
+    return [w.id for w in session.exec(
+        select(Workspace).where(Workspace.deleted_at.is_(None), Workspace.is_active.is_(True))
+    )]
