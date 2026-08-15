@@ -168,3 +168,45 @@ def rodar_correlacao(
 ) -> list[IncidenteOut]:
     incs = svc.correlacionar(session, ws.id)
     return [IncidenteOut.model_validate(i, from_attributes=True) for i in incs]
+
+
+# ---- achados + visao geral (M3) ----
+from app.models.secintel import SecAchadoStatus, SecSeveridade  # noqa: E402
+from app.schemas.secintel import (  # noqa: E402
+    AchadoOut,
+    FalsoPositivoIn,
+    VisaoGeralOut,
+)
+
+
+@router.get("/visao-geral", response_model=VisaoGeralOut)
+def visao_geral(session: SessionDep, user: CurrentUser, ws: CurrentResponsavel) -> VisaoGeralOut:
+    return VisaoGeralOut(**svc.visao_geral(session, ws.id))
+
+
+@router.get("/achados", response_model=list[AchadoOut])
+def listar_achados(
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+    status_f: SecAchadoStatus | None = Query(None, alias="status"),
+    severidade: SecSeveridade | None = Query(None),
+    fonte: str | None = Query(None),
+) -> list[AchadoOut]:
+    achados = svc.listar_achados(session, ws.id, status_f=status_f, severidade=severidade, fonte=fonte)
+    return [AchadoOut.model_validate(a, from_attributes=True) for a in achados]
+
+
+@router.patch("/achados/{achado_id}/falso-positivo", response_model=AchadoOut)
+def marcar_fp(
+    achado_id: UUID, payload: FalsoPositivoIn,
+    session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> AchadoOut:
+    a = svc.marcar_falso_positivo(session, ws.id, user.id, achado_id, payload.motivo)
+    return AchadoOut.model_validate(a, from_attributes=True)
+
+
+@router.patch("/achados/{achado_id}/resolver", response_model=AchadoOut)
+def resolver(
+    achado_id: UUID, session: SessionDep, user: CurrentUser, ws: CurrentResponsavel,
+) -> AchadoOut:
+    a = svc.marcar_resolvido(session, ws.id, user.id, achado_id)
+    return AchadoOut.model_validate(a, from_attributes=True)

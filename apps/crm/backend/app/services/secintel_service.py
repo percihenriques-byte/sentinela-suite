@@ -285,13 +285,10 @@ from app.models.secintel import (  # noqa: E402
     SecSeveridade,
 )
 from app.services import secintel_regras as regras  # noqa: E402
+from app.services import secintel_score as score_engine  # noqa: E402
 
 # allowlist de atributos por evento — nunca guardamos payload bruto (ESPEC 12)
 _ATRIBUTOS_OK = {"user_agent_familia", "motivo", "endpoint"}
-
-_SEV_SCORE = {  # score-base do M2; o M3 substitui pelo scoring completo
-    "INFO": 5, "LOW": 20, "MEDIUM": 40, "HIGH": 65, "CRITICAL": 85,
-}
 
 JANELA_CORRELACAO_S = 24 * 60 * 60
 
@@ -357,13 +354,14 @@ def correlacionar(session: Session, workspace_id: UUID) -> list[SecIncidente]:
     # so viram incidente: suspeitas e incidentes (indicadores ficam como sinal
     # e alimentam as regras compostas). Entre hits do mesmo cenario+usuario, o
     # de maior severidade vence.
+    _peso_nivel = {"suspeita": 1, "incidente": 2}
     candidatos: dict[str, regras.Hit] = {}
     for h in hits:
         if h.nivel == "indicador":
             continue
         fp = _fingerprint_incidente(h.cenario, h.usuario)
         atual = candidatos.get(fp)
-        if atual is None or _SEV_SCORE[h.severidade] > _SEV_SCORE[atual.severidade]:
+        if atual is None or _peso_nivel[h.nivel] > _peso_nivel[atual.nivel]:
             candidatos[fp] = h
 
     tocados = []
@@ -381,14 +379,21 @@ def _upsert_incidente(session, workspace_id, fp, h: "regras.Hit") -> SecIncident
             SecIncidente.deleted_at.is_(None),
         )
     ).first()
-    score = _SEV_SCORE[h.severidade] + min(30, 10 * max(0, len(h.chaves) - 1))
-    score = min(100, score)
-    confianca = {"suspeita": 0.5, "incidente": 0.8}.get(h.nivel, 0.5)
+    # Scoring completo (ESPEC secao 9). Incidentes de correlacao local afetam a
+    # conta do responsavel (impacto 1.0) e NAO tem achado CONFIRMED por tras,
+    # entao confirmado=False — por construcao nunca chegam a CRITICAL (a trava
+    # os mantem em HIGH no maximo).
+    p = score_engine.P_FORTE if h.nivel == "incidente" else score_engine.P_MEDIA
+    confianca = 0.8 if h.nivel == "incidente" else 0.5
+    score, sev = score_engine.calcular(
+        p=p, impacto=1.0, confianca=confianca, idade_dias=0.0,
+        chaves_extra=len(h.chaves) - 1, confirmado=False,
+    )
 
     if inc is None:
         inc = SecIncidente(
             workspace_id=workspace_id, titulo=h.titulo, cenario=h.cenario,
-            severidade=SecSeveridade(h.severidade), score=score, confianca=confianca,
+            severidade=sev, score=score, confianca=confianca,
             estado=SecIncidenteEstado.detectado, fingerprint=fp,
             primeiro_visto=_now(), ultimo_visto=_now(), ocorrencias=1,
             resumo=h.resumo, recomendacoes=json.dumps(_recomendacoes(h.cenario), ensure_ascii=False),
@@ -403,8 +408,8 @@ def _upsert_incidente(session, workspace_id, fp, h: "regras.Hit") -> SecIncident
         inc.ultimo_visto = _now()
         inc.ocorrencias += 1
         # escala severidade/score se o novo hit for mais grave
-        if _SEV_SCORE[h.severidade] > _SEV_SCORE[inc.severidade.value]:
-            inc.severidade = SecSeveridade(h.severidade)
+        if score > inc.score:
+            inc.severidade = sev
             inc.titulo = h.titulo
             inc.resumo = h.resumo
         inc.score = max(inc.score, score)
@@ -562,3 +567,107 @@ def capturar_login(session: Session, email: str, sucesso: bool, ip: Optional[str
         )
     except Exception:  # pragma: no cover - defensivo
         _log.warning("secintel: falha ao capturar evento de login", exc_info=True)
+
+
+# ---- achados: leitura + loop de falso-positivo (M3) -----------------------
+
+from app.models.secintel import (  # noqa: E402
+    SecAchado,
+    SecAchadoStatus,
+    SecClassificacao,
+)
+
+
+def listar_achados(session, workspace_id, *, status_f=None, severidade=None, fonte=None):
+    q = select(SecAchado).where(
+        SecAchado.workspace_id == workspace_id, SecAchado.deleted_at.is_(None)
+    )
+    if status_f is not None:
+        q = q.where(SecAchado.status == status_f)
+    if severidade is not None:
+        q = q.where(SecAchado.severidade == severidade)
+    if fonte is not None:
+        q = q.where(SecAchado.fonte == fonte)
+    return list(session.exec(q.order_by(SecAchado.descoberto_em.desc())))
+
+
+def get_achado(session, workspace_id, achado_id) -> SecAchado:
+    a = session.get(SecAchado, achado_id)
+    if not a or a.workspace_id != workspace_id or a.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "achado nao encontrado")
+    return a
+
+
+def marcar_falso_positivo(session, workspace_id, user_id, achado_id, motivo: str):
+    """Loop de falso-positivo (ESPEC Fase 8): FP exige MOTIVO, e registrado (nao
+    descartado em silencio) e nunca vira incidente."""
+    motivo = (motivo or "").strip()
+    if not motivo:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "motivo obrigatorio para falso-positivo")
+    a = get_achado(session, workspace_id, achado_id)
+    a.status = SecAchadoStatus.falso_positivo
+    a.classificacao = SecClassificacao.false_positive
+    a.confianca = 0.0
+    a.motivo_fp = motivo
+    session.add(a)
+    session.commit()
+    session.refresh(a)
+    registrar_auditoria(session, workspace_id, user_id, "achado_falso_positivo",
+                        {"achado_id": str(achado_id)})
+    return a
+
+
+def marcar_resolvido(session, workspace_id, user_id, achado_id):
+    a = get_achado(session, workspace_id, achado_id)
+    a.status = SecAchadoStatus.resolvido
+    session.add(a)
+    session.commit()
+    session.refresh(a)
+    registrar_auditoria(session, workspace_id, user_id, "achado_resolvido",
+                        {"achado_id": str(achado_id)})
+    return a
+
+
+# ---- visao geral (M3) -----------------------------------------------------
+
+def visao_geral(session, workspace_id) -> dict:
+    """Agregado para a tela inicial: score do workspace, contadores por
+    severidade, fontes ligadas e ultimos incidentes/achados."""
+    incidentes = listar_incidentes(session, workspace_id)
+    abertos = [i for i in incidentes
+               if i.estado not in (SecIncidenteEstado.fechado, SecIncidenteEstado.falso_positivo)]
+    achados = [a for a in listar_achados(session, workspace_id)
+               if a.status not in (SecAchadoStatus.falso_positivo, SecAchadoStatus.resolvido)]
+
+    por_sev_inc: dict[str, int] = {}
+    for i in abertos:
+        por_sev_inc[i.severidade.value] = por_sev_inc.get(i.severidade.value, 0) + 1
+    por_sev_ach: dict[str, int] = {}
+    for a in achados:
+        por_sev_ach[a.severidade.value] = por_sev_ach.get(a.severidade.value, 0) + 1
+
+    # score do workspace = maior score entre incidentes abertos e achados ativos
+    scores = [i.score for i in abertos] + [
+        score_engine.calcular(
+            p=score_engine.P_FORTE,
+            impacto=1.0,
+            confianca=a.confianca,
+            idade_dias=0.0,
+            confirmado=(a.classificacao == SecClassificacao.confirmed),
+        )[0]
+        for a in achados
+    ]
+    score_ws = max(scores) if scores else 0
+
+    fontes = garantir_fontes(session)
+    return {
+        "score": score_ws,
+        "severidade": score_engine.banda(score_ws).value,
+        "incidentes_abertos": len(abertos),
+        "achados_ativos": len(achados),
+        "por_severidade_incidentes": por_sev_inc,
+        "por_severidade_achados": por_sev_ach,
+        "fontes_ligadas": [f.nome for f in fontes if f.habilitada],
+        "fontes_desligadas": [f.nome for f in fontes if not f.habilitada],
+        "ultimos_incidentes": [i.id for i in incidentes[:5]],
+    }

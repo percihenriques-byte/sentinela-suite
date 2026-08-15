@@ -104,3 +104,41 @@ class TransicaoIn(BaseModel):
 
 class RecomendacaoPatch(BaseModel):
     feito: bool
+
+
+# ---- achados + visao geral (M3) ----
+from app.models.secintel import (  # noqa: E402
+    SecAchadoStatus,
+    SecClassificacao,
+    SecTipoExposicao,
+)
+
+
+class AchadoOut(BaseModel):
+    id: UUID
+    fonte: str
+    tipo_exposicao: SecTipoExposicao
+    classificacao: SecClassificacao
+    confianca: float
+    severidade: SecSeveridade
+    indicador_mascarado: str
+    evidencia_resumo: str
+    status: SecAchadoStatus
+    descoberto_em: datetime
+    motivo_fp: Optional[str] = None
+
+
+class FalsoPositivoIn(BaseModel):
+    motivo: str
+
+
+class VisaoGeralOut(BaseModel):
+    score: int
+    severidade: str
+    incidentes_abertos: int
+    achados_ativos: int
+    por_severidade_incidentes: dict
+    por_severidade_achados: dict
+    fontes_ligadas: list[str]
+    fontes_desligadas: list[str]
+    ultimos_incidentes: list[UUID]
