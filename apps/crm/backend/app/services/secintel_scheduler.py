@@ -29,6 +29,8 @@ INTERVALO_EXPOSICAO_S = 24 * 60 * 60
 INTERVALO_HIGIENE_S = 24 * 60 * 60
 
 
+# Casa unica dos transportes e verificadores das fontes (nao ha outro
+# modulo: um transportes.py truncado foi removido na 7a auditoria, F1).
 def _http_real(url: str, headers: dict | None = None):
     """Cliente HTTP real, importado sob demanda. So e chamado por uma fonte
     HABILITADA (o runner barra as desligadas antes de chegar aqui)."""
@@ -92,6 +94,51 @@ def _repo_files_github(asset, credencial=None):
 
 def _transportes_reais() -> dict:
     return {"http_url": _http_real, "repo_files": _repo_files_github}
+
+
+# ---- verificadores de posse por rede (auditoria 7a rodada, F2) -------------
+# Cada um so e chamado quando a fonte correspondente esta HABILITADA (o
+# servico faz esse gate); a rede so acontece com consentimento.
+
+def _verificar_repo_github(repo: str, token: str | None) -> bool:
+    """Posse de repo: GET /repos/{owner}/{nome} autenticado; permissao push ou
+    admin comprova posse. Sem token, nao da para comprovar -> False."""
+    if not token:
+        return False
+    import httpx
+
+    headers = {"User-Agent": "Sentinela-Seguranca", "Accept": "application/vnd.github+json",
+               "Authorization": f"Bearer {token}"}
+    resp = httpx.get(f"https://api.github.com/repos/{repo}", headers=headers,
+                     timeout=20.0, follow_redirects=True)
+    if resp.status_code != 200:
+        return False
+    perms = (resp.json() or {}).get("permissions") or {}
+    return bool(perms.get("admin") or perms.get("push"))
+
+
+def _verificar_dominio_txt(dominio: str, token_esperado: str) -> bool:
+    """Posse de dominio: desafio DNS TXT `sentinela-verify=<token>`, resolvido
+    por DNS-over-HTTPS (dns.google) — a consulta e egresso, descrito na fonte
+    ct. Confere se algum TXT contem o token esperado."""
+    import httpx
+
+    resp = httpx.get("https://dns.google/resolve",
+                     params={"name": dominio, "type": "TXT"},
+                     headers={"User-Agent": "Sentinela-Seguranca"},
+                     timeout=20.0, follow_redirects=True)
+    if resp.status_code != 200:
+        return False
+    respostas = (resp.json() or {}).get("Answer") or []
+    alvo = f"sentinela-verify={token_esperado}"
+    for r in respostas:
+        if alvo in (r.get("data") or "").replace('"', ""):
+            return True
+    return False
+
+
+def _verificadores_reais() -> dict:
+    return {"repo": _verificar_repo_github, "dominio": _verificar_dominio_txt}
 
 
 # ---- passos sincronos (testaveis isoladamente) ----------------------------

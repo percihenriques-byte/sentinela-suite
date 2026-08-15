@@ -4734,6 +4734,8 @@ async function sgRenderAtivos(panel) {
       <div><strong>${escapeHtml(a.tipo)}</strong> <code>${escapeHtml(a.identificador_mascarado)}</code>
         <span class="sg-badge" style="background:${a.nivel_autorizacao === "verificado" ? "#0ea5a0" : "#64748b"}">${a.nivel_autorizacao}</span></div>
       <div class="sg-meta subtle">Titular: ${escapeHtml(a.titular)}</div>
+      ${a.desafio_posse ? `<div class="sg-meta subtle">Para comprovar posse, crie um registro DNS TXT: <code>${escapeHtml(a.desafio_posse)}</code></div>` : ""}
+      <div class="sg-meta subtle" data-motivo="${a.id}"></div>
     </div>
     <button class="btn-link" data-verif="${a.id}">Verificar posse</button></li>`).join("") + `</ul>` : `<p class="subtle">Nenhum ativo cadastrado.</p>`;
   panel.innerHTML = `
@@ -4754,8 +4756,13 @@ async function sgRenderAtivos(panel) {
     catch (e) { toast(e.message || "Falha", "error"); }
   };
   panel.querySelectorAll("[data-verif]").forEach(b => b.onclick = async () => {
-    try { await api(`/seguranca/ativos/${b.dataset.verif}/verificar`, { method: "POST" }); toast("Verificado.", "success", 1400); sgRenderTab(); }
-    catch (e) { toast(e.message || "Falha", "error"); }
+    try {
+      const r = await api(`/seguranca/ativos/${b.dataset.verif}/verificar`, { method: "POST" });
+      const alvo = panel.querySelector(`[data-motivo="${b.dataset.verif}"]`);
+      if (alvo && r.motivo) alvo.textContent = (r.nivel_autorizacao === "verificado" ? "✅ " : "ℹ️ ") + r.motivo;
+      if (r.nivel_autorizacao === "verificado") { toast("Posse comprovada.", "success", 1600); sgRenderTab(); }
+      else toast(r.motivo || "Ainda não verificado.", "info", 3200);
+    } catch (e) { toast(e.message || "Falha", "error"); }
   });
 }
 

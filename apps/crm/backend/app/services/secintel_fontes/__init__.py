@@ -105,6 +105,19 @@ def _assets_elegiveis(session: Session, workspace_id: UUID, requer_nivel: SecNiv
     return out
 
 
+def _assets_pendentes_posse(session, workspace_id, adapter) -> int:
+    """Quantos ativos do tipo da fonte existem mas ficaram abaixo do nivel
+    exigido (ex.: repos ainda `declarado` para o github)."""
+    if adapter.REQUER_NIVEL != SecNivelAutorizacao.verificado:
+        return 0
+    q = select(SecAsset).where(
+        SecAsset.workspace_id == workspace_id, SecAsset.deleted_at.is_(None),
+        SecAsset.ativo.is_(True), SecAsset.tipo.in_(adapter.TIPOS_ATIVO),
+        SecAsset.nivel_autorizacao != SecNivelAutorizacao.verificado,
+    )
+    return len(list(session.exec(q)))
+
+
 def executar_exposicao(
     session: Session, workspace_id: UUID, transportes: Optional[dict] = None,
 ) -> list[SecAchado]:
@@ -132,6 +145,16 @@ def executar_exposicao(
             continue
         assets = _assets_elegiveis(session, workspace_id, adapter.REQUER_NIVEL, adapter.TIPOS_ATIVO)
         if not assets:
+            # F2: nao ficar em silencio. Se ha ativos do tipo mas nenhum com o
+            # nivel exigido, o problema e posse pendente — avisa em vez de "0
+            # achados" (que parece resultado legitimo).
+            pendentes = _assets_pendentes_posse(session, workspace_id, adapter)
+            if pendentes:
+                fonte.estado = SecFonteEstado.erro
+                fonte.erro_msg = f"{pendentes} ativo(s) aguardando verificacao de posse"
+                fonte.ultima_consulta = datetime.now(timezone.utc)
+                session.add(fonte)
+                session.commit()
             continue
         transporte = transportes.get(adapter.TRANSPORTE, _sentinela_transporte)
         credencial = crypto.decrypt(fonte.credencial_enc) if fonte.credencial_enc else None

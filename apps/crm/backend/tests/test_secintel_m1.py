@@ -90,6 +90,7 @@ def test_verificar_posse_registra_ultima_verificacao(auth_client):
     r = auth_client.post(f"/api/v1/seguranca/ativos/{aid}/verificar")
     assert r.status_code == 200
     assert r.json()["ultima_verificacao"] is not None
+    assert "motivo" in r.json()  # a verificacao sempre explica o resultado
 
 
 def test_ativos_exigem_responsavel(client):

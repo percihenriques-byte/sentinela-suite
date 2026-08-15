@@ -50,6 +50,21 @@ def listar_auditoria(
 
 
 # ---- ativos (M1) ----
+from app.schemas.secintel import VerificacaoOut  # noqa: E402
+
+
+def _asset_out(ws_id, asset) -> AssetOut:
+    """Serializa o ativo, computando o desafio de posse (registro DNS TXT) para
+    dominios — o valor nao e persistido, e derivado on-the-fly."""
+    from app.core import crypto
+
+    base = AssetOut.model_validate(asset, from_attributes=True)
+    if asset.tipo.value in ("dominio", "subdominio"):
+        base.desafio_posse = svc.desafio_posse(
+            ws_id, asset.tipo, crypto.decrypt(asset.identificador_enc)
+        )
+    return base
+
 
 @router.get("/ativos", response_model=list[AssetOut])
 def listar_ativos(
@@ -59,7 +74,7 @@ def listar_ativos(
     incluir_arquivados: bool = Query(False),
 ) -> list[AssetOut]:
     ativos = svc.listar_assets(session, ws.id, incluir_arquivados=incluir_arquivados)
-    return [AssetOut.model_validate(a, from_attributes=True) for a in ativos]
+    return [_asset_out(ws.id, a) for a in ativos]
 
 
 @router.post("/ativos", response_model=AssetOut, status_code=status.HTTP_201_CREATED)
@@ -73,7 +88,7 @@ def criar_ativo(
         session, ws.id, user.id, "ativo_criado",
         {"asset_id": str(asset.id), "tipo": asset.tipo.value},
     )
-    return AssetOut.model_validate(asset, from_attributes=True)
+    return _asset_out(ws.id, asset)
 
 
 @router.patch("/ativos/{asset_id}", response_model=AssetOut)
@@ -85,7 +100,7 @@ def editar_ativo(
     ws: CurrentResponsavel,
 ) -> AssetOut:
     asset = svc.editar_asset(session, ws.id, asset_id, payload.titular)
-    return AssetOut.model_validate(asset, from_attributes=True)
+    return _asset_out(ws.id, asset)
 
 
 @router.delete("/ativos/{asset_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -98,16 +113,13 @@ def arquivar_ativo(
     )
 
 
-@router.post("/ativos/{asset_id}/verificar", response_model=AssetOut)
+@router.post("/ativos/{asset_id}/verificar", response_model=VerificacaoOut)
 def verificar_ativo(
     asset_id: UUID, session: SessionDep, user: CurrentUser, ws: CurrentResponsavel
-) -> AssetOut:
-    asset = svc.verificar_posse(session, ws.id, user, asset_id)
-    svc.registrar_auditoria(
-        session, ws.id, user.id, "ativo_verificado",
-        {"asset_id": str(asset_id), "nivel": asset.nivel_autorizacao.value},
-    )
-    return AssetOut.model_validate(asset, from_attributes=True)
+) -> VerificacaoOut:
+    asset, motivo = svc.verificar_posse(session, ws.id, user, asset_id)
+    base = _asset_out(ws.id, asset)
+    return VerificacaoOut(**base.model_dump(), motivo=motivo)
 
 
 # ---- incidentes + correlacao (M2) ----

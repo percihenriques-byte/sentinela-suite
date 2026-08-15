@@ -136,7 +136,8 @@ FONTES_CONHECIDAS: list[dict] = [
         "descricao_egresso": (
             "Consulta os logs publicos de Certificate Transparency (crt.sh) "
             "pelos SEUS dominios verificados, para detectar certificados e "
-            "subdominios inesperados. Sai da maquina: o nome do dominio."
+            "subdominios inesperados. Tambem resolve DNS TXT (via dns.google) "
+            "para comprovar a posse do dominio. Sai da maquina: o nome do dominio."
         ),
     },
 ]
@@ -266,21 +267,96 @@ def _avaliar_posse(
     return SecNivelAutorizacao.declarado, None
 
 
+def token_desafio_dominio(workspace_id: UUID, identificador: str) -> str:
+    """Token deterministico do desafio DNS TXT de um dominio. Derivado do
+    APP_SECRET_KEY — inforjavel sem o segredo, e recalculavel pela UI e pelo
+    verificador sem precisar guardar nada."""
+    import hashlib
+    import hmac
+
+    from app.core.config import get_settings
+
+    segredo = get_settings().app_secret_key.encode()
+    msg = f"{workspace_id}:{identificador.strip().lower()}".encode()
+    return hmac.new(segredo, msg, hashlib.sha256).hexdigest()[:20]
+
+
+def desafio_posse(workspace_id: UUID, tipo: SecAssetTipo, identificador: str) -> Optional[str]:
+    """Registro que o usuario deve criar para comprovar posse (so dominio)."""
+    if tipo in (SecAssetTipo.dominio, SecAssetTipo.subdominio):
+        return f"sentinela-verify={token_desafio_dominio(workspace_id, identificador)}"
+    return None
+
+
 def verificar_posse(
-    session: Session, workspace_id: UUID, user: User, asset_id: UUID
-) -> SecAsset:
-    """Reavalia a posse de um ativo. Registra `ultima_verificacao`."""
+    session: Session, workspace_id: UUID, user: User, asset_id: UUID, verificadores=None,
+) -> tuple[SecAsset, str]:
+    """Reavalia a posse de um ativo. Devolve (asset, motivo).
+
+    Verificacao POR REDE (F2), sempre dentro do consentimento: repo so verifica
+    com a fonte github_secrets HABILITADA (e token configurado); dominio so com
+    a fonte ct HABILITADA. Fonte desligada NUNCA dispara rede — cai em declarado
+    com motivo. O e-mail de login segue verificado localmente, sem rede."""
+    from app.services.secintel_scheduler import _verificadores_reais
+
     asset = get_asset(session, workspace_id, asset_id)
     identificador = crypto.decrypt(asset.identificador_enc)
-    nivel, verificado_em = _avaliar_posse(session, user, asset.tipo, identificador)
-    asset.nivel_autorizacao = nivel
-    if verificado_em and asset.verificado_em is None:
-        asset.verificado_em = verificado_em
+    verificadores = verificadores or _verificadores_reais()
     asset.ultima_verificacao = _now()
+
+    nivel = SecNivelAutorizacao.declarado
+    motivo = ""
+
+    if asset.tipo == SecAssetTipo.email:
+        nivel, verif = _avaliar_posse(session, user, asset.tipo, identificador)
+        motivo = "e-mail de login (verificado localmente)" if nivel == SecNivelAutorizacao.verificado \
+            else "e-mail de terceiro — sem como comprovar posse localmente"
+
+    elif asset.tipo == SecAssetTipo.repo:
+        fonte = _fonte(session, "github_secrets")
+        if not (fonte and fonte.habilitada):
+            motivo = "ligue a fonte 'github_secrets' para verificar a posse do repositorio"
+        elif not fonte.credencial_enc:
+            motivo = "configure o token do GitHub na fonte para verificar a posse"
+        else:
+            token = crypto.decrypt(fonte.credencial_enc)
+            if verificadores["repo"](identificador, token):
+                nivel = SecNivelAutorizacao.verificado
+                motivo = "posse comprovada: seu token tem permissao de escrita no repositorio"
+            else:
+                motivo = "o token nao tem permissao de escrita neste repositorio"
+
+    elif asset.tipo in (SecAssetTipo.dominio, SecAssetTipo.subdominio):
+        fonte = _fonte(session, "ct")
+        if not (fonte and fonte.habilitada):
+            motivo = "ligue a fonte 'ct' para verificar a posse do dominio (consulta DNS)"
+        else:
+            token = token_desafio_dominio(workspace_id, identificador)
+            if verificadores["dominio"](identificador, token):
+                nivel = SecNivelAutorizacao.verificado
+                motivo = "posse comprovada: registro DNS TXT encontrado"
+            else:
+                motivo = (f"crie um registro TXT 'sentinela-verify={token}' no dominio "
+                          "e clique em verificar novamente")
+    else:
+        motivo = "este tipo de ativo nao tem verificacao de posse por rede"
+
+    asset.nivel_autorizacao = nivel
+    if nivel == SecNivelAutorizacao.verificado and asset.verificado_em is None:
+        asset.verificado_em = _now()
+    if nivel != SecNivelAutorizacao.verificado:
+        asset.verificado_em = None
     session.add(asset)
     session.commit()
     session.refresh(asset)
-    return asset
+    registrar_auditoria(session, workspace_id, user.id, "ativo_verificado",
+                        {"asset_id": str(asset_id), "nivel": nivel.value})
+    return asset, motivo
+
+
+def _fonte(session, nome):
+    garantir_fontes(session)
+    return session.exec(select(SecFonte).where(SecFonte.nome == nome)).first()
 
 
 # ---- eventos + correlacao + incidentes (M2) -------------------------------

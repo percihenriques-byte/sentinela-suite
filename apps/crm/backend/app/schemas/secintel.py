@@ -62,6 +62,11 @@ class AssetOut(BaseModel):
     ativo: bool
     ultima_verificacao: Optional[datetime] = None
     created_at: datetime
+    desafio_posse: Optional[str] = None   # registro DNS TXT a criar (so dominio)
+
+
+class VerificacaoOut(AssetOut):
+    motivo: str
 
 
 # ---- incidentes (M2) ----
