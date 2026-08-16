@@ -43,20 +43,18 @@ Python 3.11 · FastAPI · SQLModel · SQLite (dev) / PostgreSQL (prod) · Alembi
 
 Duplo-clique em **`INSTALAR.bat`** na raiz do projeto.
 
-O script detecta o Python (instala via winget se faltar), cria o venv, instala as dependências, aplica as migrations, popula dados demo e abre <http://127.0.0.1:8000/> no navegador.
+O script detecta o Python (instala via winget se faltar), cria o venv, instala as dependências, aplica as migrations e abre <http://127.0.0.1:8000/> no navegador.
 
-Login demo:
-- **Email**: `demo@visiquost.app`
-- **Senha**: `demo1234`
+O responsável cria a conta no primeiro acesso (registro na própria tela inicial).
 
 Depois da primeira instalação, use **`INICIAR.bat`** para subir o servidor sem reinstalar.
 
 ## Quick start (manual)
 
 ```bash
-cd backend
+cd apps/crm/backend
 python -m venv .venv && .venv\Scripts\activate    # Windows
-pip install -r requirements.txt
+pip install -r requirements.txt                   # de dentro de apps/crm/backend
 cp .env.example .env
 uvicorn app.main:app --reload
 ```

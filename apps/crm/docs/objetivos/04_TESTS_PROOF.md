@@ -3,7 +3,7 @@
 ## Backend pytest
 
 ```
-$ cd backend && .venv/Scripts/python.exe -m pytest -q
+$ cd apps/crm/backend && .venv/Scripts/python.exe -m pytest -q
 ............................................................................. [ 16%]
 ............................................................................. [ 33%]
 ............................................................................. [ 49%]
@@ -131,11 +131,11 @@ Todos corrigidos e verificados por re-run do teste que pegou o bug.
 
 ```bash
 # Backend
-cd backend
+cd apps/crm/backend
 .venv/Scripts/python.exe -m pytest -q
 
 # Walkthroughs (server precisa estar rodando em :8000)
-python -m uvicorn app.main:app --port 8000 &
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
 python ../scratchpad/full_flow.py
 python ../scratchpad/brutal_walkthrough.py
 python ../scratchpad/deeper_walk.py

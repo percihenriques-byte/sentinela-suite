@@ -4,15 +4,14 @@
 
 1. Clone o repo:
    ```
-   git clone https://github.com/percihenriques-byte/visiquost-crm.git
-   cd visiquost-crm
+   git clone https://github.com/percihenriques-byte/sentinela-suite.git
+   cd sentinela-suite
    ```
 2. Duplo-clique em **`RODAR.bat`** (ou `INSTALAR.bat`).
    - Detecta Python (instala via winget se falta)
-   - Cria `backend/.venv`
-   - `pip install -r backend/requirements.txt`
+   - Cria `apps/crm/backend/.venv`
+   - `pip install -r requirements.txt` (rodado de dentro de `apps/crm/backend`)
    - Alembic migrations
-   - Bootstrap: cria user demo, workspace demo, popula 30+ registros
    - Cria `~/Documents/VisiQuost` como workdir
    - Auto-invoca `INICIAR.bat`
 3. Terminal abre e mostra:
@@ -27,12 +26,11 @@
      Para parar: feche esta janela (ou Ctrl+C aqui).
    ================================================
    ```
-4. Abre no browser (Chrome / Edge / Brave / Firefox) e clica **⚡ Entrar como demo**.
+4. Abre no browser (Chrome / Edge / Brave / Firefox).
 
-## Login demo
+## Primeiro acesso
 
-- Email: `demo@visiquost.app`
-- Senha: `demo1234`
+O responsável cria a conta no primeiro acesso (registro na própria tela inicial).
 
 ## Voltas seguintes
 
@@ -41,10 +39,10 @@
 ## Rodando manualmente (dev)
 
 ```bash
-cd backend
+cd apps/crm/backend
 python -m venv .venv
 .venv\Scripts\activate         # Windows
-pip install -r requirements.txt
+pip install -r requirements.txt      # de dentro de apps/crm/backend
 copy .env.example .env
 
 # Gera SECRET_KEY aleatória:
@@ -57,13 +55,13 @@ python -m alembic upgrade head
 python scripts/bootstrap.py
 
 # Sobe server:
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 ## Rodar backend tests
 
 ```bash
-cd backend
+cd apps/crm/backend
 .venv/Scripts/python.exe -m pytest -q
 # ou
 .venv/Scripts/python.exe -m pytest -v tests/test_smoke.py
@@ -73,7 +71,7 @@ cd backend
 
 Precisa instalar browsers do Playwright uma vez:
 ```bash
-cd backend
+cd apps/crm/backend
 .venv/Scripts/python.exe -m pip install playwright
 .venv/Scripts/python.exe -m playwright install chromium
 ```
@@ -91,25 +89,26 @@ quiser rodar recorrente.
 ## Estrutura do repo
 
 ```
-visiquost-crm/
-├── INICIAR.bat, INSTALAR.bat, RODAR.bat  — launchers Windows
-├── README.md                              — visão geral
-├── docs/                                  — ARCHITECTURE.md, ROADMAP.md
-├── docs/objetivos/                         — esta pasta (log pro Fable)
-├── backend/
-│   ├── app/                               — código FastAPI
-│   ├── tests/                             — 434 pytest
-│   ├── alembic/                           — migrations
-│   ├── scripts/bootstrap.py               — cria demo user + workspace
-│   ├── _run_server.cmd                    — auxiliar do launcher
-│   ├── desktop.py                         — pywebview launcher (opcional)
-│   ├── requirements.txt
-│   └── .venv/                             — (gitignored) venv local
-└── frontend/
-    ├── index.html                         — single page
-    └── assets/
-        ├── app.js                         — ~5000 linhas
-        └── app.css                        — ~1500 linhas
+sentinela-suite/
+└── apps/crm/
+    ├── INICIAR.bat, INSTALAR.bat, RODAR.bat  — launchers Windows
+    ├── README.md                              — visão geral
+    ├── docs/                                  — ARCHITECTURE.md, ROADMAP.md
+    ├── docs/objetivos/                        — esta pasta (log pro Fable)
+    ├── backend/
+    │   ├── app/                               — código FastAPI
+    │   ├── tests/                             — pytest
+    │   ├── alembic/                           — migrations
+    │   ├── scripts/bootstrap.py               — cria demo user + workspace
+    │   ├── _run_server.cmd                    — auxiliar do launcher
+    │   ├── desktop.py                         — pywebview launcher (opcional)
+    │   ├── requirements.txt
+    │   └── .venv/                             — (gitignored) venv local
+    └── frontend/
+        ├── index.html                         — single page
+        └── assets/
+            ├── app.js                         — ~5000 linhas
+            └── app.css                        — ~1500 linhas
 ```
 
 ## Portas
@@ -125,10 +124,10 @@ Se algo travar horrível:
 taskkill /F /IM python.exe
 
 # Apaga DB:
-del backend\jarvis_crm.db
+del apps\crm\backend\jarvis_crm.db
 
 # Apaga venv (só se estiver corrompido):
-rmdir /s /q backend\.venv
+rmdir /s /q apps\crm\backend\.venv
 
 # Re-instala do zero:
 INSTALAR.bat
