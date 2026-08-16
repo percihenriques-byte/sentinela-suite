@@ -59,6 +59,10 @@ cp .env.example .env
 uvicorn app.main:app --reload
 ```
 
+> **Importante:** o `pip install -r requirements.txt` roda de **dentro de `apps/crm/backend`**.
+> Da raiz do monorepo falha — lá não existe `backend/`, e `pip install -r backend/requirements.txt`
+> termina em `Could not open requirements file`.
+
 Open <http://localhost:8000/>, register a workspace, click **Seed demo data** to populate it.
 
 API docs at <http://localhost:8000/docs>.

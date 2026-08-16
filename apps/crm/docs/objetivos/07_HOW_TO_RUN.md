@@ -38,6 +38,10 @@ O responsável cria a conta no primeiro acesso (registro na própria tela inicia
 
 ## Rodando manualmente (dev)
 
+> **Importante:** todos os comandos abaixo rodam de **dentro de `apps/crm/backend`**.
+> Da raiz do monorepo falha — lá não existe `backend/`, e `pip install -r backend/requirements.txt`
+> termina em `Could not open requirements file`.
+
 ```bash
 cd apps/crm/backend
 python -m venv .venv
