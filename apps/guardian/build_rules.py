@@ -231,7 +231,10 @@ def _aplicar(template: str, blocos: dict, rotulo: str) -> str:
 # API do gerador
 # --------------------------------------------------------------------------
 def hash_regras() -> str:
-    return hashlib.sha256(RULES.read_bytes()).hexdigest()
+    # Normaliza CRLF->LF antes do hash: no Windows o git converte o checkout
+    # para CRLF (core.autocrlf), e sem isso o hash embutido nos gerados mudava
+    # por maquina — sincronia falsa-negativa. Com LF puro nada muda.
+    return hashlib.sha256(RULES.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
 
 
 def gerar() -> dict:

@@ -54,14 +54,37 @@ def test_arquivos_gerados_batem_com_rules_json():
 
 def test_hash_embutido_bate_com_rules_json():
     """O sha256 do rules.json impresso no cabecalho de cada motor tem de ser o
-    do rules.json atual. Pega drift mesmo sem rodar o gerador."""
-    sha = hashlib.sha256(RULES.read_bytes()).hexdigest()
+    do rules.json atual. Pega drift mesmo sem rodar o gerador. CRLF->LF antes
+    do hash: no Windows o git faz checkout com CRLF (core.autocrlf) e o hash
+    de bytes crus mudaria por maquina."""
+    sha = hashlib.sha256(RULES.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
     for caminho in (JS, PS):
         texto = caminho.read_text(encoding="utf-8")
         assert sha in texto, (
             f"{caminho.name} nao traz o sha256 atual do rules.json ({sha[:12]}...): "
             "gerado a partir de um rules.json diferente ou editado a mao"
         )
+
+
+def test_sincronia_sobrevive_checkout_com_crlf(tmp_path):
+    """Regressao: num checkout Windows (git converte tudo para CRLF), o --check
+    acusava FORA DE SINCRONIA falso porque o hash embutido era calculado sobre
+    os bytes crus do rules.json. Simula o checkout CRLF e exige sincronia."""
+    import shutil
+
+    copia = tmp_path / "guardian"
+    shutil.copytree(GUARDIAN, copia, ignore=shutil.ignore_patterns("__pycache__"))
+    for rel in ("rules.json", "app/extensao/classificador.js",
+                "app/Sentinela-Classificador.ps1",
+                "gerador/classificador.js.tmpl",
+                "gerador/Sentinela-Classificador.ps1.tmpl"):
+        f = copia / rel
+        f.write_bytes(f.read_bytes().replace(b"\n", b"\r\n"))
+
+    spec = importlib.util.spec_from_file_location("build_rules_crlf", copia / "build_rules.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    assert mod.main(["--check"]) == 0, "checkout CRLF nao pode quebrar a sincronia"
 
 
 @pytest.mark.parametrize(
